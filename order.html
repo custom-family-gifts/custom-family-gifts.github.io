@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/mini.css/3.0.1/mini-default.min.css">
+    <link rel="stylesheet" href="common.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <script src="order.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+  </head>
+  <body>
+    <header>
+      <img id="cfgLogo" src="https://cdn.shopify.com/s/files/1/0060/6725/7434/files/heart.png?v=1607199816">
+      <a href="#order" class="button" style="margin-left:60px;">#8412</a>
+      <a href="#proofs" class="button">Proofs</a>
+      <a href="#message" class="button">messages</a>
+      <!-- <a href="#ship" class="button">Ship</a> -->
+    </header>
+
+    <h3 id="order">Order Details</h3>
+    <div id="content_order">
+      <div class="row">
+
+        <div class="card">
+          <div class="section">
+            <h5>order info</h5>
+            <p>peter.chang.04@gmail.com</p>
+            <p>created Dec 15th 2020 - 4:23pm</p>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="section">
+            <h5>items</h5>
+            <p>Adventure Map / 10x8 / Print Only</p>
+          </div>
+        </div>
+
+        <div class="card small">
+          <div class="section">
+            <h5>shipping</h5>
+            <p>Paula Abdul</p>
+            <p>1234 Smith st</p>
+            <p>apt 23</p>
+            <p>Smithfield, MN, 12345</p>
+            <p>US</p>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <h3 id="proofs">Proofs</h3>
+    <div id="content_proofs">
+      <style>
+        #content_proofs .section {
+          position: relative !important;
+        }
+        .proof_overlay {
+          position: absolute;
+          background-color:rgba(0,0,0,0.2);
+          color: white;
+          border-radius: 7px;
+        }
+        .proof_overlay p {
+          font-size: 0.8em;
+          line-height: 12px;
+        }
+        .proof_overlay.top {
+          left: 11px;
+          top: 11px;
+        }
+        .proof_overlay.bottom {
+          right: 11px;
+          bottom: 18px;
+        }
+      </style>
+
+      <div class="section" proof="a">
+        <div class="proof_overlay top">
+          <p>Proof B</p>
+        </div>
+        <div class="proof_overlay bottom">
+          <p>Dec 12 3:21pm</p>
+          <p>• click to see full •</p>
+        </div>
+
+        <div class="row">
+
+          <figure>
+            <a href="https://dl.airtable.com/.attachments/c89f38a0b95da5fda913ceec831d1331/02da2f69/7481_a_proof.jpg">
+              <img src="https://dl.airtable.com/.attachments/c89f38a0b95da5fda913ceec831d1331/02da2f69/7481_a_proof.jpg" alt="Image description"/>
+            </a>
+          </figure>
+        </div>
+      </div>
+
+      <div class="section" proof="a">
+        <div class="proof_overlay top">
+          <p>Proof A</p>
+        </div>
+        <div class="proof_overlay bottom">
+          <p>Dec 12 3:21pm</p>
+          <p>• click to see full •</p>
+        </div>
+
+        <div class="row">
+          <figure>
+            <a href="https://dl.airtable.com/.attachments/c89f38a0b95da5fda913ceec831d1331/02da2f69/7481_a_proof.jpg">
+              <img src="https://dl.airtable.com/.attachments/c89f38a0b95da5fda913ceec831d1331/02da2f69/7481_a_proof.jpg" alt="Image description"/>
+            </a>
+          </figure>
+        </div>
+      </div>
+    </div>
+
+    <h3 id="message">Messages</h3>
+    <div id="content_messages">
+      <style>
+        .message {
+          background-color: white;
+          width: calc(100% - 20px);
+          border: 1px solid #ddd;
+          margin: 10px;
+          padding: 8px 12px;
+        }
+        .message.customer {
+          background-color: #0090f7;
+          color: white;
+          border: none;
+          border-left: 15px solid ghostwhite;
+        }
+        .timestamp {
+          opacity: 0.6;
+          text-transform: uppercase;
+          font-size: 0.75em;
+        }
+      </style>
+      <script>
+        function showMessageTextarea() {
+          $('#content_messages input.showMessage').addClass('hide');
+          $('#content_messages').find('textarea').removeClass('hide').focus();
+          $('#content_messages').find('input.send').removeClass('hide');
+        }
+        function sendMessage() {
+
+        }
+      </script>
+
+      <div class="row">
+        <input class="primary showMessage" type="button" value="SAY SOMETHING" onclick="showMessageTextarea()" />
+        <textarea class="hide" name="text" oninput='this.style.height = "";this.style.height = this.scrollHeight + 3 + "px"'></textarea>
+        <input class="primary send hide" type="button" value="SEND" onclick="sendMessage()" />
+      </div>
+
+      <div class="row">
+        <div class="message customer">
+          <div class="timestamp">
+            Dec 14th 3:23pm - You
+          </div>
+          Hi Tina, asef
+        </div>
+        <div class="message">
+          <div class="timestamp">
+            Dec 14th 3:23pm - Peter
+          </div>
+          Hi Tina, asef
+        </div>
+      </div>
+    </div>
+
+    <footer>
+      <a href="mailto:hello@customfamilygifts.com">get help • hello@customfamilygifts.com</a>
+    </footer>
+  </body>
+</html>

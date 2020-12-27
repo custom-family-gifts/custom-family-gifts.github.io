@@ -1,0 +1,54 @@
+header {
+  position: fixed;
+  top:0;
+  left:0;
+  width:100%;
+  z-index: 99;
+}
+body {
+  padding-top: 55px;
+}
+#cfgLogo {
+  height: 55px;
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: 99;
+}
+.row img {
+  outline: 3px dashed #ddd;
+}
+.hide {
+  display: none;
+}
+h3 {
+  border-bottom: 1px solid #ddd;
+  padding-bottom:3px;
+  padding-top: 20px;
+}
+h5 {
+  opacity: 0.8;
+  margin-bottom: 0;
+  text-transform: uppercase;
+}
+.card .section {
+  background-color: white;
+}
+.card p {
+  line-height:15px;
+}
+textarea {
+  margin: 0px 10px;
+  width: calc(100% - 20px);
+  background-color: white;
+}
+
+@media only screen and (min-width: 1024px) {
+  body, header {
+    margin-left: 20%;
+    margin-right: 20%;
+  }
+  header {
+    width: 60%;
+  }
+}
