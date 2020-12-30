@@ -4,7 +4,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/mini.css/3.0.1/mini-default.min.css">
     <link rel="stylesheet" href="common.css">
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
-    <script src="order.js"></script>
+    <script src="api.js"></script>
     <meta name="viewport" content="width=device-width, initial-scale=1">
   </head>
   <body>
@@ -18,7 +18,11 @@
 
     <h3 id="order">Order Details</h3>
     <div id="content_order">
+      <div class="spinner"></div>
+
+      <!--
       <div class="row">
+        <div class="spinner"></div>
 
         <div class="card">
           <div class="section">
@@ -47,10 +51,14 @@
         </div>
 
       </div>
+    -->
     </div>
 
     <h3 id="proofs">Proofs</h3>
     <div id="content_proofs">
+      <div class="spinner"></div>
+
+      <!--
       <style>
         #content_proofs .section {
           position: relative !important;
@@ -60,6 +68,7 @@
           background-color:rgba(0,0,0,0.2);
           color: white;
           border-radius: 7px;
+          pointer-events: none;
         }
         .proof_overlay p {
           font-size: 0.8em;
@@ -111,10 +120,13 @@
           </figure>
         </div>
       </div>
+    -->
     </div>
 
     <h3 id="message">Messages</h3>
     <div id="content_messages">
+      <div class="spinner"></div>
+      <!--
       <style>
         .message {
           background-color: white;
@@ -166,6 +178,7 @@
           Hi Tina, asef
         </div>
       </div>
+    -->
     </div>
 
     <footer>
