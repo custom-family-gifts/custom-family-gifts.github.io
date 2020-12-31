@@ -46,7 +46,7 @@ API.call = function(options) {
       // save the cache
       API.saveCache(options.method, data);
     } else if (res.status == 202) {
-      API.saveCache(options.method, data);
+      if (options.onFailure) options.onFailure(data, res.status);
     } else {
       // fail condition
       if (options.onFailure) options.onFailure(data, res.status);
@@ -54,23 +54,6 @@ API.call = function(options) {
     }
   });
 };
-
-// call this for main page renders
-API.render = function(id, method) {
-  var $div = $(`#${id}`);
-  $div.html('<div class="spinner"></div>');
-
-  API.call({
-    method: 'v2-renderOrderProofs',
-    onSuccess: (data) => {
-      $div.html(data.result);
-    },
-    onFailure: (data) => {
-      console.log('faile');
-      $div.html(`oops.. 🤦‍♀️ something broke`);
-    }
-  });
-}
 
 /* Caching logic */
 API.cacheExpire = 60000; // 60s

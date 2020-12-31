@@ -14,6 +14,7 @@ body {
   left: 0;
   top: 0;
   z-index: 99;
+  outline: none;
 }
 .row img {
   outline: 3px dashed #ddd;
@@ -27,7 +28,8 @@ h3 {
   padding-top: 20px;
 }
 h5 {
-  opacity: 0.8;
+  opacity: 1;
+  color: #f78d73;
   margin-bottom: 0;
   text-transform: uppercase;
 }
