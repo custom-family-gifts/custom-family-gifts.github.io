@@ -13,6 +13,18 @@ API.init = function() {
   if (API.z) API.z = API.z.split('#')[0];
   // check for auth stored
   if (localStorage) API.zKey = localStorage.getItem(`key_${API.z}`);
+
+  // enable global error reporting
+  window.addEventListener("error", function (e, f, g) {
+    API.errorLog({
+      name: 'window.eventListener',
+      message: e.message,
+      stack: e.stack,
+      url: (window && window.location) ? window.location.href : null,
+      type: 'client_js_error'
+    });
+    return false;
+  })
 }
 
 API.call = function(options) {
@@ -27,7 +39,18 @@ API.call = function(options) {
   if (!options.httpMethod) options.httpMethod = 'GET';
   if (!options.method) throw new Error('needs method');
   // 1. check the browser cache
-  var cachedData = API.getCache(options.method);
+  var cachedData = null;
+  try {
+    cachedData = API.getCache(options.method);
+  } catch (e) {
+    API.errorLog({
+      name: 'API.getCache',
+      message: e.message,
+      stack: e.stack,
+      url: (window && window.location) ? window.location.href : null,
+      type: 'client_js_error'
+    });
+  }
   if (cachedData) {
     return options.onSuccess(cachedData);
   }
@@ -52,6 +75,14 @@ API.call = function(options) {
       if (options.onFailure) options.onFailure(data, res.status);
       API.clearCache(options.method);
     }
+  }).fail(function(err) {
+    API.errorLog({
+      name: options.method,
+      message: `${err.status} ${err.responseText.substring(0,250)}`,
+      stack: err.responseJSON,
+      url: callURL,
+      type: 'client_api_error'
+    });
   });
 };
 
@@ -83,6 +114,22 @@ API.getCache = function(method) {
 API.clearCache = function(method) {
   if (!localStorage) return;
   localStorage.removeItem(`${method}_${API.z}`);
+}
+
+API.errorLog = function(log) {
+  log.log = 'error_log';
+  log.userAgent = 'unknown';
+  log.timezone = new Date().getTimezoneOffset();
+  if (window && window.navigator) log.userAgent = window.navigator.userAgent;
+  var callURL = `https://us-central1-custom-family-gifts.cloudfunctions.net/v2-log?`;
+  $.ajax(callURL,{
+    method: `POST`,
+    headers: { "Content-Type": "application/json" },
+    data: JSON.stringify(log)
+  }).done(function(data, status) {
+    // console.log(data);
+    // console.log(status);
+  });
 }
 
 API.init();

@@ -21,7 +21,7 @@ $(document).ready(() => {
 
 Render.main = (data) => {
   var result = `
-    <h3>Order Details</h3>
+    <h3 id="top">Order Details</h3>
     <div class="row">
       ${Render.try('header', data)}
       ${Render.try('orderStatus', data)}
@@ -31,7 +31,7 @@ Render.main = (data) => {
       ${Render.try('shipping', data)}
     </div>
 
-    <h3>Proofs</h3>
+    <h3 id="proofs">Proofs</h3>
     ${Render.try('proofs', data)}
   `;
   return result;
@@ -41,7 +41,7 @@ Render.header = (data) => {
   var result = `
     <header id="content_header">
       <img id="cfgLogo" src="https://cdn.shopify.com/s/files/1/0060/6725/7434/files/heart.png?v=1607199816">
-      <a href="#order" class="button" style="margin-left:60px;">#${data.orderId_raw}</a>
+      <a href="#top" class="button" style="margin-left:60px;">#${data.orderId_raw}</a>
       <a href="#proofs" class="button">Proofs</a>
       <!--<a href="#message" class="button">messages</a>-->
     </header>

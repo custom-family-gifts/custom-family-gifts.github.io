@@ -9,7 +9,13 @@ const Render = {
       }, 150)
       return Render[id](data);
     } catch (e) {
-      console.warn(e);
+      API.errorLog({
+        name: `Render.try('${id}')`,
+        message: e.message,
+        stack: e.stack,
+        url: (window && window.location) ? window.location.href : 'unknown',
+        type: 'client_render_error'
+      });
       return '<p>🤷‍♀️ something went wrong...</p>'
     }
   },

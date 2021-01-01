@@ -7,6 +7,7 @@ header {
 }
 body {
   padding-top: 55px;
+  background-color: #f3f3f3;
 }
 #cfgLogo {
   height: 55px;
@@ -33,6 +34,9 @@ h5 {
   margin-bottom: 0;
   text-transform: uppercase;
 }
+.card {
+  align-self: stretch; /* in full screen mode, cards in same row share height */
+}
 .card .section {
   background-color: white;
 }
@@ -43,6 +47,10 @@ textarea {
   margin: 0px 10px;
   width: calc(100% - 20px);
   background-color: white;
+}
+.footnote {
+  opacity: 0.5;
+  font-size: 0.8em;
 }
 
 @media only screen and (min-width: 1024px) {
