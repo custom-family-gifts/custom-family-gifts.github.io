@@ -151,7 +151,8 @@ Render.shipping = (data) => {
   // check digital Only
   var hasShipping = false;
   data.formatted_items.forEach((item) => {
-    if (item.frame !== 'Digital Only') hasShipping = true;
+    if (item.frame !== 'Digital Only' && item.frame !== 'None') hasShipping = true;
+
   });
   if (!hasShipping) return `
     <div class="card small">
@@ -192,6 +193,27 @@ Render.proofs = (data) => {
     }
     return item;
   });
+
+  // look for proof_data to augment this - S3 link & timestamps
+  if (data.proof_data) {
+    var proofsData = {};
+    data.proof_data.split(',').forEach((proofString) => {
+      var proofData = proofString.split('|');
+      proofsData[proofData[0].trim()] = {
+        date: new Date(proofData[1]),
+        s3Link: proofData[2]
+      };
+    });
+    console.log(data.auto_proof_files);
+    data.auto_proof_files = data.auto_proof_files.map((proof) => {
+      var letter = proof.filename.split('_')[1];
+      if (proofsData[letter]) {
+        proof.url = proofsData[letter].s3Link;
+        proof.date = proofsData[letter].date;
+      }
+      return proof;
+    });
+  }
 
   // sort the proofs first
   var sortedProofs = data.auto_proof_files.sort((a, b) => {
@@ -237,7 +259,8 @@ Render.proofs = (data) => {
 
 Render.proof = (proof) => {
   var letter = proof.filename.split('_')[1].toLowerCase();
-  var text = (proof.approved) ? `✔ ${letter.toUpperCase()} Approved` : `Proof ${letter.toUpperCase()}`;
+  var text = (proof.approved) ? `✔ ${letter.toUpperCase()}` : `${letter.toUpperCase()}`;
+  if (proof.date) text += ` • <span class="datetime">${proof.date}</span>`;
   return `
     <div class="section" proof="${letter}">
       <div class="proof_overlay top ${(proof.approved) ? 'approved' : ''}">

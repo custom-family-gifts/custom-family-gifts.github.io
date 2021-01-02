@@ -16,6 +16,7 @@ const Render = {
         url: (window && window.location) ? window.location.href : 'unknown',
         type: 'client_render_error'
       });
+      console.warn(e);
       return '<p>🤷‍♀️ something went wrong...</p>'
     }
   },
