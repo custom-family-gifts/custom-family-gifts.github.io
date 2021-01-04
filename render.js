@@ -6,7 +6,8 @@ const Render = {
     try {
       setTimeout(function() {
         Render.toLocalTime();
-      }, 150)
+        Render.followAnchor();
+      }, 150);
       return Render[id](data);
     } catch (e) {
       API.errorLog({
@@ -56,5 +57,17 @@ const Render = {
       case 11: month = 'Dec'; break;
     }
     return month;
+  },
+  followAnchor: () => {
+    try {
+      if (Render.followedAnchor) return;
+      var anchor = window.location.href.split('#')[1];
+      Render.followedAnchor = true;
+      $([document.documentElement, document.body]).animate({
+        scrollTop: $("#"+anchor).offset().top - 62
+      }, 250);
+    } catch (e) {
+      console.warn(e);
+    }
   }
 };

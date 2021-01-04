@@ -204,7 +204,6 @@ Render.proofs = (data) => {
         s3Link: proofData[2]
       };
     });
-    console.log(data.auto_proof_files);
     data.auto_proof_files = data.auto_proof_files.map((proof) => {
       var letter = proof.filename.split('_')[1];
       if (proofsData[letter]) {
@@ -263,7 +262,7 @@ Render.proof = (proof) => {
   if (proof.date) text += ` • <span class="datetime">${proof.date}</span>`;
   return `
     <div class="section" proof="${letter}">
-      <div class="proof_overlay top ${(proof.approved) ? 'approved' : ''}">
+      <div class="proof_overlay top ${(proof.approved) ? 'approved' : ''}" id="proof_${letter}">
         <p>${text}</p>
       </div>
       <div class="proof_overlay bottom">
