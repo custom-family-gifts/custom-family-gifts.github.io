@@ -76,6 +76,7 @@ API.call = function(options) {
       API.clearCache(options.method);
     }
   }).fail(function(err) {
+    if (options.onFailure) options.onFailure(err, err.status);
     API.errorLog({
       name: options.method,
       message: `${err.status} ${err.responseText.substring(0,250)}`,
