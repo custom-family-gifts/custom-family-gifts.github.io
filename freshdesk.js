@@ -16,7 +16,7 @@ API.load = (urlParams) => {
   if (urlParams.per) API.params.per = +urlParams.per;
 
   // handle search
-  if (isNaN(urlParams.search)) {
+  if (urlParams.search && isNaN(urlParams.search)) {
     if (urlParams.search.indexOf('@') > -1) {
       API.params.q = { $text: {
         $search: `${urlParams.search}`,
