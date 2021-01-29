@@ -1,13 +1,13 @@
-/* nothing here so far - i think most of the logic will be with the render functions */
-$(document).ready(() => {
+API.load = (urlParams) => {
   Render.loading('main');
   API.call({
+    cacheMS: 60000, // 60s - customers don't have access to 'live' data for load issues.
     method: 'v2-getCustomerOrder',
     onSuccess: (data) => {
-      console.log(data);
       $('#main').html(Render.try('main',data));
     },
     onFailure: (data) => {
+      console.log('order on failure');
       $('#main').html(`
         <div class="row">
           <p>Unable to locate order.</p>
@@ -17,13 +17,13 @@ $(document).ready(() => {
       `);
     }
   });
-});
+};
 
 Render.main = (data) => {
   var result = `
+    ${Render.try('header', data)}
     <h3 id="top">Order Details</h3>
     <div class="row">
-      ${Render.try('header', data)}
       ${Render.try('orderStatus', data)}
       ${Render.try('digitalDownload', data)}
       ${Render.try('orderInfo', data)}

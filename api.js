@@ -24,7 +24,12 @@ API.init = function() {
       type: 'client_js_error'
     });
     return false;
-  })
+  });
+
+  $(document).ready(() => {
+    if (!API.load) throw new Error('undefined API.load() - need to know what to load');
+    API.load(API.getUrlParams());
+  });
 }
 
 API.call = function(options) {
@@ -41,7 +46,7 @@ API.call = function(options) {
   // 1. check the browser cache
   var cachedData = null;
   try {
-    cachedData = API.getCache(options.method);
+    cachedData = API.getCache(options.method + '_' + window.location.search, options.cacheMS);
   } catch (e) {
     API.errorLog({
       name: 'API.getCache',
@@ -59,21 +64,26 @@ API.call = function(options) {
 
   // 3. make the call
   var callURL = `https://us-central1-custom-family-gifts.cloudfunctions.net/v2-call?cypherKey=${API.zKey || API.z}&method=${options.method}`;
-  $.ajax(callURL,{
+  var ajaxOptions = {
     method: `${options.httpMethod}`,
     headers: (options.httpMethod == 'GET') ? {} : { "Content-Type": "application/json" }
-  }).done(function(data, status, res) {
+  };
+  if (options.body) {
+    ajaxOptions.data = options.body;
+  }
+
+  $.ajax(callURL, ajaxOptions).done(function(data, status, res) {
     if (res.status == 200) {
       if (localStorage) localStorage.setItem(`key_${API.z}`, data.key); // record auth key - to skip Airtable AUTH
       if (options.onSuccess) options.onSuccess(data);
       // save the cache
-      API.saveCache(options.method, data);
+      API.saveCache(options.method + '_' + window.location.search, data);
     } else if (res.status == 202) {
       if (options.onFailure) options.onFailure(data, res.status);
     } else {
       // fail condition
       if (options.onFailure) options.onFailure(data, res.status);
-      API.clearCache(options.method);
+      API.clearCache(options.method + '_' + window.location.search);
     }
   }).fail(function(err) {
     if (options.onFailure) options.onFailure(err, err.status);
@@ -95,7 +105,7 @@ API.saveCache = function(method, data) {
   localStorage.setItem(`${method}_${API.z}`, JSON.stringify(data));
 }
 
-API.getCache = function(method) {
+API.getCache = function(method, cacheMS) {
   if (!localStorage) return;
   var cached = localStorage.getItem(`${method}_${API.z}`);
   if (cached) {
@@ -104,9 +114,13 @@ API.getCache = function(method) {
     var cacheDatetime = new Date(cacheData.cacheDatetime);
     cacheData.cacheAgeMs = new Date() - cacheDatetime;
     delete cacheData.cacheDatetime;
-    if (cacheData.cacheAgeMs < API.cacheExpire) {
+    if (cacheData.cacheAgeMs < (cacheMS || API.cacheExpire)) {
       console.log('cachehit ' + method);
+      cacheData.cacheHit = true; // show that this came from cache
       return cacheData;
+    } else {
+      // remove from browser cache
+      localStorage.removeItem(`${method}_${API.z}`);
     }
   }
   return null;
@@ -132,5 +146,63 @@ API.errorLog = function(log) {
     // console.log(status);
   });
 }
+
+API.params = {}; // what actually gets pass to API. contains default values and can be influenced by urlParams
+API.getUrlParams = function() {
+  // gets the params from url
+  var url = window.location.search;
+  var paramSplit2 = (url.split('?')[1]) ? url.split('?')[1].split('&') : [];
+  var result = {};
+  var paramSplit3 = paramSplit2.forEach((item) => { // count=13
+    var itemSplit = item.split('=');
+    var key = itemSplit[0];
+    var value = itemSplit[1];
+    if (value == undefined || value == null) value = '';
+    result[key] = decodeURIComponent(value.replace(/\+/g, ' '));
+  });
+  return result;
+};
+API.setUrlParam = function(name, value) { // pushes param changes to url
+  var params = API.getUrlParams();
+  params[name] = value;
+  API.paramsToUrl(params);
+};
+API.paramsToUrl = function(paramObj) {
+  // reflect this to API.params at this time, which includes default paramters for API
+  API.params = Object.assign({}, API.params, paramObj);
+
+  var result = '';
+  Object.keys(paramObj).forEach((key) => {
+    if (key === undefined) return;
+    if (result != '') result += '&';
+    result += `${key}${(paramObj[key] !== undefined) ? '='+encodeURIComponent(paramObj[key]) : ''}`;
+  });
+  window.history.pushState('page', 'cfg', window.location.pathname + '?' + result);
+  return result;
+}
+// set reactive input elements with attr 'param'
+$(document).on('change blur', "*[param]", function (event) {
+  var $el = $(event.target);
+  var name = $el.attr('name');
+  var value = $el.val();
+  API.setUrlParam(name, value);
+});
+$(document).on('keydown', 'input[param]', function (event) {
+  if (event.type == 'keydown' && event.keyCode != 13) return;
+  setTimeout(() => {
+    API.load(API.getUrlParams());
+  }, 150);
+});
+$(document).on('click', 'button[paramSubmit]', function (event) {
+  setTimeout(() => {
+    API.load(API.getUrlParams());
+  }, 150);
+});
+API.setPage = function(page) {
+  API.setUrlParam('page', page);
+  setTimeout(() => {
+    API.load(API.getUrlParams());
+  }, 150);
+;}
 
 API.init();
