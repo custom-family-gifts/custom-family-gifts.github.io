@@ -194,6 +194,8 @@ const Render = {
           </select>
         </div>
       </div>
+
+      ${(data.recordcount == 0 && data.totalcount > 0) ? `<span class="toast" style="background-color:red;">${data.totalcount} results but not on this page</span>` : ''}
     `;
     return result;
   }

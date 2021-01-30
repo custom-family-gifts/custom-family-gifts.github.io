@@ -2,7 +2,7 @@
 API.load = (urlParams) => {
   Render.loading('main');
   // defaults
-  API.params.q = { };
+  API.params.q = { $and: [] };
 
   if (!API.params.per) API.params.per = 10;
   if (!API.params.page) API.params.page = 1;
@@ -17,45 +17,51 @@ API.load = (urlParams) => {
 
   // handle search
   if (urlParams.search && isNaN(urlParams.search)) {
-    if (urlParams.search.indexOf('@') > -1) {
-      API.params.q = { $text: {
-        $search: `${urlParams.search}`,
-        $caseSensitive: false,
-        $diacriticSensitive: false
-      }}
-    } else {
-      API.params.q = { $text: {
-        $search: `${urlParams.search}`,
-        $caseSensitive: false,
-        $diacriticSensitive: false
-      }}
-    }
-  } else if(urlParams.search != '' && !isNaN(urlParams.search))  {
     API.params.q = {
-      $or: [
-        { ticket_id: +urlParams.search },
-        { order_number: +urlParams.search }
+      $and: [
+        {
+          $text: {
+            $search: `${urlParams.search}`,
+            $caseSensitive: false,
+            $diacriticSensitive: false
+          }
+        }
       ]
-    }
+    };
+  } else if (urlParams.search != '' && !isNaN(urlParams.search))  {
+    API.params.q = {
+      $and: [
+        {
+          $or: [
+            { ticket_id: +urlParams.search },
+            { order_number: +urlParams.search }
+          ]
+        }
+      ]
+    };
   } else {
     API.params.q = {}
   }
 
   // has orderId
   if (urlParams.hasOrderId == 'NO') {
-    API.params.q.$or = [
-      { order_number: 0 },
-      { order_number: { $exists: false } }
-    ];
+    API.params.q.$and.push({
+      $or: [
+        { order_number: 0 },
+        { order_number: { $exists: false } }
+      ]
+    });
+
   } else if (urlParams.hasOrderId == 'YES') {
-    API.params.q.$and = [
+    API.params.q.$and.push(
       { order_number: { $ne: 0 } },
+    );
+    API.params.q.$and.push(
       { order_number: { $exists: true } }
-    ];
-  } else {
-    delete API.params.q.$and;
-    delete API.params.q.$or;
+    );
   }
+
+  console.log(API.params.q);
 
   API.params.search = urlParams.search || '';
 
