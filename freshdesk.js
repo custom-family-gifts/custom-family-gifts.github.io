@@ -83,7 +83,8 @@ API.load = (urlParams) => {
         requester_name: 1,
         order_number: 1,
         messages: 1,
-        order_number_solve_count: 1
+        order_number_solve_count: 1,
+        order_number_confidence: 1
       },
       per: API.params.per,
       page: API.params.page
@@ -152,16 +153,33 @@ Render.results = (data) => {
     ticket_id: {
       width: '70px',
       format: (value) => { return value },
-      display: (value) => { return `<a href="https://customfamilygifts.freshdesk.com/a/tickets/${value}" target="_blank">${value}<span class="icon-link"></span></a>` },
+      display: (value) => { return `<a href="https://customfamilygifts.freshdesk.com/a/tickets/${value}" target="_blank">${value}</a>` },
     },
     requester: {
+      width: '180px',
       format: (value, record) => {
         return `${record.requester_name}${(record.requester_email) ? `<br>${record.requester_email}` : ''}`;
       }
     },
+    fd_subject: { width: '180px', label: 'subject' },
     requester_name: { hide: true },
     requester_email: { hide: true },
-    order_number: { label: 'order', order: 3, width: '90px' },
+    order_number_confidence: { hide: true },
+    order_number: {
+      label: 'order',
+      order: 3,
+      width: '90px',
+      display: (order_number, record) => {
+        var display = `--`;
+        if (record.order_number) {
+          display = `<span>${order_number}</span>`;
+        }
+        if (record.order_number_confidence < 1) {
+          display += `<br><span style="color:red;opacity:0.8;font-size:0.9em">(${record.order_number_confidence * 100}%)</span>`;
+        }
+        return display;
+      }
+    },
     order_number_solve_count: { label: 'solve #', order: 3.5, width: '70px' },
     fd_updated_at: { label: 'updated', order: 0, width: '90px' },
     messages: {

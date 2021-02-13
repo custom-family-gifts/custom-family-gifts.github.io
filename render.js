@@ -134,7 +134,6 @@ const Render = {
     } else if (typeof columnDef.display == 'function') { // reverse of format - a single function should work
       displayValue = columnDef.display(value, record);
       formattedValue = displayValue;
-      if (columnDef.format) formatValue = columnDef.format(value, record);
     } else if (value == undefined || value == null) {
       formattedValue = '--';
       displayValue = '--';
@@ -156,7 +155,7 @@ const Render = {
     }
     var style = '';
     if (columnDef.width) style = ` style="max-width:${columnDef.width}" `;
-    return `<td ${style} data-label="${formattedValue}">${displayValue}</td>`;
+    return `<td ${style} title="${record}" data-label="${columnDef.displayLabel}">${displayValue}</td>`;
   },
   paginate: (data) => {
     // how many pages?
@@ -215,6 +214,7 @@ function buildTableDefinition(mdbData, definition) {
   });
 
   // now, for each column, see what position that key appears most often
+  // each record may present columns in different order depending on what's available
   var columns = {};
   Object.keys(columnsByDataKey).forEach((key) => {
     var column = columnsByDataKey[key];
@@ -263,6 +263,7 @@ function buildTableDefinition(mdbData, definition) {
   // for columns, merge with incoming definition overrides
   Object.keys(columns).forEach((key) => {
     columns[key] = Object.assign(columns[key], defaultHide[key] || {}, definition[key] || {});
+
   });
 
   // check for definitions that aren't columns (computed)
@@ -272,6 +273,11 @@ function buildTableDefinition(mdbData, definition) {
       definition[key].key = key;
       if (definition[key].order == undefined) definition[key].order = 99;
     }
+  });
+
+  // also compute here what label to display - name or label
+  Object.keys(columns).forEach((key) => {
+    columns[key].displayLabel = columns[key].label || columns[key].key;
   });
 
   // finally sort the columns by position

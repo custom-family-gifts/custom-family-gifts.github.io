@@ -84,9 +84,6 @@ table thead {
   z-index: 0; /* it overlaps header for some reason*/
   border-bottom: 1px solid #bbb;
 }
-tr td:first-child, tr th:first-child {
-  width: 1%;
-}
 table td code {
   line-height: 14px;
   margin-bottom:10px;
@@ -99,6 +96,12 @@ table td .tall {
 }
 table td code * {
   display: none;
+}
+
+@media screen and (max-width: 767px) {
+  table td {
+    max-width: 100% !important;
+  }
 }
 
 @media only screen and (min-width: 1024px) {
