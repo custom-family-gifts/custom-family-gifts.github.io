@@ -52,6 +52,12 @@ h5 {
 .card .section {
   background-color: white;
 }
+.card .section small{
+  position: absolute;
+  right: 2px;
+  margin: 2px;
+  opacity: .6;
+}
 .card p {
   line-height:15px;
 }
