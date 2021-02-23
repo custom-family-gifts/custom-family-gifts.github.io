@@ -1,4 +1,4 @@
-const Render = {
+var Render = {
   loading: function(id) {
     $(`#${id}`).html(`<div class="row"><p><div class="spinner"></div></p></div>`);
   },

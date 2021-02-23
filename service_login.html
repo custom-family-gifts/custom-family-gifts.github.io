@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/mini.css/3.0.1/mini-default.min.css">
+    <link rel="stylesheet" href="common.css">
+    <link rel="shortcut icon" type="image/x-icon" href="favicon_cfg.ico">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <!-- <script src="render.js"></script>
+    <script src="api.js"></script> -->
+    <script src="nav.js"></script>
+    <script>
+      function tryLogin() {
+        var code = $('[name=code]').val() || -1;
+        $.ajax(`https://us-central1-custom-family-gifts.cloudfunctions.net/v2-auth?code=${code}`).done((data, status, res) => {
+          console.log('hi', data, status);
+          if (data.user) {
+            Login.success(+code, data.user);
+          } else {
+            // failed
+            $('[name=code]').val('').attr('placeholder', 'code failed');
+            Login.fail();
+          }
+        }).fail(() => {
+          // failed
+          $('[name=code]').val('').attr('placeholder', 'code failed');
+          Login.fail();
+        });
+      }
+    </script>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+  </head>
+  <body class="wide">
+    <header id="content_header">
+      <img id="cfgLogo" src="https://cdn.shopify.com/s/files/1/0060/6725/7434/files/heart.png?v=1607199816">
+      <a href="#" class="button">legendary service</a>
+      <!--<a href="#message" class="button">messages</a>-->
+    </header>
+
+    <div class="card fluid" style="text-align: center">
+      <input name="code" style="width:300px; margin: 12px auto;" placeholder="your code" onkeydown="if (event.keyCode == 13) tryLogin();">
+      <button onclick="tryLogin()" class="primary" style="width:300px; margin: auto; margin-bottom: 30px;">Submit</button>
+    </div>
+
+    <footer style="text-align: center;">
+      <p><a href="https://customfamilygifts.com">shop 🛒 customfamilygifts.com © 2021</a></p>
+      <p class="footnote">this software is written by Peter</br>the artist / designer of CFG</p>
+    </footer>
+  </body>
+</html>

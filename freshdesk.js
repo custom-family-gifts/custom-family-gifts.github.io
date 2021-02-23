@@ -61,8 +61,6 @@ API.load = (urlParams) => {
     );
   }
 
-  console.log(API.params.q);
-
   API.params.search = urlParams.search || '';
 
   API.call({
@@ -109,7 +107,6 @@ API.load = (urlParams) => {
 Render.main = (data) => {
   var result = `
     ${Render.try('filter', data)}
-    ${Render.try('header', data)}
     ${Render.try('results', data)}
     ${Render.try('paginate', data)}
   `;
@@ -134,16 +131,6 @@ Render.filter = (data) => {
         </select>
       </div>
     </div>
-  `;
-  return result;
-};
-
-Render.header = (data) => {
-  var result = `
-    <header id="content_header">
-      <img id="cfgLogo" src="https://cdn.shopify.com/s/files/1/0060/6725/7434/files/heart.png?v=1607199816">
-      <a href="#top" class="button" style="margin-left:60px;">Freshdesk Tickets</a>
-    </header>
   `;
   return result;
 };

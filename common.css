@@ -2,8 +2,9 @@ header {
   position: fixed;
   top:0;
   left:0;
-  width:100%;
+  width:calc(100% - 56px);
   z-index: 99;
+  padding-left:56px;
 }
 body {
   padding-top: 55px;
@@ -76,6 +77,8 @@ table td, table th {
   font-size: 0.85em;
   line-height: 1.35em;
   padding: 8px 12px;
+  overflow-x: hidden;
+  word-break: break-word;
 }
 table th {
   font-weight: 500;
@@ -114,9 +117,9 @@ table td code * {
     margin-right: 10%;
   }
   header {
-    width: 60%;
+    width: calc(60% - 56px);
   }
   body.wide header {
-    width: 80%;
+    width: calc(80% - 56px);
   }
 }
