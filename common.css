@@ -126,3 +126,22 @@ table td code * {
     width: 80%;
   }
 }
+
+h5.you {
+  margin-top: 2px;
+  margin-left: 5px;
+}
+
+h5.cfg {
+  margin-top: 2px;
+  margin-left: 5px;
+}
+
+p.msgs {
+  font-size: 14px;
+  margin-top: 6px;
+  margin-left: 1px;
+  opacity: .7;
+  text-align: center;
+  line-height: 0;
+}

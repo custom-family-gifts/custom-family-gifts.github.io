@@ -34,7 +34,7 @@ Render.main = (data) => {   //added messages section (jack)
     <h3 id="proofs">Proofs</h3>
     ${Render.try('proofs', data)}
 
-    <h3 id="messages">Message History</h3>
+    <h3 id="messages">Messages</h3>
     <div class="section">
       ${Render.try('messages', data)}
     </div>
@@ -48,7 +48,7 @@ Render.messages = (data) => {//<small style="top: 0;" class="datetime">${item.cr
     var msgDate = new Date(item.created);
     var day = msgDate.getDate();
     switch(day) {
-      case 0: day = "00"; break; case 1: day = "01"; break; case 2: day = "02"; break; case 3: day = "03"; break; case 4: day = "04"; break; case 5: day = "05"; break; case 6: day = "06"; break; case 7: day = "07"; break; case 8: day = "08"; break; case 9: day = "09"; break;
+      case 1: day = "1"; break; case 2: day = "2"; break; case 3: day = "3"; break; case 4: day = "4"; break; case 5: day = "5"; break; case 6: day = "6"; break; case 7: day = "7"; break; case 8: day = "8"; break; case 9: day = "9"; break;
     }
     var month = msgDate.getMonth();
     switch(month) {
@@ -61,9 +61,10 @@ Render.messages = (data) => {//<small style="top: 0;" class="datetime">${item.cr
       if(item.from == 'You') {
         result += `
         <div style="position: absolute; left: 10px; width: 45px;">
-          <h5 style="margin-top: 2px;">${item.from}
-            <small style="opacity: .7; text-align: center; line-height: 12px;"><br>${month} ${day}<br>${year}<br>${time}</small>
-          </h5>
+          <h5 class="you">${item.from}</h5>
+          <div style="position: absolute; top: 3px;">
+            <p class="msgs"><small><br>${month} ${day}<br>${year}<br>${time}</small></p>
+          </div>
         </div>
         <div class="card fluid" style="
           margin-left: 60px;
@@ -80,9 +81,10 @@ Render.messages = (data) => {//<small style="top: 0;" class="datetime">${item.cr
       if(item.from != 'You') {
         result += `
         <div style="position: absolute; right: 10px; width: 45px;">
-          <h5 style="margin-top: 2px;">${item.from}
-            <small style="opacity: .7; text-align: center; line-height: 12px;"><br>${month} ${day}<br>${year}<br>${time}</small>
-          </h5>
+          <h5 class="cfg">${item.from}</h5>
+          <div style="position: absolute; top: 3px;">
+            <p class="msgs"><small><br>${month} ${day}<br>${year}<br>${time}</small></p>
+          </div>
         </div>
         <div class="card fluid" style="
           margin-right: 60px;
@@ -100,16 +102,17 @@ Render.messages = (data) => {//<small style="top: 0;" class="datetime">${item.cr
       if(item.from == 'You') {
         result += `
         <div style="position: absolute; left: 10px; width: 45px;">
-          <h5 style="margin-top: 2px;">${item.from}
-            <small style="opacity: .7; text-align: center; line-height: 12px;"><br>${month} ${day}<br>${year}<br>${time}</small>
-          </h5>
+          <h5 class="you">${item.from}</h5>
+          <div style="position: absolute; top: 3px;">
+            <p class="msgs"><small><br>${month} ${day}<br>${year}<br>${time}</small></p>
+          </div>
         </div>
         <div class="card fluid" style="
           margin-left: 60px;
         ">
           <div class="section">
             <small style="top: 0;">via ${item.fromSource}</small>
-              <div style="padding: 10px; padding-top: 40px; word-break: break-all;"
+              <div style="padding: 10px; word-break: break-all;"
                 <p>SUBJECT: ${item.subject}<br>${item.html}</p>
               </div>
             </div>
@@ -119,16 +122,17 @@ Render.messages = (data) => {//<small style="top: 0;" class="datetime">${item.cr
       if(item.from != 'You') {
         result += `
         <div style="position: absolute; right: 10px; width: 45px;">
-          <h5 style="margin-top: 2px;">${item.from}
-            <small style="opacity: .7; text-align: center; line-height: 12px;"><br>${month} ${day}<br>${year}<br>${time}</small>
-          </h5>
+          <h5 class="cfg">${item.from}</h5>
+          <div style="position: absolute; top: 3px;">
+            <p class="msgs"><small><br>${month} ${day}<br>${year}<br>${time}</small></p>
+          </div>
         </div>
         <div class="card fluid" style="
           margin-right: 60px;
         ">
           <div class="section">
             <small style="top: 0;">via ${item.toSource}</small>
-              <div style="padding: 10px; padding-top: 40px; word-break: break-all;"
+              <div style="padding: 10px; word-break: break-all;"
                 <p>SUBJECT: ${item.subject}<br><br>${item.html}</p>
               </div>
             </div>
@@ -146,7 +150,7 @@ Render.header = (data) => {
       <img id="cfgLogo" src="https://cdn.shopify.com/s/files/1/0060/6725/7434/files/heart.png?v=1607199816">
       <a href="#top" class="button" style="margin-left:60px;">#${data.orderId_raw}</a>
       <a href="#proofs" class="button">Proofs</a>
-      <a href="#messages" class="button">Message History</a>
+      <a href="#messages" class="button">Message</a>
       <!--<a href="#message" class="button">messages</a>-->
     </header>
   `;
@@ -386,19 +390,13 @@ Render.proof = (proof) => {
 }
 
 function solveTimeString(date) {
-  var ampm = "am";
   var digit = date.getHours();
-  if(digit > 12) {
-    ampm = "pm";
-  }
+  var ampm = (digit > 11) ? `pm` : `am`;
+
   switch(digit) {
     case 0: digit = "12"; break; case 13: digit = "1"; break; case 14: digit = "2"; break; case 15: digit = "3"; break; case 16: digit = "4"; break; case 17: digit = "5"; break; case 18: digit = "6"; break;  case 19: digit = "7"; break;case 20: digit = "8"; break;case 21: digit = "9"; break;case 22: digit = "10"; break;case 23: digit = "11"; break;
   }
   var hour = digit;
-  var digit = date.getMinutes();
-  switch(digit) {
-    case 0: digit = "00"; break; case 1: digit = "01"; break; case 2: digit = "02"; break; case 3: digit = "03"; break; case 4: digit = "04"; break; case 5: digit = "05"; break; case 6: digit = "06"; break; case 7: digit = "07"; break; case 8: digit = "08"; break; case 9: digit = "09"; break;
-  }
-  var min = digit;
-  return result = `${hour}:${min}<br>${ampm}`;
+  var min = `${date.getMinutes() < 10 ? '0' : ''}${date.getMinutes()}`;
+  return result = `${hour}:${min}${ampm}`;
 }
