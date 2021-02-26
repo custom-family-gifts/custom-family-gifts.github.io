@@ -52,87 +52,33 @@ Render.messages = (data) => {
     var year = msgDate.getFullYear();
     var time = solveTimeString(msgDate);
 
-    if(item.from == 'You') {
-      if(item.subject == '' || item.subject == null) {
-        result +=
-        `
-        <div class="message-out">
-          <div class="from">
-            <h5 class="sender">${item.from}</h5>
-            <div class="message-date">
-              <p class="time"><small><br>${month} ${day}<br>${year}<br>${time}</small></p>
+    var messageClass = (item.from == 'You') ? 'you' : 'cfg';
+    var subject = (item.subject) ?  `SUBJECT: ${item.subject}<br>` : '';
+    result += `
+      <div class="message ${messageClass}">
+        <div class="message-info">
+          <h5 class="sender">${item.from}</h5>
+
+          <div class="message-date">
+            <small>
+              ${month} ${day}
+              <br>${year}
+              <br>${time}
+            </small>
+          </div>
+        </div>
+
+        <div class="card fluid">
+          <div class="section">
+            <small>via ${item.fromSource}</small>
+
+            <div class="main-text">
+              <p">${item.subject}${item.html}</p>
             </div>
           </div>
-          <div class="card fluid">
-            <div class="section">
-              <small>via ${item.fromSource}</small>
-              <div class="main-text"
-                <p">${item.html}</p>
-              </div>
-            </div>
-          </div>
-        </div>`
-      }else{
-        result +=
-        `
-        <div class="message-out">
-          <div class="from">
-            <h5 class="sender">${item.from}</h5>
-            <div class="message-date">
-              <p class="time"><small><br>${month} ${day}<br>${year}<br>${time}</small></p>
-            </div>
-          </div>
-          <div class="card fluid">
-            <div class="section">
-              <small>via ${item.fromSource}</small>
-              <div class="main-text"
-                <p>SUBJECT: ${item.subject}<br>${item.html}</p>
-              </div>
-            </div>
-          </div>
-        </div>`
-      }
-    }else{//from CFG
-      if(item.subject == '' || item.subject == null) {
-        result +=
-        `
-        <div class="message-in">
-          <div class="to">
-            <h5 class="sender">${item.from}</h5>
-            <div class="message-date">
-              <p class="time"><small><br>${month} ${day}<br>${year}<br>${time}</small></p>
-            </div>
-          </div>
-          <div class="card fluid">
-            <div class="section">
-              <small>via ${item.fromSource}</small>
-              <div class="main-text"
-                <p>${item.html}</p>
-              </div>
-            </div>
-          </div>
-        </div>`
-      }else{
-        result +=
-        `
-        <div class="message-in">
-          <div class="to">
-            <h5 class="sender">${item.from}</h5>
-            <div class="message-date">
-              <p class="time"><small><br>${month} ${day}<br>${year}<br>${time}</small></p>
-            </div>
-          </div>
-          <div class="card fluid">
-            <div class="section">
-              <small>via ${item.toSource}</small>
-              <div class="main-text"
-                <p>SUBJECT: ${item.subject}<br><br>${item.html}</p>
-              </div>
-            </div>
-          </div>
-        </div>`
-      }
-    }
+        </div>
+      </div>
+    `;
   });
   return result;
 }

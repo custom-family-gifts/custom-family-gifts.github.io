@@ -105,6 +105,40 @@ table td code * {
   display: none;
 }
 
+/* MESSAGE CSS */
+h5.sender {
+  margin-top: 2px;
+}
+.message-info {
+  position: absolute;
+  width: 45px;
+}
+.message.you .message-info {
+   left: 10px;
+   width: 45px;
+}
+.message.cfg .message-info {
+   right: 10px;
+}
+.message .message-date {
+  font-size: 14px;
+  opacity: .7;
+  text-align: center;
+  line-height: 0;
+}
+
+.message.you .card {
+  margin-left: 60px;
+}
+.message.cfg .card {
+  margin-right: 60px;
+}
+
+.card .section .main-text {
+   padding: 10px;
+   word-break: break-word;
+}
+
 @media screen and (max-width: 767px) {
   table td {
     max-width: 100% !important;
@@ -126,44 +160,4 @@ table td code * {
   body.wide header {
     width: 80%;
   }
-}
-h5.sender {
-  margin-top: 2px;
-  margin-left: 5px;
-}
-p.time {
-  font-size: 14px;
-  margin-top: 6px;
-  margin-left: 1px;
-  opacity: .7;
-  text-align: center;
-  line-height: 0;
-}
-.message-out .from {
-   position: absolute;
-   left: 10px;
-   width: 45px;
-}
-.message-in .to {
-   position: absolute;
-   right: 10px;
-   width: 45px;
-}
-.message-out .message-date {
-  position: absolute;
-  top: 3px;
-}
-.message-in .message-date {
-  position: absolute;
-  top: 3px;
-}
-.message-out .card {
-  margin-left: 60px;
-}
-.message-in .card {
-  margin-right: 60px;
-}
-.card .section .main-text {
-   padding: 10px;
-   word-break: break-word;
 }
