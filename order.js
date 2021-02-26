@@ -19,7 +19,7 @@ API.load = (urlParams) => {
   });
 };
 
-Render.main = (data) => {   //added messages section (jack)
+Render.main = (data) => {
   var result = `
     ${Render.try('header', data)}
     <h3 id="top">Order Details</h3>
@@ -34,7 +34,7 @@ Render.main = (data) => {   //added messages section (jack)
     <h3 id="proofs">Proofs</h3>
     ${Render.try('proofs', data)}
 
-    <h3 id="messages">Messages</h3>
+    <h3 id="message-history">Messages</h3>
     <div class="section">
       ${Render.try('messages', data)}
     </div>
@@ -42,102 +42,95 @@ Render.main = (data) => {   //added messages section (jack)
   return result;
 };
 
-Render.messages = (data) => {//<small style="top: 0;" class="datetime">${item.created}</small>
+Render.messages = (data) => {
   var result = '';
   data.order_messages.forEach((item) => {
     var msgDate = new Date(item.created);
     var day = msgDate.getDate();
-    switch(day) {
-      case 1: day = "1"; break; case 2: day = "2"; break; case 3: day = "3"; break; case 4: day = "4"; break; case 5: day = "5"; break; case 6: day = "6"; break; case 7: day = "7"; break; case 8: day = "8"; break; case 9: day = "9"; break;
-    }
-    var month = msgDate.getMonth();
-    switch(month) {
-      case 0: month = "Jan"; break; case 1: month = "Feb"; break; case 2: month = "Mar"; break; case 3: month = "Apr"; break; case 4: month = "May"; break; case 5: month = "Jun"; break; case 6: month = "Jul"; break; case 7: month = "Aug"; break; case 8: month = "Sep"; break; case 9: month = "Oct"; break; case 10: month = "Nov"; break; case 11: month = "Dec"; break;
-    }
+    var months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    var month = months[msgDate.getMonth()];
     var year = msgDate.getFullYear();
     var time = solveTimeString(msgDate);
 
-    if(item.subject == '' || item.subject == null) {//no subject
-      if(item.from == 'You') {
-        result += `
-        <div style="position: absolute; left: 10px; width: 45px;">
-          <h5 class="you">${item.from}</h5>
-          <div style="position: absolute; top: 3px;">
-            <p class="msgs"><small><br>${month} ${day}<br>${year}<br>${time}</small></p>
+    if(item.from == 'You') {
+      if(item.subject == '' || item.subject == null) {
+        result +=
+        `
+        <div class="message-out">
+          <div class="from">
+            <h5 class="sender">${item.from}</h5>
+            <div class="message-date">
+              <p class="time"><small><br>${month} ${day}<br>${year}<br>${time}</small></p>
+            </div>
           </div>
-        </div>
-        <div class="card fluid" style="
-          margin-left: 60px;
-        ">
-          <div class="section">
-            <small style="top: 0;">via ${item.fromSource}</small>
-              <div style="padding: 10px; word-break: break-all;"
+          <div class="card fluid">
+            <div class="section">
+              <small>via ${item.fromSource}</small>
+              <div class="main-text"
                 <p">${item.html}</p>
               </div>
             </div>
           </div>
+        </div>`
+      }else{
+        result +=
         `
-      }
-      if(item.from != 'You') {
-        result += `
-        <div style="position: absolute; right: 10px; width: 45px;">
-          <h5 class="cfg">${item.from}</h5>
-          <div style="position: absolute; top: 3px;">
-            <p class="msgs"><small><br>${month} ${day}<br>${year}<br>${time}</small></p>
-          </div>
-        </div>
-        <div class="card fluid" style="
-          margin-right: 60px;
-        ">
-          <div class="section">
-            <small style="top: 0;">via ${item.toSource}</small>
-              <div style="padding: 10px; word-break: break-all;"
-                <p>${item.html}</p>
-              </div>
+        <div class="message-out">
+          <div class="from">
+            <h5 class="sender">${item.from}</h5>
+            <div class="message-date">
+              <p class="time"><small><br>${month} ${day}<br>${year}<br>${time}</small></p>
             </div>
           </div>
-        `
-      }
-    }else {//has subject line
-      if(item.from == 'You') {
-        result += `
-        <div style="position: absolute; left: 10px; width: 45px;">
-          <h5 class="you">${item.from}</h5>
-          <div style="position: absolute; top: 3px;">
-            <p class="msgs"><small><br>${month} ${day}<br>${year}<br>${time}</small></p>
-          </div>
-        </div>
-        <div class="card fluid" style="
-          margin-left: 60px;
-        ">
-          <div class="section">
-            <small style="top: 0;">via ${item.fromSource}</small>
-              <div style="padding: 10px; word-break: break-all;"
+          <div class="card fluid">
+            <div class="section">
+              <small>via ${item.fromSource}</small>
+              <div class="main-text"
                 <p>SUBJECT: ${item.subject}<br>${item.html}</p>
               </div>
             </div>
           </div>
-        `
+        </div>`
       }
-      if(item.from != 'You') {
-        result += `
-        <div style="position: absolute; right: 10px; width: 45px;">
-          <h5 class="cfg">${item.from}</h5>
-          <div style="position: absolute; top: 3px;">
-            <p class="msgs"><small><br>${month} ${day}<br>${year}<br>${time}</small></p>
+    }else{//from CFG
+      if(item.subject == '' || item.subject == null) {
+        result +=
+        `
+        <div class="message-in">
+          <div class="to">
+            <h5 class="sender">${item.from}</h5>
+            <div class="message-date">
+              <p class="time"><small><br>${month} ${day}<br>${year}<br>${time}</small></p>
+            </div>
           </div>
-        </div>
-        <div class="card fluid" style="
-          margin-right: 60px;
-        ">
-          <div class="section">
-            <small style="top: 0;">via ${item.toSource}</small>
-              <div style="padding: 10px; word-break: break-all;"
+          <div class="card fluid">
+            <div class="section">
+              <small>via ${item.fromSource}</small>
+              <div class="main-text"
+                <p>${item.html}</p>
+              </div>
+            </div>
+          </div>
+        </div>`
+      }else{
+        result +=
+        `
+        <div class="message-in">
+          <div class="to">
+            <h5 class="sender">${item.from}</h5>
+            <div class="message-date">
+              <p class="time"><small><br>${month} ${day}<br>${year}<br>${time}</small></p>
+            </div>
+          </div>
+          <div class="card fluid">
+            <div class="section">
+              <small>via ${item.toSource}</small>
+              <div class="main-text"
                 <p>SUBJECT: ${item.subject}<br><br>${item.html}</p>
               </div>
             </div>
           </div>
-        `
+        </div>`
       }
     }
   });
@@ -150,8 +143,8 @@ Render.header = (data) => {
       <img id="cfgLogo" src="https://cdn.shopify.com/s/files/1/0060/6725/7434/files/heart.png?v=1607199816">
       <a href="#top" class="button" style="margin-left:60px;">#${data.orderId_raw}</a>
       <a href="#proofs" class="button">Proofs</a>
-      <a href="#messages" class="button">Message</a>
-      <!--<a href="#message" class="button">messages</a>-->
+      <a href="#message-history" class="button">Messages</a>
+      <!--<a href="#message-history" class="button">Messages</a>-->
     </header>
   `;
   return result;
@@ -390,13 +383,9 @@ Render.proof = (proof) => {
 }
 
 function solveTimeString(date) {
-  var digit = date.getHours();
-  var ampm = (digit > 11) ? `pm` : `am`;
-
-  switch(digit) {
-    case 0: digit = "12"; break; case 13: digit = "1"; break; case 14: digit = "2"; break; case 15: digit = "3"; break; case 16: digit = "4"; break; case 17: digit = "5"; break; case 18: digit = "6"; break;  case 19: digit = "7"; break;case 20: digit = "8"; break;case 21: digit = "9"; break;case 22: digit = "10"; break;case 23: digit = "11"; break;
-  }
-  var hour = digit;
+  var hour = date.getHours();
+  var ampm = (hour > 11) ? `pm` : `am`;
+  hour = `${date.getHours() === 0 || date.getHours() === 12 ? '12' : (date.getHours() + 24) % 12}`;
   var min = `${date.getMinutes() < 10 ? '0' : ''}${date.getMinutes()}`;
   return result = `${hour}:${min}${ampm}`;
 }
