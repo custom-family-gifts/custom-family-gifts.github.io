@@ -139,6 +139,38 @@ h5.sender {
    word-break: break-word;
 }
 
+/*REPLY CSS*/
+.replyTitle {
+  position: absolute;
+  width: 40px;
+  left: 12px;
+}
+.replyTitle h5 {
+  position: absolute;
+  margin: 0;
+  top: 0;
+}
+#reply {
+  padding: 0;
+  margin-left: 65px;
+  border: 0px;
+}
+#reply textarea {
+  width: calc(100%);
+  margin: 0;
+}
+.replyText {
+  resize: none;
+}
+.replyButton {
+  position: absolute;
+  bottom: 0;
+  right: 3px;
+  height: 33px;
+  width: 80px;
+  padding-top: 3px;
+}
+
 @media screen and (max-width: 767px) {
   table td {
     max-width: 100% !important;

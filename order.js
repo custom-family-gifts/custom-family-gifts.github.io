@@ -44,6 +44,7 @@ Render.main = (data) => {
 
 Render.messages = (data) => {
   var result = '';
+
   data.order_messages.forEach((item) => {
     var msgDate = new Date(item.created);
     var day = msgDate.getDate();
@@ -80,6 +81,15 @@ Render.messages = (data) => {
       </div>
     `;
   });
+  result += `
+    <div class="section">
+      <div class="replyTitle"><h5>Reply:</h5></div>
+        <form id="reply" id="replyForm">
+          <textarea class="replyText" form="replyform" placeholder="enter reply here"></textarea>
+        </form>
+        <button class="replyButton" onclick="testFunc()">Submit</button>
+    </div>
+  `
   return result;
 }
 
@@ -327,6 +337,36 @@ Render.proof = (proof) => {
     </div>
   `;
 }
+function ticketItemString(data) {
+  var string = '';
+  string += `${data.custFirst} ${data.custLast},`;
+  string += `${data.email},`;
+  string += `${data.orderId_raw}`;
+  // console.log(`THE NAME IS: ${data.custFirst} ${data.custLast}\n`);
+  // console.log(`THE email IS: ${data.email}\n`);
+  // console.log(`THE ORDER # IS: ${data.orderId_raw}\n`);
+  return string;
+}
+
+function testFunc() {
+  // console.log(`Reply text: "${input}" for order #${id} yay!`);
+  // var result = `${replyText}`;
+  var replyText = $("textarea").val();
+  var replyObj = {replyText: `"${replyText}"`};
+  API.call({
+    method: 'v2-customerReply',
+    package: JSON.stringify(replyJSON),
+    onFailure:
+    console.log('customer reply fail');
+      $('#main').html(`
+        <div class="row">
+          <p>Unable to process reply.</p>
+          <p>check your code</p>
+        </div>
+      `);
+  });
+  // console.log(`ITEMS FOR FRESHDESK TICKET = ${replyText}`);
+  }
 
 function solveTimeString(date) {
   var hour = date.getHours();
@@ -335,3 +375,23 @@ function solveTimeString(date) {
   var min = `${date.getMinutes() < 10 ? '0' : ''}${date.getMinutes()}`;
   return result = `${hour}:${min}${ampm}`;
 }
+
+var autoExpand = function (field) {//function to auto grow textarea
+
+	field.style.height = 'inherit';// Reset field height
+
+	var computed = window.getComputedStyle(field);// Get the computed styles for the element
+
+	var height = parseInt(computed.getPropertyValue('border-top-width'), 10)// Calculate the height
+	             + parseInt(computed.getPropertyValue('padding-top'), 10)
+	             + field.scrollHeight
+	             + parseInt(computed.getPropertyValue('padding-bottom'), 10)
+	             + parseInt(computed.getPropertyValue('border-bottom-width'), 10);
+
+	field.style.height = height + 'px';
+};
+
+document.addEventListener('input', function (event) {
+	if (event.target.tagName.toLowerCase() !== 'textarea') return;
+	autoExpand(event.target);
+}, false);
