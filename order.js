@@ -342,30 +342,27 @@ function ticketItemString(data) {
   string += `${data.custFirst} ${data.custLast},`;
   string += `${data.email},`;
   string += `${data.orderId_raw}`;
-  // console.log(`THE NAME IS: ${data.custFirst} ${data.custLast}\n`);
-  // console.log(`THE email IS: ${data.email}\n`);
-  // console.log(`THE ORDER # IS: ${data.orderId_raw}\n`);
+
   return string;
 }
 
 function testFunc() {
-  // console.log(`Reply text: "${input}" for order #${id} yay!`);
-  // var result = `${replyText}`;
-  var replyText = $("textarea").val();
+
+  var replyText = convertReply($("textarea").val());
   var replyObj = {replyText: `"${replyText}"`};
-  API.call({
-    method: 'v2-customerReply',
-    package: JSON.stringify(replyJSON),
-    onFailure:
-    console.log('customer reply fail');
-      $('#main').html(`
-        <div class="row">
-          <p>Unable to process reply.</p>
-          <p>check your code</p>
-        </div>
-      `);
-  });
-  // console.log(`ITEMS FOR FRESHDESK TICKET = ${replyText}`);
+  // API.call({
+  //   method: 'v2-customerReply',
+  //   package: JSON.stringify(replyJSON),
+  //   onFailure:
+  //   console.log('customer reply fail');
+  //     $('#main').html(`
+  //       <div class="row">
+  //         <p>Unable to process reply.</p>
+  //         <p>check your code</p>
+  //       </div>
+  //     `);
+  // });
+  console.log(`PARSED TEXT: = ${replyText}`);
   }
 
 function solveTimeString(date) {
@@ -395,3 +392,54 @@ document.addEventListener('input', function (event) {
 	if (event.target.tagName.toLowerCase() !== 'textarea') return;
 	autoExpand(event.target);
 }, false);
+
+function convertReply(reply) {
+	var input_str = reply.trim(); //store input
+	var counter;
+
+  if(input_str.length > 0){
+	  var	output_html = "<p>"; //begin by creating paragraph
+    for(counter = 0; counter < input_str.length; counter++){
+			switch (input_str[counter]){
+				case '\n':
+					if (input_str[counter+1] === '\n'){
+						output_html += `</p><br><p>`;
+						counter++;
+					}
+					else output_html += "<br>";
+					break;
+
+				case ' ':
+					if(input_str[counter-1] != ' ' && input_str[counter-1] != '\t')
+						output_html += " ";
+					break;
+
+				case '\t':
+					if(input_str[counter-1] != '\t')
+						output_html += " ";
+					break;
+
+				case '&':
+					output_html += "&amp;";
+					break;
+
+				case '"':
+					output_html += "&quot;";
+					break;
+
+				case '>':
+					output_html += "&gt;";
+					break;
+
+				case '<':
+					output_html += "&lt;";
+					break;
+
+				default:
+					output_html += input_str[counter];
+			}
+		}
+		output_html += "</p>"; //finally close paragraph
+	}
+  return output_html;
+}
