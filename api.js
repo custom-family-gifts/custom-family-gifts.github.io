@@ -37,7 +37,7 @@ API.call = function(options) {
     httpMethod, // POST GET...
     method, // GCF function name
     params, // ?asdf=1234
-    package, // obj to be passed into POST as JSON
+    body, // obj to be passed into POST as JSON
     onSuccess, // executed after success
     onFailure // executed after failure
   */
