@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/lodash@4.17.15/lodash.min.js"></script>
+    <script src="index.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/mini.css/3.0.1/mini-default.min.css">
+    <link rel="stylesheet" href="common.css">
+    <style>
+      h5 p, p {
+        font-weight: 400;
+        font-size: 0.8em;
+        color: #888;
+        display: inline;
+      }
+      textarea {
+        margin-left: 3px;
+        margin-top: 2px;
+      }
+      .item {
+        display: inline-block;
+        font-size: 0.8em;
+        color: #444;
+        background-color: white;
+        padding: 3px 9px;
+        margin: 4px;
+        border: 1px solid #ddd;
+      }
+      .item span {
+        margin-left: 3px;
+      }
+      .item span:first-child {
+        margin-right: 0px;
+      }
+      .item span.partial {
+        color: #4ca24c;
+        font-weight: bold;
+      }
+      .item span.single {
+        color: #616dac;
+        font-weight: bold;
+      }
+      .item.full_match {
+        color: #29d600;
+        border-color: #29d600;
+        font-weight: bold;
+        background-color: #e4ffe4;
+      }
+      .item.partial_match {
+        border-color: #4ca24c;
+        background-color: #d3e8d3;
+      }
+      .item.single_match {
+        border-color: #879aff;
+        background-color: lavender;
+      }
+      #seoResult, #desiredResult, #todoResult {
+        vertical-align: top;
+      }
+      .item.seo {
+        padding: 2px 6px;
+        font-size: 0.6em;
+        margin: 2px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="saveSpaces"></div>
+    <button id="clearData">clear</button>
+
+    <h5>💗 desired terms<p>comma separated - ignore lines with **</p></h5>
+    <textarea id="desired" style="height:200px;">
+      gift for him, gift for husband, anniversary gift for husband,
+      wall art, wedding gift, gift for couple,
+    </textarea>
+
+    <h5>👁‍🗨 Title<p id="titleInfo"></p></h5>
+    <textarea id="title" placeholder="" maxlength="140"></textarea>
+
+    <h5>🎉 Category, Occasion, Holiday, etc</h5>
+    <textarea id="category" placeholder="comma separated" maxlength="140"></textarea>
+    <div id="categoryTags">
+    </div>
+
+    <h5>💎 Tags</h5>
+    <input class="tag" id="tag1" placeholder="tag 1" maxlength="20" size="20" />
+    <input class="tag" id="tag2" placeholder="tag 2" maxlength="20" size="20"  />
+    <input class="tag" id="tag3" placeholder="tag 3" maxlength="20" size="20"  />
+    <input class="tag" id="tag4" placeholder="tag 4" maxlength="20" size="20"  />
+    <input class="tag" id="tag5" placeholder="tag 5" maxlength="20" size="20"  />
+    <input class="tag" id="tag6" placeholder="tag 6" maxlength="20" size="20"  />
+    <input class="tag" id="tag7" placeholder="tag 7" maxlength="20" size="20"  />
+    <input class="tag" id="tag8" placeholder="tag 8" maxlength="20" size="20"  />
+    <input class="tag" id="tag9" placeholder="tag 9" maxlength="20" size="20"  />
+    <input class="tag" id="tag10" placeholder="tag 10" maxlength="20" size="20"  />
+    <input class="tag" id="tag11" placeholder="tag 11" maxlength="20" size="20"  />
+    <input class="tag" id="tag12" placeholder="tag 12" maxlength="20" size="20"  />
+    <input class="tag" id="tag13" placeholder="tag 13" maxlength="20" size="20"  />
+
+    <br/>
+
+    <h5>Etsy Search Data</h5>
+    <div>
+      <button>import</button>
+    </div>
+
+    <div style="display:inline-block;width: 33%;vertical-align:top;">
+      <h5>Desired Terms<p id="desiredTermsDetail"></p></h5>
+      <div id="desiredResult">
+      </div>
+    </div>
+
+    <div style="display:inline-block;width: 33%;vertical-align:top;">
+      <h5 style="margin-bottom:7px;">SEO<span id="seoCount"></span><p style="text-transform:none;font-size:0.7em;">👁‍🗨Title&nbsp;&nbsp;&nbsp;👁‍🗨👁‍🗨Title 1st 45&nbsp;&nbsp;&nbsp;💎part tag&nbsp;&nbsp;&nbsp;💎💎full tag&nbsp;&nbsp;&nbsp;🎉part Attr</p></h5>
+      <div id="seoResult">
+      </div>
+    </div>
+
+    <div style="display:inline-block;width: 33%;vertical-align:top;">
+      <h5>Todo</h5>
+      <div id="todoResult">
+      </div>
+    </div>
+
+    <script>
+      var commonWords = {
+        a: true, an: true, the: true, be: true, we: true, is: true, are: true,
+        at: true, to: true , or: true,
+        them: true, us: true, you: true, me: true, i: true,
+        of: true, have: true, in: true, that: true,
+        on: true, as: true, by: true
+        // for: true, from: true,
+      };
+      pluralExceptions = {
+        news: true, canvas: true, paris: true, brussels: true, this: true
+      };
+
+      $(function() {
+        var data = {};
+        var $desired = $('#desired');
+        var $title = $('#title');
+        var $category = $('#category');
+        var $tags = $('.tag');
+        $desired.keyup(function() {
+          refresh();
+        });
+        $title.keyup(function() {
+          refresh();
+        });
+        $tags.keyup(function(el) {
+          refresh();
+        });
+        $category.keyup(function(el) {
+          refresh();
+        });
+
+        function _refresh() {
+          saveData();
+          displayTodo();
+          displayCategory()
+          analyzeSEO();
+          loadSaveSpaces();
+          displayTitleInfo();
+        }
+        var refresh = _.throttle(_refresh, 1500);
+
+        $('#clearData').on('click',function() {
+          $desired.val('');
+          $title.val('');
+          $category.val('');
+          for (var i = 0; i < 13; i++) {
+            $($tags[i]).val('');
+          }
+          refresh();
+        });
+
+        loadData();
+        loadSaveSpaces();
+
+        function loadData() {
+          // load page
+          var saveSpace = localStorage.getItem('save_space') || 'default';
+          var saveSpaces = localStorage.getItem('save_spaces') || `{"default":true}`;
+          saveSpaces = JSON.parse(saveSpaces);
+          var saved = localStorage.getItem(`${saveSpace}_save`) || "{}";
+          saved = JSON.parse(saved);
+          if (Object.keys(saved).length > 0) {
+            $desired.val(saved.desired);
+            $title.val(saved.title);
+            $category.val(saved.category);
+            for (var i = 0; i < 13; i++) {
+              $($tags[i]).val(saved.tags[i]);
+            }
+          }
+          refresh();
+        }
+
+        function loadSaveSpaces() {
+          var saveSpace = localStorage.getItem('save_space') || 'default';
+          var saveSpaces = localStorage.getItem('save_spaces') || `{"default":true}`;
+          saveSpaces = JSON.parse(saveSpaces);
+          $('#saveSpaces').html('');
+          for (var space in saveSpaces) {
+            // compare data
+            var $button = $(`<button id="space_${space.toLowerCase().trim()}" space="${space.toLowerCase().trim()}">${space}</button>`);
+            $button.on('click', function() {
+              var s = $(this).attr('space');
+              localStorage.setItem('save_space', s.toLowerCase().trim());
+              loadSaveSpaces();
+              loadData();
+            });
+            if (space == saveSpace) $button.attr('class','primary');
+            $('#saveSpaces').append($button);
+          }
+
+          var $newSave = $('<button>new save</button>');
+          $newSave.on('click', function() {
+            var name = prompt('name save');
+            newSaveSpace(name);
+          });
+          $('#saveSpaces').append($newSave);
+
+          var $deleteSave = $('<button>delete</button>');
+          $deleteSave.on('click', function() {
+            var name = prompt('name of save to delete');
+            if (name == 'default') return;
+            localStorage.removeItem(`${name}_save`);
+            localStorage.setItem('save_space', 'default');
+            var spaces = localStorage.getItem('save_spaces') || '{}';
+            spaces = JSON.parse(spaces);
+            delete spaces[name];
+            localStorage.setItem('save_spaces', JSON.stringify(spaces));
+            loadSaveSpaces();
+          });
+          if (saveSpace != 'default') $('#saveSpaces').append($deleteSave);
+        }
+
+        function newSaveSpace(name) {
+          var saveSpaces = localStorage.getItem('save_spaces') || `{"default":true}`;
+          saveSpaces = JSON.parse(saveSpaces);
+          saveSpaces[name.toLowerCase().trim()] = true;
+          localStorage.setItem('save_space', name.toLowerCase().trim());
+          localStorage.setItem('save_spaces', JSON.stringify(saveSpaces));
+          saveData();
+          loadSaveSpaces();
+        }
+
+        function getData() {
+          data = {
+            title: $title.val().trim(),
+            desired: $desired.val().toLowerCase().trim(),
+            category: $category.val().trim(),
+            tags: []
+          };
+          data.categories = categoryIntoTags(data.category);
+          for (var i = 0; i < 13; i++) {
+            data.tags[i] = $tags[i].value.toLowerCase().trim();
+          }
+          return data;
+        }
+
+        function saveData() {
+          var saveSpace = localStorage.getItem('save_space') || 'default';
+          var saveSpaces = localStorage.getItem('save_spaces') || `{"default":true}`;
+          saveSpaces = JSON.parse(saveSpaces);
+          data = getData();
+          localStorage.setItem(`${saveSpace}_save`, JSON.stringify(data));
+        }
+
+        function categoryIntoTags(categoryString = "") {
+          var attributes = [];
+          categoryString.split(',').forEach(category => {
+            attributes.push(category.toLowerCase().trim());
+          });
+          return attributes;
+        }
+
+        function parseDesired() {
+          var desiredStr = $desired.val();
+          var strings = desiredStr.split('\n');
+          // filter out ** lines
+          strings = strings.filter(item => {
+            return !item.includes('*');
+          });
+          var search_terms = [];
+          strings.forEach((string) => {
+            string.split(',').forEach(word => {
+              search_terms.push(word.trim())
+            });
+          });
+          search_terms = search_terms.filter((term) => {
+            return term != '';
+          });
+
+          return search_terms;
+        }
+
+        function displayTitleInfo() {
+          var data = getData();
+          $('#titleInfo').text(`${data.title.length}/140`);
+        }
+
+        function displayDesired(desired, desiredObj, seo, seoObj) {
+          var $desired = $('#desiredResult');
+          var matchCount = 0;
+          $desired.html('');
+          desired.forEach(desire => {
+            var $desire = $(`<p class="item"></p>`);
+            if (desiredObj[desire].full_match) {
+              matchCount++;
+              $desire.addClass('full_match').text(desire);
+              for (var word in desiredObj[desire].words) {
+                desiredObj[desire].words[word] = 3;
+              }
+            } else {
+              desire.split(' ').forEach(word => {
+                if (desiredObj[desire].words[word] ==  2) {
+                  $desire.append(`<span class="partial">${word}</span>`);
+                } else if (desiredObj[desire].words[word] ==  1) {
+                  $desire.append(`<span class="single">${word}</span>`);
+                } else {
+                  $desire.append(`<span class="none">${word}</span>`);
+                }
+              });
+            }
+            var minMatch = 3;
+            var maxMatch = 0;
+            for (var word in desiredObj[desire].words) {
+              var wordScore = desiredObj[desire].words[word];
+              if (desire == 'anniversary gift for him') console.log(word, wordScore);
+
+              if (wordScore < minMatch) minMatch = wordScore;
+              if (wordScore > maxMatch) maxMatch = wordScore;
+            }
+            if (minMatch >= 1 && maxMatch == 2) {
+              $desire.addClass('partial_match');
+              matchCount++;
+            } else if (minMatch == 1) {
+              $desire.addClass('single_match');
+              matchCount++;
+            }
+            console.log(desiredObj[desire]);
+            $desired.append($desire);
+          });
+          $('#desiredTermsDetail').text(`${matchCount}/${desired.length} matched : ${((matchCount/desired.length) * 100).toFixed(2)}%`);
+
+          // now find words in SEO that didn't match desires
+          var undesired = [];
+          undesiredObj = {};
+          desiredWords = {}
+          desired.forEach(d => {
+            d.split(' ').forEach(dWord => {
+              desiredWords[dWord] = true;
+            });
+          });
+          seo.forEach(s => {
+            if (s.split(' ').length == 1) {
+              if (!desiredWords[s] && !undesiredObj[s]) {
+                undesiredObj[s] = true;
+                undesired.push(s);
+              }
+            }
+          });
+
+          $desired.append('<h5>Desired?<p>found in SEO but not above</p></h5>');
+          undesired.forEach(u => {
+            $desired.append(`<p class="item">${u}</p>`);
+          });
+        }
+
+        function displayCategory() {
+          var data = getData();
+          var $category = $('#categoryTags');
+          $category.html('');
+          data.categories.forEach(category => {
+            $category.append(`<input name="category_${category}" value="${category}" disabled />`)
+          });
+        }
+
+        function deplural(word) {
+          if (word.charAt(word.length-1) == 's' && word.length > 2 && !pluralExceptions[word]) {
+            return word.substring(0, word.length-1);
+          }
+          return word;
+        }
+
+        function displayTodo() {
+          var data = getData();
+          var tags = data.tags.map(tag => tag);
+          // add categories to tags
+          // deplural categories, to match against tags which should be singular
+          var categoryByWord = {};
+          data.categories.forEach((category) => {
+            categoryByWord[deplural(category.toLowerCase())] = true;
+            tags.push(deplural(category.toLowerCase()));
+          });
+          var todoIssue = [];
+          var todo = [];
+          if (data.title == '') {
+            todoIssue.push('Enter title');
+          } else if (data.title.length < 60) {
+            todo.push(`Title could be longer (${data.title.length}/140)`);
+          }
+          for (var i = 0; i < 13; i++) {
+            var tag = data.tags[i];
+            if (tag == '') {
+              todoIssue.push(`tag ${i+1} missing`);
+            } else if (tag.length < 16) {
+              todo.push(`tag [${tag}] has space for another word`);
+            }
+          }
+          if (data.category.length < 10) {
+            todoIssue.push('missing Category & other attributes');
+          }
+          // check for repeated tag words
+          for (var i = 0; i < tags.length; i++) {
+            var tagI = ' '+tags[i] + ' ';
+            var isCategory_i = (tags[i] in categoryByWord);
+            for (var j = i+1; j < tags.length; j++) {
+              var isCategory_j = (tags[j] in categoryByWord);
+              var matchedPartials = {};
+              var comparePartials = getPartials(tags[j]);
+              comparePartials.forEach(cp => {
+                //  console.log(`[${tags[i]}]`, 'contains', cp, '?');
+                if (tagI.includes(` ${cp} `)) { // uh oh, repeat
+                  // but has it been matched already?
+                  var alreadyMatched = false;
+                  for (var matchedPartial in matchedPartials) {
+                    if (matchedPartial.includes(cp)) {
+                      alreadyMatched = true;
+                    }
+                  }
+                  // new match!
+                  if (alreadyMatched == false && (isCategory_i == false || isCategory_j == false)) {
+                    matchedPartials[cp] = true;
+                    todo.push(`${(isCategory_i) ? 'attr' : 'tag'} [${tags[i]}] & ${(isCategory_j) ? 'attr' : 'tag'} [${tags[j]}] share "${cp}"`);
+                  }
+                }
+              });
+            }
+          }
+          // DONE deplural attributes
+          // DONE check tags for stupid words & plural
+          data.tags.forEach((tag) => {
+            tag.split(' ').forEach(word => {
+              if (word.trim().charAt(word.length-1) == 's' && word.length > 2 && !pluralExceptions[word]) {
+                todo.push(`tag [${tag}] "${word}" might be plural, could save space`);
+              }
+              if (word.trim() in commonWords) {
+                todo.push(`tag [${tag}] "${word}" is common and may not be good use of space`);
+              }
+            });
+          });
+          //
+          // DONE check first 45 of title for stupid words & plural
+          // DONE check first 45 of title for dupes
+          // DONE plural (save space)
+          var title45 = getTitle45(data.title).split(' ');
+          var title45Words = {};
+          title45.forEach(word => {
+            if (title45Words[word]) todoIssue.push(`title repeats "${word}" in premium 1st 45 chars`);
+            title45Words[word] = true;
+            if (word in commonWords) todo.push(`title premium 1st 45 chars has useless word "${word}"`);
+          });
+          var titleWords = {};
+          data.title.toLowerCase().split(' ').forEach(word => {
+            if (titleWords[word.trim()]) todo.push(`title repeats "${word}"`);
+            titleWords[word.trim()] = true;
+          });
+
+          // match 1 - 3 tags exactly to title for power
+          var title45 = getTitle45(data.title).toLowerCase().trim();
+          var fullTitle = data.title.toLowerCase().trim();
+          var tagMatch = 0;
+          var tagFullMatch = 0;
+          data.tags.forEach(tag => {
+            if (title45.includes(tag)) tagMatch++;
+            if (fullTitle.includes(tag)) tagFullMatch++;
+          });
+          if (tagMatch == 0) todoIssue.push('at least 1 tag should fully exist in first 45 of title');
+          if (tagFullMatch < 2) todo.push('at least 2 tags should fully exist the title');
+
+          var $todo = $('#todoResult');
+          $todo.html('');
+          todoIssue = todoIssue.reverse();
+          todo = todo.reverse();
+          todoIssue.forEach(term => {
+            $todo.append(`<p class="item">⛔ ${term}</p>`);
+          });
+          todo.forEach(term => {
+            $todo.append(`<p class="item">🤔 ${term}</p>`);
+          });
+
+          if (todo.length == 0 && todoIssue.length == 0) $todo.append(`✅`)
+        }
+
+        function analyzeSEO() {
+          var data = getData();
+
+          // organize desired
+          var desired = parseDesired();
+          var desiredObj = {};
+          desired.forEach(desire => {
+            desiredObj[desire] = {
+              words: {},
+              full_match: false,
+              term: desire
+            };
+            desire.split(' ').forEach(desireWord => {
+              desiredObj[desire].words[desireWord] = 0;
+            });
+          });
+
+          // algo - get a list of all the seo substrings, cataloging their source
+          // i.e. from full_tag, from partial_tag, from full category, from title45, from title,
+          var seoObj = {};
+          var seo = [];
+
+          // title
+          var title45 = getTitle45(data.title).replace(/-/g,' ');
+          var title45Partials = getPartials(title45);
+          var titlePartials = getPartials(data.title.replace(/-/g,' '));
+          title45Partials.forEach(partial => {
+            if (!seoObj[partial]) {
+              seoObj[partial] = { term: partial, order: seo.length, isTitle: true, isTitle45: true };
+              seo.push(partial);
+            }
+          });
+          titlePartials.forEach((partial) => {
+            if (!seoObj[partial]) {
+              seoObj[partial] = { term: partial, order: seo.length, isTitle: true };
+              seo.push(partial);
+            }
+          });
+
+          // tags
+          data.tags.forEach(tag => {
+            var partials = getPartials(tag);
+            partials.forEach(partial => {
+              if (!seoObj[partial]) {
+                seoObj[partial] = { term: partial, order: seo.length  };
+                seo.push(partial);
+
+              }
+              seoObj[partial].isTag = true;
+              if (partial == tag) seoObj[partial].isTagFull = true;
+            });
+          });
+
+          // categories
+          data.categories.forEach(tag => {
+            var partials = getPartials(tag);
+            partials.forEach(partial => {
+              var partial = deplural(partial);
+              if (!seoObj[partial]) {
+                seoObj[partial] = { term: partial, order: seo.length  };
+                seo.push(partial);
+                seoObj[partial].isCategory = true;
+                if (partial == tag) seoObj[partial].isCategoryFull = true;
+              } else {
+                seoObj[partial].isCategory = true;
+                if (partial == tag) seoObj[partial].isCategoryFull = true;
+              }
+            });
+          });
+
+          // go through seo to look for full / partial matches to desired
+          for (var desire in desiredObj) {
+            // look for full match in seo
+            for (var s in seoObj) {
+              // get partials and do word matching
+              var partialLength = s.split(' ').length;
+              var partial = s;
+              var paddedDesire = ` ${desire} `;
+              if (partial.trim() == desire.trim()) {
+                desiredObj[desire].full_match = true;
+              } else if (paddedDesire.includes(' '+partial+' ') && partialLength > 1) {
+                partial.split(' ').forEach(p => {
+                  if (desiredObj[desire].words[p] < 2) desiredObj[desire].words[p] = 2;
+                });
+              } else if (paddedDesire.includes(' '+partial+' ') && partialLength == 1) {
+                if (desiredObj[desire].words[partial] < 1) desiredObj[desire].words[partial] = 1;
+              }
+            }
+          }
+          displayDesired(desired, desiredObj, seo, seoObj);
+
+          // sort seo by power rankings
+          seo = seo.map((s) => {
+            seoObj[s].score = 1000 - seoObj[s].order;
+            if (seoObj[s].isTitle45) seoObj[s].score += 2000;
+            if (seoObj[s].isTitle) seoObj[s].score += 3000;
+            if (seoObj[s].isTagFull) seoObj[s].score += 1500;
+            if (seoObj[s].isTag) seoObj[s].score += 1500;
+            if (seoObj[s].isCategory) seoObj[s].score += 2000;
+            if (seoObj[s].isCategoryFull) seoObj[s].score += 2000;
+            return s;
+          });
+          seo = seo.sort((a, b) => {
+            return seoObj[b].score - seoObj[a].score;
+          });
+          displaySEO(seo, seoObj);
+          seo.forEach(s => {
+          });
+        }
+      });
+
+      function displaySEO(seo, seoObj) {
+        var $seoResult = $('#seoResult');
+        $seoResult.html('');
+        seo.forEach(s => {
+          var glyphs = '';
+          if (seoObj[s].isTitle45) glyphs += '👁‍🗨';
+          if (seoObj[s].isTitle) glyphs += '👁‍🗨';
+          if (seoObj[s].isTag) glyphs += '💎';
+          if (seoObj[s].isTagFull) glyphs += '💎';
+          if (seoObj[s].isCategoryFull) glyphs += '🎉';
+          if (seoObj[s].isCategory) glyphs += '🎉';
+          if (glyphs != '') glyphs += ' ';
+          var item = $(`<p class="item seo">${glyphs}${s}</p>`);
+          $seoResult.append(item);
+        });
+        $('#seoCount').text(` × ${seo.length} `);
+      }
+
+      function getTitle45(title) {
+        var title45 = '';
+        title.toLowerCase().trim().split(' ').forEach(word => {
+          if (title45 != '' && title45.length + 1 + word.trim().length < 45) title45 += ' ';
+          if (word.trim().length + title45.length < 45) {
+            title45 += word.trim();
+          }
+        });
+        return title45;
+      }
+
+      function getPartials(string) {
+        var words = string.toLowerCase().split(' ');
+        var rawLength = words.length;
+        var partials = {};
+        var sortedPartials = [];
+        for (var wordLength = 1; wordLength < rawLength; wordLength++) {
+          // console.log('wordLength', wordLength);
+          for (var i = 0; i <= rawLength - wordLength; i++) {
+            // console.log(i, '->', i+wordLength);
+            var partialCandidate = words.slice(i, i+wordLength).join(' ');
+            if (!partials[partialCandidate]) {
+              partials[partialCandidate] = true;
+              sortedPartials.push(partialCandidate);
+            }
+          }
+        }
+        // filter out partials with length of 8+
+        sortedPartials = sortedPartials.filter((candidate) => {
+          return candidate.split(' ').length < 8;
+        });
+        // add the full string
+        if (string.split(' ').length < 8) sortedPartials.push(string);
+        return sortedPartials.reverse();
+      }
+    </script>
+  </body>
+</html>
