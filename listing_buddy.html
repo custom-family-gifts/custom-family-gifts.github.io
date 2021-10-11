@@ -147,6 +147,10 @@
         listings: {}
       };
 
+      // sets the default savespace
+      var default_save = '{"title":"Personalized Photo wedding gift couple for 3rd , 4-8 locations personalised travel Admiration Map Print idea for boyfriend or parents 6th 10","desired":"wall art, wedding gift\\ngift for couple, mountain wall art,\\nmap print,\\nanniversary gift for him \\n**gift for who?**\\nhim, her, husband, hubby, mom, dad, parents, gay\\n**single words**\\ntravel, personalized, personalised\\n**years**\\n1st, 2nd, 3rd, 4th, 5th, 6th, 7th, 8th, 9th, 10th, 15th, 20th, 30th, 40th, 50th,\\n1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 20, \\ncotton, paper, iron, bronze, wooden\\nyear, yr\\n**common search terms based on data**\\ngift, anniversary, for, year, him, her, husband, map, wedding, boyfriend, art, wall, couple, mountain,\\nfirst, 10, print,\\none, cotton","category":"Art & Collectibles, Prints, Giclée, Home & Living, Home Decor, Wall Decor, Wall Hangings","tags":["1st anniversary mom","wedding gift couple","personalized photo","first milestone dad","custom mountain map","travel poster 10th 5","2nd 3rd 5th 8th 15th","20th 30th 40th 50th","wooden iron one year","paper cotton bronze","husband wife her gay","for him 4th 1 2 3 yr","personalised silver"],"categories":["art & collectibles","prints","giclée","home & living","home decor","wall decor","wall hangings"]}';
+      localStorage.setItem('default_save', default_save);
+
       function importListingData() {
         var rawCode = `
         /* COPY ME TO RUN ON LISTING PAGE */
