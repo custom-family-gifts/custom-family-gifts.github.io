@@ -7,6 +7,9 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/mini.css/3.0.1/mini-default.min.css">
     <link rel="stylesheet" href="common.css">
     <style>
+      body * {
+        font-size: 0.9em !important;
+      }
       h5 p, p {
         font-weight: 400;
         font-size: 0.8em;
@@ -67,58 +70,62 @@
   <body>
     <div id="saveSpaces"></div>
     <button id="clearData">clear</button>
+    <br />
 
-    <h5>💗 desired terms<p>comma separated - ignore lines with **</p></h5>
-    <textarea id="desired" style="height:200px;">
-      gift for him, gift for husband, anniversary gift for husband,
-      wall art, wedding gift, gift for couple,
-    </textarea>
+    <div style="display:inline-block; width: 66%;">
+      <h5>💖 desired terms<p>comma separated - ignore lines with **</p></h5>
+      <textarea id="desired" style="height:200px;">
+        gift for him, gift for husband, anniversary gift for husband,
+        wall art, wedding gift, gift for couple,
+      </textarea>
 
-    <h5>👁‍🗨 Title<p id="titleInfo"></p></h5>
-    <textarea id="title" placeholder="" maxlength="140"></textarea>
+      <h5>☝ Title<p id="titleInfo"></p></h5>
+      <textarea id="title" placeholder="" maxlength="140"></textarea>
 
-    <h5>🎉 Category, Occasion, Holiday, etc</h5>
-    <textarea id="category" placeholder="comma separated" maxlength="140"></textarea>
-    <div id="categoryTags">
-    </div>
-
-    <h5>💎 Tags</h5>
-    <input class="tag" id="tag1" placeholder="tag 1" maxlength="20" size="20" />
-    <input class="tag" id="tag2" placeholder="tag 2" maxlength="20" size="20"  />
-    <input class="tag" id="tag3" placeholder="tag 3" maxlength="20" size="20"  />
-    <input class="tag" id="tag4" placeholder="tag 4" maxlength="20" size="20"  />
-    <input class="tag" id="tag5" placeholder="tag 5" maxlength="20" size="20"  />
-    <input class="tag" id="tag6" placeholder="tag 6" maxlength="20" size="20"  />
-    <input class="tag" id="tag7" placeholder="tag 7" maxlength="20" size="20"  />
-    <input class="tag" id="tag8" placeholder="tag 8" maxlength="20" size="20"  />
-    <input class="tag" id="tag9" placeholder="tag 9" maxlength="20" size="20"  />
-    <input class="tag" id="tag10" placeholder="tag 10" maxlength="20" size="20"  />
-    <input class="tag" id="tag11" placeholder="tag 11" maxlength="20" size="20"  />
-    <input class="tag" id="tag12" placeholder="tag 12" maxlength="20" size="20"  />
-    <input class="tag" id="tag13" placeholder="tag 13" maxlength="20" size="20"  />
-
-    <br/>
-
-    <h5>Etsy Search Data</h5>
-    <div>
-      <button>import</button>
-    </div>
-
-    <div style="display:inline-block;width: 33%;vertical-align:top;">
-      <h5>Desired Terms<p id="desiredTermsDetail"></p></h5>
-      <div id="desiredResult">
+      <h5>⚾ Category, Occasion, Holiday, etc</h5>
+      <textarea id="category" placeholder="comma separated" maxlength="140"></textarea>
+      <div id="categoryTags">
       </div>
-    </div>
 
-    <div style="display:inline-block;width: 33%;vertical-align:top;">
-      <h5 style="margin-bottom:7px;">SEO<span id="seoCount"></span><p style="text-transform:none;font-size:0.7em;">👁‍🗨Title&nbsp;&nbsp;&nbsp;👁‍🗨👁‍🗨Title 1st 45&nbsp;&nbsp;&nbsp;💎part tag&nbsp;&nbsp;&nbsp;💎💎full tag&nbsp;&nbsp;&nbsp;🎉part Attr</p></h5>
-      <div id="seoResult">
-      </div>
+      <h5>🏅 Tags</h5>
+      <input class="tag" id="tag1" placeholder="tag 1" maxlength="20" size="20" />
+      <input class="tag" id="tag2" placeholder="tag 2" maxlength="20" size="20"  />
+      <input class="tag" id="tag3" placeholder="tag 3" maxlength="20" size="20"  />
+      <input class="tag" id="tag4" placeholder="tag 4" maxlength="20" size="20"  />
+      <input class="tag" id="tag5" placeholder="tag 5" maxlength="20" size="20"  />
+      <input class="tag" id="tag6" placeholder="tag 6" maxlength="20" size="20"  />
+      <input class="tag" id="tag7" placeholder="tag 7" maxlength="20" size="20"  />
+      <input class="tag" id="tag8" placeholder="tag 8" maxlength="20" size="20"  />
+      <input class="tag" id="tag9" placeholder="tag 9" maxlength="20" size="20"  />
+      <input class="tag" id="tag10" placeholder="tag 10" maxlength="20" size="20"  />
+      <input class="tag" id="tag11" placeholder="tag 11" maxlength="20" size="20"  />
+      <input class="tag" id="tag12" placeholder="tag 12" maxlength="20" size="20"  />
+      <input class="tag" id="tag13" placeholder="tag 13" maxlength="20" size="20"  />
     </div>
 
     <div style="display:inline-block;width: 33%;vertical-align:top;">
       <h5>Todo</h5>
       <div id="todoResult">
+      </div>
+
+      <h5>💗 Desired Terms<p id="desiredTermsDetail"></p></h5>
+      <div id="desiredResult"></div>
+    </div>
+
+    <br />
+
+    <div style="display:inline-block;width: 49%;vertical-align:top;">
+      <h5 style="margin-bottom:7px;">Resulting SEO<span id="seoCount"></span><p style="text-transform:none;font-size:0.7em;">‍☝Title&nbsp;&nbsp;&nbsp;🤟Title 1st 45&nbsp;&nbsp;&nbsp;🏅part tag&nbsp;&nbsp;&nbsp;🥇full tag&nbsp;&nbsp;&nbsp;⚾part Attr&nbsp;&nbsp;&nbsp;🥎full Attr</p></h5>
+      <div id="seoResult">
+      </div>
+    </div>
+
+    <div style="display:inline-block;width: 49%;vertical-align:top;">
+      <h5>Etsy Search Data (not implemented)</h5>
+      <button onclick="importListingData()" style="float:left;">import</button>
+      <div id="importedListings"></div>
+
+      <div id="etsySearchResult">
       </div>
     </div>
 
@@ -131,29 +138,125 @@
         on: true, as: true, by: true
         // for: true, from: true,
       };
-      pluralExceptions = {
+      var pluralExceptions = {
         news: true, canvas: true, paris: true, brussels: true, this: true
       };
+      var data, $desired, $title, $category, $tags, refresh;
+      var etsySearchHistory = {
+        listingOrder: [],
+        listings: {}
+      };
+
+      function importListingData() {
+        var rawCode = `
+        /* COPY ME TO RUN ON LISTING PAGE */
+        var r = { search_terms : {} }; // results
+        var p = 1; // page
+        // scrape()
+        function sc() {
+        	// setup for listing data
+        	r.listingId = window.location.pathname.split('/')[window.location.pathname.split('/').length-1];
+        	r.title = $('[href="/listing/834977399"]').closest('.flag').find('[data-test-id="unsanitize"]').text() || 'error finding title';
+        	r.range = $('button.dropdown-button:first').text();
+
+        	var $next = $('button[title="Next page"]');
+        	var interval = setInterval(function (){
+        		// console.log('interval ' + p);
+        		gpr();
+        		if ($next.prop('disabled')) {
+        			// show results
+        			$('body').prepend(''
+        				+'<div id="listing_buddy" style="position:fixed;width:100%;height:100%;z-index:999999;background-color:white;">'
+        					+'<div>'
+        						+'1. triple click on code below to select all</br>'
+        						+'2. copy to clipboard</br>'
+        						+'3. paste into listing_buddy</br>'
+        						+'<button onclick="clb();">click to close</button>'
+        					+'</div>'
+        					+'<code>'+JSON.stringify(r)+'</code>'
+        				+'</div>'
+        			);
+        			clearInterval(interval);
+        			return;
+        		}
+        		p++;
+        		$next.click();
+        	}, 10);
+        }
+        // getPageResults()
+        function gpr() {
+        	var $table = $('table#horizontal-chart4 tr:not(".col-group")');
+        	for (var i = 0; i < $table.length; i++) {
+        		var rowText = $($table[i]).find('.screen-reader-only').text();
+        		var search = rowText.split(': ')[0].replace(/\//g,'').replace(/"/g,'').replace(/&quot;/g,'').replace(/&#39;/g,'');
+        		var visits = +rowText.split(': ')[1].replace(/,/g,'');
+        		r.search_terms[search] = visits;
+        	}
+        }
+        // closeListingBuddy()
+        function clb() {
+        	$('#listing_buddy').remove();
+        }
+        sc();
+        `;
+
+        var code = `/* RUN ON LISTING PAGE */
+var r={search_terms:{}},p=1;function sc(){r.listingId=window.location.pathname.split("/")[window.location.pathname.split("/").length-1],r.title=$('[href="/listing/834977399"]').closest(".flag").find('[data-test-id="unsanitize"]').text()||"error finding title",r.range=$("button.dropdown-button:first").text();var t=$('button[title="Next page"]'),e=setInterval(function(){if(gpr(),t.prop("disabled"))return $("body").prepend('<div id="listing_buddy" style="position:fixed;width:100%;height:100%;z-index:999999;background-color:white;"><div>1. triple click on code below to select all</br>2. copy to clipboard</br>3. paste into listing_buddy</br><button onclick="clb();">click to close</button></div><code>'+JSON.stringify(r)+"</code></div>"),void clearInterval(e);p++,t.click()},10)}function gpr(){for(var t=$('table#horizontal-chart4 tr:not(".col-group")'),e=0;e<t.length;e++){var i=$(t[e]).find(".screen-reader-only").text(),n=i.split(": ")[0].replace(/\//g,"").replace(/"/g,"").replace(/&quot;/g,"").replace(/&#39;/g,""),o=+i.split(": ")[1].replace(/,/g,"");r.search_terms[n]=o}}function clb(){$("#listing_buddy").remove()}sc();
+        `;
+        var dataJSON = prompt(code);
+        var data = JSON.parse(dataJSON);
+        if (!data.search_terms || !data.listingId || !data.title || !data.range) {
+          throw new Error('import invalid data');
+        }
+        if (!etsySearchHistory.listingOrder.includes(data.listingId)) {
+          etsySearchHistory.listingOrder.push(data.listingId);
+          etsySearchHistory.listings[data.listingId] = data;
+        }
+        localStorage.setItem('etsySearchHistory', JSON.stringify(etsySearchHistory));
+        loadListingData();
+      }
+      function loadListingData() {
+        var ls_dataJSON = localStorage.getItem('etsySearchHistory') || "{}";
+        var ls_data = JSON.parse(ls_dataJSON);
+        etsySearchHistory = Object.assign({}, etsySearchHistory, ls_data);
+        renderListingButtons(etsySearchHistory);
+      }
+      function renderListingButtons(etsySearchHistory) {
+        var $listingButtons = $('#importedListings');
+        $listingButtons.html('');
+        etsySearchHistory.listingOrder.forEach(listingId => {
+          // count the visits
+          var visits = 0;
+          for (var term in etsySearchHistory.listings[listingId].search_terms) {
+            visits += etsySearchHistory.listings[listingId].search_terms[term];
+          }
+
+          $listingButtons.append(`
+            <p class="item" title="${etsySearchHistory.listings[listingId].title}">
+              <a href="https://www.etsy.com/your/shops/me/stats/listings/${listingId}" target="_blank">Listing ${listingId}</a>
+              <br />
+              <span>${visits} searches</span>
+              <br />
+              <span>${etsySearchHistory.listings[listingId].range}</span>
+            </p>
+          `);
+        });
+      }
 
       $(function() {
-        var data = {};
+        data = {};
         var $desired = $('#desired');
         var $title = $('#title');
         var $category = $('#category');
         var $tags = $('.tag');
-        $desired.keyup(function() {
-          refresh();
-        });
-        $title.keyup(function() {
-          refresh();
-        });
-        $tags.keyup(function(el) {
-          refresh();
-        });
-        $category.keyup(function(el) {
-          refresh();
-        });
+        $desired.keyup(function() { refresh(); });
+        $title.keyup(function() { refresh(); });
+        $tags.keyup(function(el) { refresh(); });
+        $category.keyup(function(el) { refresh(); });
 
+        loadListingData();
+
+        // setup throttling function
         function _refresh() {
           saveData();
           displayTodo();
@@ -162,7 +265,7 @@
           loadSaveSpaces();
           displayTitleInfo();
         }
-        var refresh = _.throttle(_refresh, 1500);
+        refresh = _.throttle(_refresh, 1500);
 
         $('#clearData').on('click',function() {
           $desired.val('');
@@ -327,8 +430,6 @@
             var maxMatch = 0;
             for (var word in desiredObj[desire].words) {
               var wordScore = desiredObj[desire].words[word];
-              if (desire == 'anniversary gift for him') console.log(word, wordScore);
-
               if (wordScore < minMatch) minMatch = wordScore;
               if (wordScore > maxMatch) maxMatch = wordScore;
             }
@@ -339,7 +440,6 @@
               $desire.addClass('single_match');
               matchCount++;
             }
-            console.log(desiredObj[desire]);
             $desired.append($desire);
           });
           $('#desiredTermsDetail').text(`${matchCount}/${desired.length} matched : ${((matchCount/desired.length) * 100).toFixed(2)}%`);
@@ -610,12 +710,18 @@
         $seoResult.html('');
         seo.forEach(s => {
           var glyphs = '';
-          if (seoObj[s].isTitle45) glyphs += '👁‍🗨';
-          if (seoObj[s].isTitle) glyphs += '👁‍🗨';
-          if (seoObj[s].isTag) glyphs += '💎';
-          if (seoObj[s].isTagFull) glyphs += '💎';
-          if (seoObj[s].isCategoryFull) glyphs += '🎉';
-          if (seoObj[s].isCategory) glyphs += '🎉';
+          if (seoObj[s].isTitle45) glyphs = '☝';
+          if (seoObj[s].isTitle) glyphs = '🤟';
+          if (seoObj[s].isTagFull) {
+            glyphs += '🥇';
+          } else if (seoObj[s].isTag) {
+            glyphs += '🏅';
+          }
+          if (seoObj[s].isCategoryFull) {
+            glyphs += '🥎';
+          } else if (seoObj[s].isCategory) {
+            glyphs += '⚾';
+          }
           if (glyphs != '') glyphs += ' ';
           var item = $(`<p class="item seo">${glyphs}${s}</p>`);
           $seoResult.append(item);
