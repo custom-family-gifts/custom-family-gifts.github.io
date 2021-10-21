@@ -130,6 +130,13 @@
     </div>
 
     <script>
+      /*
+        TODO: desired terms should not duplicate
+        remove , from title search
+        finish moving functions out of $(function(){});
+        analyze etsySearchHistory
+      */
+
       var commonWords = {
         a: true, an: true, the: true, be: true, we: true, is: true, are: true,
         at: true, to: true , or: true,
@@ -139,7 +146,7 @@
         // for: true, from: true,
       };
       var pluralExceptions = {
-        news: true, canvas: true, paris: true, brussels: true, this: true
+        news: true, canvas: true, paris: true, brussels: true, this: true, ms: true, mrs: true,
       };
       var data, $desired, $title, $category, $tags, refresh;
       var etsySearchHistory = {
@@ -621,9 +628,9 @@ var r={search_terms:{}},p=1;function sc(){r.listingId=window.location.pathname.s
           var seo = [];
 
           // title
-          var title45 = getTitle45(data.title).replace(/-/g,' ').replace(/™/g,'').replace('/\./g','');
+          var title45 = getTitle45(data.title).replace(/-/g,' ').replace(/™/g,'').replace(/\./g,'').replace(/\,/g);
           var title45Partials = getPartials(title45);
-          var titlePartials = getPartials(data.title.replace(/-/g,' ').replace(/™/g,'').replace('/\./g',''));
+          var titlePartials = getPartials(data.title.replace(/-/g,' ').replace(/™/g,'').replace(/\./g,'').replace(/\,/g);
           title45Partials.forEach(partial => {
             if (!seoObj[partial]) {
               seoObj[partial] = { term: partial, order: seo.length, isTitle: true, isTitle45: true };
