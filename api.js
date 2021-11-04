@@ -6,12 +6,8 @@ var API = {};
 
 API.init = function() {
   // solve for z (url param)
-  var paramSplit1 = location.href.split('?');
-  var paramSplit2 = (paramSplit1[1]) ? paramSplit1[1].split('&') : [];
-  API.z = (paramSplit2[0]) ? paramSplit2[0].split('=')[1] : null;
-  // get rid of anchors (#)
-  if (API.z) API.z = API.z.split('#')[0];
-  // check for auth stored
+  var urlParams = API.getUrlParams();
+  if (urlParams.z) API.z = urlParams.z || ''; // API.z is the "auth" a client sends to api for access
   if (localStorage) API.zKey = localStorage.getItem(`key_${API.z}`);
 
   // enable global error reporting
@@ -25,6 +21,8 @@ API.init = function() {
     });
     return false;
   });
+
+  API.purgeApiCache(); // clean up localstorage of old caches
 
   $(document).ready(() => {
     if (!API.load) throw new Error('undefined API.load() - need to know what to load');
@@ -46,7 +44,7 @@ API.call = function(options) {
   // 1. check the browser cache
   var cachedData = null;
   try {
-    cachedData = API.getCache(options.method + '_' + window.location.search, options.cacheMS);
+    cachedData = API.getCache(options.method, options.cacheMS);
   } catch (e) {
     API.errorLog({
       name: 'API.getCache',
@@ -74,19 +72,20 @@ API.call = function(options) {
 
   $.ajax(callURL, ajaxOptions).done(function(data, status, res) {
     if (res.status == 200) {
-      if (localStorage) localStorage.setItem(`key_${API.z}`, data.key); // record auth key - to skip Airtable AUTH
+      if (localStorage && API.z) localStorage.setItem(`key_${API.z}`, data.key); // record auth key - to skip Airtable AUTH
       if (options.onSuccess) options.onSuccess(data);
       // save the cache
-      API.saveCache(options.method + '_' + window.location.search, data);
+      API.saveCache(options.method, data);
     } else if (res.status == 202) {
       if (options.onFailure) options.onFailure(data, res.status);
     } else {
       // fail condition
       if (options.onFailure) options.onFailure(data, res.status);
-      API.clearCache(options.method + '_' + window.location.search);
+      API.clearCache(options.method);
     }
   }).fail(function(err) {
     if (options.onFailure) options.onFailure(err, err.status);
+    console.log(err);
     API.errorLog({
       name: options.method,
       message: `${err.status} ${err.responseText.substring(0,250)}`,
@@ -102,28 +101,71 @@ API.cacheExpire = 60000; // 60s
 API.saveCache = function(method, data) {
   if (!localStorage) return;
   data.cacheDatetime = new Date().toISOString();
-  localStorage.setItem(`${method}_${API.z}`, JSON.stringify(data));
+  try {
+    localStorage.setItem(API.getCacheKey(method), JSON.stringify(data));
+  } catch (e) {
+    console.warn(e);
+  }
+}
+
+API.purgeApiCache = function() {
+  // checks all the cache keys to remove old cache data that's expired.
+  var nowEpoch = new Date().getTime();
+  for (var key in localStorage) {
+    var keyParts = key.split('_');
+    if (keyParts[0] == 'api') {
+      if (keyParts[keyParts.length-1] < nowEpoch) localStorage.removeItem(key);
+    }
+  }
+}
+
+API.getCacheKey = function(method) {
+  // add epoch - midnight of next day for key that is unique to each day
+  // also easily num compared to see if expired or not
+  var nowEpoch = new Date().getTime();
+  var day = 86400000;
+  var uniqueDayKey = nowEpoch - (nowEpoch % day) + day;
+  return `api_${method}_${API.z}_${window.location.search}_${uniqueDayKey}`;
 }
 
 API.getCache = function(method, cacheMS) {
   if (!localStorage) return;
-  var cached = localStorage.getItem(`${method}_${API.z}`);
+  if (cacheMS == undefined) cacheMS = API.cacheExpire;
+  var cacheKey = API.getCacheKey(method);
+  var cached = localStorage.getItem(cacheKey);
   if (cached) {
     var cacheData = JSON.parse(cached);
     // see how old cached copy is
     var cacheDatetime = new Date(cacheData.cacheDatetime);
     cacheData.cacheAgeMs = new Date() - cacheDatetime;
     delete cacheData.cacheDatetime;
-    if (cacheData.cacheAgeMs < (cacheMS || API.cacheExpire)) {
-      console.log('cachehit ' + method);
+    if (cacheData.cacheAgeMs < cacheMS) {
+      console.log('cachehit ' + cacheKey);
       cacheData.cacheHit = true; // show that this came from cache
       return cacheData;
     } else {
       // remove from browser cache
-      localStorage.removeItem(`${method}_${API.z}`);
+      localStorage.removeItem(cacheKey);
     }
   }
   return null;
+}
+
+// prompts user for admin access key, to be stored for future use
+API.promptAdminKey = function() {
+  var admin_key = localStorage.getItem('admin_key') || null;
+  if (!admin_key) {
+    var key_attempt = prompt('enter your access key');
+    localStorage.setItem('admin_key', key_attempt);
+  }
+  API.zKey = localStorage.getItem('admin_key');
+  API.z = '';
+  Render.adminKey();
+}
+API.newAdminKey = function() {
+  var key_attempt = prompt('enter your access key');
+  localStorage.setItem('admin_key', key_attempt);
+  location.reload();
 }
 
 API.clearCache = function(method) {
@@ -204,5 +246,12 @@ API.setPage = function(page) {
     API.load(API.getUrlParams());
   }, 150);
 ;}
+API.setSort = function(sort, order) {
+  API.setUrlParam('sort', sort);
+  API.setUrlParam('order', order);
+  setTimeout(() => {
+    API.load(API.getUrlParams());
+  }, 150);
+}
 
 API.init();

@@ -1,19 +1,30 @@
+Render.try('navigation',[
+  { target: "/freshdesk.html", label: 'Freshdesk' },
+  { target: "/errors.html", label: 'API Errors' },
+  { target: "/api_log.html", label: 'API Log' },
+], true);
+API.promptAdminKey();
+
 /* nothing here so far - i think most of the logic will be with the render functions */
 API.load = (urlParams) => {
   Render.loading('main');
   // defaults
   API.params.q = { $and: [] };
 
-  if (!API.params.per) API.params.per = 10;
+  if (!API.params.per) API.params.per = 50;
   if (!API.params.page) API.params.page = 1;
   if (!API.params.s) API.params.s = { fd_updated_at: -1 };
-
-  if (API.params.page) API.params.page = 1;
-  if (API.params.per) API.params.per = 10;
 
   // apply urlParams
   if (urlParams.page) API.params.page = +urlParams.page;
   if (urlParams.per) API.params.per = +urlParams.per;
+  if (urlParams.sort) {
+    API.params.s = {};
+    API.params.s[urlParams.sort] = -1;
+    if (urlParams.order && urlParams.order == 1) API.params.s[urlParams.sort] = 1;
+  }
+
+  console.log('API.sort',API.params.s);
 
   // handle search
   if (urlParams.search && isNaN(urlParams.search)) {
@@ -64,7 +75,6 @@ API.load = (urlParams) => {
   console.log(API.params.q);
 
   API.params.search = urlParams.search || '';
-
   API.call({
     cacheMS: 4000,
     method: 'v2-mdb',
@@ -109,7 +119,6 @@ API.load = (urlParams) => {
 Render.main = (data) => {
   var result = `
     ${Render.try('filter', data)}
-    ${Render.try('header', data)}
     ${Render.try('results', data)}
     ${Render.try('paginate', data)}
   `;
@@ -134,16 +143,6 @@ Render.filter = (data) => {
         </select>
       </div>
     </div>
-  `;
-  return result;
-};
-
-Render.header = (data) => {
-  var result = `
-    <header id="content_header">
-      <img id="cfgLogo" src="https://cdn.shopify.com/s/files/1/0060/6725/7434/files/heart.png?v=1607199816">
-      <a href="#top" class="button" style="margin-left:60px;">Freshdesk Tickets</a>
-    </header>
   `;
   return result;
 };
