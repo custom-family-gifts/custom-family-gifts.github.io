@@ -254,6 +254,9 @@ Render.proofs = (data) => {
         right: 11px;
         bottom: 18px;
       }
+      figure {
+        position: relative;
+      }
     </style>
   `;
   sortedProofs.forEach((proof) => {
@@ -268,19 +271,19 @@ Render.proof = (proof) => {
   if (proof.date) text += ` • <span class="datetime">${proof.date}</span>`;
   return `
     <div class="section" proof="${letter}">
-      <div class="proof_overlay top ${(proof.approved) ? 'approved' : ''}" id="proof_${letter}">
-        <p>${text}</p>
-      </div>
-      <div class="proof_overlay bottom">
-        <p>• click to see full •</p>
-      </div>
-
       <div class="row">
-
         <figure>
           <a href="${proof.url}">
             <img src="${proof.url}" alt="Proof ${letter.toUpperCase()}"/>
           </a>
+
+          <div class="proof_overlay top ${(proof.approved) ? 'approved' : ''}" id="proof_${letter}">
+            <p>${text}</p>
+          </div>
+
+          <div class="proof_overlay bottom">
+            <p>• click to see full •</p>
+          </div>
         </figure>
       </div>
     </div>
