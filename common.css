@@ -191,6 +191,14 @@ div.paginate {
     font-size: 14px;
   }
 }
+@media screen and (max-width: 800px) and (orientation: landscape) {
+  footer.floating {
+    position: relative;
+    left: 0vw;
+    bottom: 0;
+    width: 100%;
+  }
+}
 
 @media only screen and (min-width: 1024px) {
   body, header {

@@ -430,11 +430,16 @@ function selectThumb(letter) {
 }
 
 function selectInitialProof() {
+  // look for anchor
+  var anchor = `${location.hash}`.split('_')[1];
+  if (anchor && anchor.length == 1) {
+    return selectThumb(anchor);
+  }
   var $first = $('.proofThumb:first');
   var $approved = $('.proofThumb.approved');
   if ($approved.length) {
-    selectThumb($approved.attr('letter'));
+    return selectThumb($approved.attr('letter'));
   } else {
-    selectThumb($approved.attr('letter'));
+    return selectThumb($approved.attr('letter'));
   }
 }
