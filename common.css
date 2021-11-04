@@ -179,6 +179,18 @@ div.paginate {
     max-width: 100% !important;
   }
 }
+@media screen and (max-width: 600px) {
+  .card {
+    max-width: 100%;
+    width: 100%;
+  }
+  .card .section {
+    padding: 3px 15px;
+  }
+  .card p {
+    font-size: 14px;
+  }
+}
 
 @media only screen and (min-width: 1024px) {
   body, header {

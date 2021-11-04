@@ -11,6 +11,7 @@ API.load = (urlParams) => {
     method: 'v2-getCustomerOrder',
     onSuccess: (data) => {
       $('#main').html(Render.try('main',data));
+      selectInitialProof();
     },
     onFailure: (data) => {
       console.log('order on failure');
@@ -39,6 +40,7 @@ Render.main = (data) => {
 
     <h3 id="proofs">Proofs</h3>
     ${Render.try('proofs', data)}
+    ${Render.try('proofThumbs', data)}
   `;
   return result;
 };
@@ -257,6 +259,9 @@ Render.proofs = (data) => {
       figure {
         position: relative;
       }
+      .imageRow {
+        justify-content: center;
+      }
     </style>
   `;
   sortedProofs.forEach((proof) => {
@@ -271,7 +276,7 @@ Render.proof = (proof) => {
   if (proof.date) text += ` • <span class="datetime">${proof.date}</span>`;
   return `
     <div class="section" proof="${letter}">
-      <div class="row">
+      <div class="row imageRow row_${letter}">
         <figure>
           <a href="${proof.url}">
             <img src="${proof.url}" alt="Proof ${letter.toUpperCase()}"/>
@@ -288,4 +293,148 @@ Render.proof = (proof) => {
       </div>
     </div>
   `;
+}
+
+Render.proofThumbs = (data) => {
+  if (!data.auto_proof_files) return ``;
+
+  // also, check to see if approved
+  var chosen_proofs = (!data.chosen_proof) ? [] : data.chosen_proof.split(',').map((item) => {
+    return item.trim().toLowerCase();
+  });
+  data.auto_proof_files = data.auto_proof_files.map((item, i) => {
+    var letter = item.filename.split('_')[1].toLowerCase();
+    if (chosen_proofs.includes(letter)) {
+      item.approved = true;
+    }
+    return item;
+  });
+
+  // look for proof_data to augment this - S3 link & timestamps
+  if (data.proof_data) {
+    var proofsData = {};
+    data.proof_data.split(',').forEach((proofString) => {
+      var proofData = proofString.split('|');
+      proofsData[proofData[0].trim()] = {
+        date: new Date(proofData[1]),
+        s3Link: proofData[2]
+      };
+    });
+    data.auto_proof_files = data.auto_proof_files.map((proof) => {
+      var letter = proof.filename.split('_')[1];
+      if (proofsData[letter]) {
+        proof.url = proofsData[letter].s3Link;
+        proof.date = proofsData[letter].date;
+      }
+      return proof;
+    });
+  }
+
+  // sort the proofs first
+  var sortedProofs = data.auto_proof_files.sort((a, b) => {
+    return (a.filename > b.filename) ? -1 : 1;
+  });
+
+  var css = `
+    <style>
+      a.proofThumb {
+        width: 22%;
+        margin: 9px;
+        text-align: center;
+        text-transform: uppercase;
+        font-size: 12px;
+        position: relative;
+        text-decoration: none !important;
+      }
+      a.proofThumb label {
+        display: block;
+        background-color: #ccc;
+        color: white;
+        font-size: 14px;
+      }
+      a.proofThumb.approved label {
+        background-color: #1abf1a;
+      }
+      a.proofThumb img {
+        outline: none;
+        display: block;
+        border: 3px dashed #ddd;
+        border-bottom: none;
+        box-sizing: border-box;
+      }
+      a.proofThumb.selected img {
+        border-color: #999;
+        border-style: solid;
+        border-bottom: none;
+      }
+      a.proofThumb.selected.approved img {
+        border-color: #1abf1a;
+      }
+      a.proofThumb.selected label {
+        background-color: #999;
+      }
+      a.proofThumb.selected.approved label {
+        background-color: #1abf1a;
+      }
+      div.proofSelectedCaret {
+        border-bottom: 8px solid #999;
+        border-right: 25px solid transparent;
+        border-left: 25px solid transparent;
+        top: -8px;
+        left: 50%;
+        position: absolute;
+        margin-left: -25px;
+        display: none;
+      }
+      a.proofThumb.selected .proofSelectedCaret {
+        display: inline-block;
+      }
+      a.proofThumb.selected.approved .proofSelectedCaret {
+        border-bottom: 8px solid #1abf1a;
+      }
+      @media screen and (max-width: 767px) {
+        a.proofThumb {
+          width: 31%;
+          margin: 7px 3px;
+        }
+        a.proofThumb label {
+          font-size: 10px;
+        }
+      }
+    </style>
+  `;
+
+  var htmlProofs = ``;
+  sortedProofs.forEach(proof => {
+    var letter = proof.filename.split('_')[1].toLowerCase();
+    htmlProofs += `
+      <a class="proofThumb ${(proof.approved)?'approved':''} thumb_${letter}" letter="${letter}" href="javascript:selectThumb('${letter}');">
+        <div class="proofSelectedCaret"></div>
+        <img src="${proof.url}" alt="Proof ${letter.toUpperCase()}"/>
+        <label>${(!proof.approved)?'Proof ':''}${letter.toUpperCase()}${(proof.approved) ? `&nbsp;&nbsp;✔&nbsp;&nbsp;approved`:''}</label>
+      </a>
+    `;
+  });
+
+  return `
+    ${css}
+    <div class="row" style="justify-content: center;">${htmlProofs}</div>
+  `;
+};
+
+function selectThumb(letter) {
+  $('.proofThumb.selected').removeClass('selected');
+  $('.proofThumb.thumb_'+letter).addClass('selected');
+  $('.imageRow').hide();
+  $('.imageRow.row_'+letter).show();
+}
+
+function selectInitialProof() {
+  var $first = $('.proofThumb:first');
+  var $approved = $('.proofThumb.approved');
+  if ($approved.length) {
+    selectThumb($approved.attr('letter'));
+  } else {
+    selectThumb($approved.attr('letter'));
+  }
 }
