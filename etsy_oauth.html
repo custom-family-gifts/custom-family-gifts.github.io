@@ -45,18 +45,22 @@
 
     <script>
       var code_verifier = 'BCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQR';
+      var sha256_cv = '6ada320f05f09a3b3283dc5c907330573c81be40f7807203f1c8af67b4b30c67';
+      var b64_cv = btoa(sha256_cv);
+      var url_b64_cv = encodeURIComponent(b64_cv);
       $(function() {
         var url = 'https://www.etsy.com/oauth/connect?response_type=code';
         url += '&redirect_uri=';
-        url += encodeURIComponent(`https://smile.customfamilygifts.com/etsy_oauth.html`);
+        url += encodeURIComponent(`https://smile.customfamilygifts.com/etsy_oauth`);
         url += '&scope=';
         url += encodeURIComponent(`transactions_r email_r`);
         url += '&client_id=';
-        url += encodeURIComponent(`spv0bb7g7uln1i7s18qtyfaq`);
+        url += 'spv0bb7g7uln1';
+        url += 'i7s18qtyfaq'
         url += '&state=';
         url += encodeURIComponent(`cfg1`);
         url += '&code_challenge=';
-        url += encodeURIComponent(Base64UrlEncode(SHA256Hash(code_verifier)));
+        url += encodeURIComponent(url_b64_cv);
         url += '&code_challenge_method=';
         url += encodeURIComponent(`S256`);
         $('#etsy').attr('href',url);
