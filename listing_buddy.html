@@ -628,9 +628,10 @@ var r={search_terms:{}},p=1;function sc(){r.listingId=window.location.pathname.s
           var seo = [];
 
           // title
-          var title45 = getTitle45(data.title).replace(/-/g,' ').replace(/™/g,'').replace(/\./g,'').replace(/\,/g);
+          var title45 = getTitle45(data.title).replace(/-/g,' ').replace(/™/g,'').replace(/\./g,'').replace(/\,/g,'');
           var title45Partials = getPartials(title45);
-          var titlePartials = getPartials(data.title.replace(/-/g,' ').replace(/™/g,'').replace(/\./g,'').replace(/\,/g);
+          var titlePartials = getPartials(data.title.replace(/\-/g,' ').replace(/™/g,'').replace(/\./g,'').replace(/\,/g,''));
+          console.log(titlePartials);
           title45Partials.forEach(partial => {
             if (!seoObj[partial]) {
               seoObj[partial] = { term: partial, order: seo.length, isTitle: true, isTitle45: true };
