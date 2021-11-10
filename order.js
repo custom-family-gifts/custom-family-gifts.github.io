@@ -66,6 +66,7 @@ Render.orderStatus = (data) => {
     });
   }
   // download links
+  console.log(data);
 
   var result = `
     <style>
@@ -100,7 +101,10 @@ Render.digitalDownload = (data) => {
     data.digital_dl_links.split(',').forEach((url, i) => {
       var link = url.trim();
       if (link.indexOf('https:') === 0) {
-        downloadLinks += `<p><a target="_blank" href="${url}">💾 Download Your Art @ 300 DPI${(i > 0) ? i : ''}</a></p>`;
+        downloadLinks += `
+        <a target="_blank" href="${url}">
+        <button class="primary">💾 Download&nbsp;${(i > 1) ? i : ''}</button></a>
+        `;
       }
     });
   }
@@ -109,7 +113,7 @@ Render.digitalDownload = (data) => {
   var result = `
     <div class="card">
       <div class="section">
-        <h5>Digital Files</h5>
+        <h5>Art Files</h5>
         ${downloadLinks}
       </div>
     </div>
