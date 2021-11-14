@@ -1,9 +1,11 @@
 Render.try('navigation',[
+  { target: "/service_orders.html", label: 'Orders' },
   { target: "/freshdesk.html", label: 'Freshdesk' },
   { target: "/errors.html", label: 'API Errors' },
   { target: "/api_log.html", label: 'API Log' },
 ], true);
 API.promptAdminKey();
+
 
 Render.header = (data) => {
   var result = `
@@ -50,7 +52,7 @@ API.load = (urlParams) => {
   if (API.params.q.$and.length == 0) API.params.q = {};
 
   API.call({
-    cacheMS: 4000,
+    cacheMS: 0,
     method: 'v2-mdb',
     httpMethod: 'POST',
     body: JSON.stringify({
@@ -132,6 +134,7 @@ Render.filter = (data) => {
       </div>
 
       <button class="primary" paramSubmit>Go</button>
+      <button class="" paramClear>Clear</button>
       ${resolveAllButton}
     </div>
   `;
@@ -208,13 +211,16 @@ Render.results = (data) => {
     },
     body_JSON: { hide: true },
     body_text: { hide: true},
-    DEBUG: { display: (value) => {
-      var result = '';
-      if (value && Object.keys(value).length > 0) {
-        result += `<div class="code"><code title="debug">${JSON.stringify(value, null, 2)}</code></div>`;
+    DEBUG: {
+      height: '150px',
+      display: (value) => {
+        var result = '';
+        if (value && Object.keys(value).length > 0) {
+          result += `<div class="code"><code title="debug">${JSON.stringify(value, null, 2)}</code></div>`;
+        }
+        return result;
       }
-      return result;
-    }}
+    }
   };
 
   var result = `
@@ -238,22 +244,25 @@ Render.selectedIdsUpdate = (selectedIds) => {
 function groupResults(data) {
   var $rows = $('#mainTable tbody tr');
   var rowsByNameAndMessage = {};
+  console.log('data',data);
   for (var i = 0; i < $rows.length; i++) {
-    var nameAndMessage = `${data.records[i].name}_${data.records[i].message}`.substring(0, 100);
-    if (!rowsByNameAndMessage[nameAndMessage]) { // first occurence
-      rowsByNameAndMessage[nameAndMessage] = {
-        firstOccurrence: i+((data.page-1) * data.per),
-        count: 0,
-        laterOccurrences: [],
-        latestOccurrence: new Date()
-      };
-    } else {
-      rowsByNameAndMessage[nameAndMessage].laterOccurrences.push(i);
-      rowsByNameAndMessage[nameAndMessage].count++;
-      $($rows[i]).attr('firstOccurrence', rowsByNameAndMessage[nameAndMessage].firstOccurrence);
-      var occurrenceDate = new Date(data.records[i].created);
-      if (occurrenceDate < rowsByNameAndMessage[nameAndMessage].latestOccurrence) {
-        rowsByNameAndMessage[nameAndMessage].latestOccurrence = occurrenceDate;
+    if (data.records[i]) {
+      var nameAndMessage = `${data.records[i].name}_${data.records[i].message}`.substring(0, 100);
+      if (!rowsByNameAndMessage[nameAndMessage]) { // first occurence
+        rowsByNameAndMessage[nameAndMessage] = {
+          firstOccurrence: i+((data.page-1) * data.per),
+          count: 0,
+          laterOccurrences: [],
+          latestOccurrence: new Date()
+        };
+      } else {
+        rowsByNameAndMessage[nameAndMessage].laterOccurrences.push(i);
+        rowsByNameAndMessage[nameAndMessage].count++;
+        $($rows[i]).attr('firstOccurrence', rowsByNameAndMessage[nameAndMessage].firstOccurrence);
+        var occurrenceDate = new Date(data.records[i].created);
+        if (occurrenceDate < rowsByNameAndMessage[nameAndMessage].latestOccurrence) {
+          rowsByNameAndMessage[nameAndMessage].latestOccurrence = occurrenceDate;
+        }
       }
     }
   }

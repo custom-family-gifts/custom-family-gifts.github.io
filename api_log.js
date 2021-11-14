@@ -1,9 +1,11 @@
 Render.try('navigation',[
+  { target: "/service_orders.html", label: 'Orders' },
   { target: "/freshdesk.html", label: 'Freshdesk' },
   { target: "/errors.html", label: 'API Errors' },
   { target: "/api_log.html", label: 'API Log' },
 ], true);
 API.promptAdminKey();
+
 
 Render.header = (data) => {
   var result = `
@@ -127,6 +129,7 @@ Render.filter = (data) => {
       </div>
 
       <button class="primary" paramSubmit>Go</button>
+      <button class="" paramClear>Clear</button>
     </div>
   `;
   return result;

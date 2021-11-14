@@ -1,9 +1,11 @@
 Render.try('navigation',[
+  { target: "/service_orders.html", label: 'Orders' },
   { target: "/freshdesk.html", label: 'Freshdesk' },
   { target: "/errors.html", label: 'API Errors' },
   { target: "/api_log.html", label: 'API Log' },
 ], true);
 API.promptAdminKey();
+
 
 /* nothing here so far - i think most of the logic will be with the render functions */
 API.load = (urlParams) => {
@@ -13,7 +15,7 @@ API.load = (urlParams) => {
 
   if (!API.params.per) API.params.per = 50;
   if (!API.params.page) API.params.page = 1;
-  if (!API.params.s) API.params.s = { fd_updated_at: -1 };
+  if (!API.params.s) API.params.s = { modified: -1 };
 
   // apply urlParams
   if (urlParams.page) API.params.page = +urlParams.page;
@@ -23,8 +25,6 @@ API.load = (urlParams) => {
     API.params.s[urlParams.sort] = -1;
     if (urlParams.order && urlParams.order == 1) API.params.s[urlParams.sort] = 1;
   }
-
-  console.log('API.sort',API.params.s);
 
   // handle search
   if (urlParams.search && isNaN(urlParams.search)) {
@@ -50,16 +50,14 @@ API.load = (urlParams) => {
         }
       ]
     };
-  } else {
-    API.params.q = {}
   }
-
   // has orderId
-  if (urlParams.hasOrderId == 'NO') {
+  if (urlParams.hasOrderId == 'NO' || !urlParams.hasOrderId) {
     API.params.q.$and.push({
       $or: [
         { order_number: 0 },
-        { order_number: { $exists: false } }
+        { order_number: { $exists: false }},
+        { order_number: null }
       ]
     });
 
@@ -72,11 +70,13 @@ API.load = (urlParams) => {
     );
   }
 
-  console.log(API.params.q);
+  if (API.params.q.$and.length == 0) {
+    API.params.q = {}
+  }
 
   API.params.search = urlParams.search || '';
   API.call({
-    cacheMS: 4000,
+    cacheMS: 0,
     method: 'v2-mdb',
     httpMethod: 'POST',
     body: JSON.stringify({
@@ -139,7 +139,7 @@ Render.filter = (data) => {
         <select name="hasOrderId" param>
           <option value="">- ANY -</option>
           <option value="YES" ${(API.getUrlParams().hasOrderId == 'YES') ? 'selected' : ''}>YES</option>
-          <option value="NO" ${(API.getUrlParams().hasOrderId == 'NO') ? 'selected' : ''}>NO</option>
+          <option value="NO" ${(API.getUrlParams().hasOrderId == 'NO' || !API.getUrlParams().hasOrderId) ? 'selected' : ''}>NO</option>
         </select>
       </div>
     </div>
@@ -184,7 +184,7 @@ Render.results = (data) => {
     messages: {
       label: 'latest_msg',
       format: (messages) => {
-        if (messages.length == 0) return '--';
+        if (messages && messages.length == 0) return '--';
         return `${messages.length} message(s)`;
       },
       display: (messages) => {

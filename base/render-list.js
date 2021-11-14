@@ -23,11 +23,15 @@ Render.thead = (mdbData, definition = {}, data) => { // default to hiding those 
           sortIcon = (mdbData.sort[column] == 1) ? ' 🔼' : ' 🔽';
         }
         if (column == '_checkbox') {
-          headers += `
-            <th class="_checkbox">
-              <input type="checkbox" name="selectAll" onclick="Render.toggleAllSelected()" />
-            </th>
-          `;
+          if (columnDef.single) {
+            headers += `<th class="_checkbox"></th>`;
+          } else {
+            headers += `
+              <th class="_checkbox">
+                <input type="checkbox" name="selectAll" onclick="Render.toggleAllSelected()" />
+              </th>
+            `;
+          }
         } else {
           headers += `
             <th${style}>
@@ -77,8 +81,10 @@ Render.td = (value, columnDef, record) => {
   var displayValue = ''; // displayValues have html mods
 
   if (columnDef.key == '_checkbox') {
+    var id = record._id;
+    if (columnDef.value && typeof columnDef.value == 'function') id = columnDef.value(record);
     columnDef.class = '_checkbox';
-    displayValue = `<input _id="${record._id}" type="checkbox" name="selectId_${record._id}" onclick="Render.toggleSelected('${record._id}')" />`;
+    displayValue = `<input _id="${id}" type="checkbox" name="selectId_${id}" onclick="Render.toggleSelected('${id}', ${columnDef.single})" />`;
   } else if (typeof columnDef.format == 'function'){
     formattedValue = columnDef.format(value, record);
     displayValue = formattedValue;
@@ -264,15 +270,23 @@ function buildTableDefinition(mdbData, definition) {
 
 // list page checkboxes
 Render.selectedIds = {};
-Render.toggleSelected = (_id) => {
+Render.toggleSelected = (_id, single = false) => {
   var $checkbox = $(`[name=selectId_${_id}]`);
   if ($checkbox.length == 0) throw new Error(`Could not find checkbox for[name=selectId_${_id}]`);
+  if (single) {
+    // deselect all currently selected
+    for (var key in Render.selectedIds) {
+      $(`[name=selectId_${key}]`).prop('checked', false);
+    }
+    Render.selectedIds = {};
+  }
   if ($checkbox.prop('checked')) {
     Render.selectedIds[_id] = true;
   } else {
     delete Render.selectedIds[_id];
+    _id = null;
   }
-  Render.selectedIdsUpdate(Render.selectedIds);
+  Render.selectedIdsUpdate(Render.selectedIds, _id);
 };
 
 Render.toggleAllSelected = () => {

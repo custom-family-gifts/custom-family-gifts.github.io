@@ -28,8 +28,13 @@ API.init = function() {
     if (!API.load) throw new Error('undefined API.load() - need to know what to load');
     API.load(API.getUrlParams());
   });
+
+  window.onbeforeunload = function(){
+    API.currentCall.abort();
+  }
 }
 
+API.currentCall = null;
 API.call = function(options) {
   /* args:
     httpMethod, // POST GET...
@@ -58,10 +63,12 @@ API.call = function(options) {
     return options.onSuccess(cachedData);
   }
 
+  if (!options.urlParams) options.urlParams = '';
+
   // 2. check the browser for a auth key
 
   // 3. make the call
-  var callURL = `https://us-central1-custom-family-gifts.cloudfunctions.net/v2-call?cypherKey=${API.zKey || API.z}&method=${options.method}`;
+  var callURL = `https://us-central1-custom-family-gifts.cloudfunctions.net/v2-call?cypherKey=${API.zKey || API.z}&method=${options.method}${options.urlParams}`;
   var ajaxOptions = {
     method: `${options.httpMethod}`,
     headers: (options.httpMethod == 'GET') ? {} : { "Content-Type": "application/json" }
@@ -70,7 +77,7 @@ API.call = function(options) {
     ajaxOptions.data = options.body;
   }
 
-  $.ajax(callURL, ajaxOptions).done(function(data, status, res) {
+  API.currentCall = $.ajax(callURL, ajaxOptions).done(function(data, status, res) {
     if (res.status == 200) {
       if (localStorage && API.z) localStorage.setItem(`key_${API.z}`, data.key); // record auth key - to skip Airtable AUTH
       if (options.onSuccess) options.onSuccess(data);
@@ -215,9 +222,12 @@ API.paramsToUrl = function(paramObj) {
 
   var result = '';
   Object.keys(paramObj).forEach((key) => {
-    if (key === undefined) return;
-    if (result != '') result += '&';
-    result += `${key}${(paramObj[key] !== undefined) ? '='+encodeURIComponent(paramObj[key]) : ''}`;
+    console.log('key', key, paramObj[key]);
+    if (key === undefined || key === null) return;
+    if (paramObj[key] != null && paramObj[key] != undefined && paramObj[key] != '') {
+      if (result != '') result += '&';
+      result += `${key}${(paramObj[key]) ? '='+encodeURIComponent(paramObj[key]) : ''}`;
+    }
   });
   window.history.pushState('page', 'cfg', window.location.pathname + '?' + result);
   return result;
@@ -238,6 +248,11 @@ $(document).on('keydown', 'input[param]', function (event) {
 $(document).on('click', 'button[paramSubmit]', function (event) {
   setTimeout(() => {
     API.load(API.getUrlParams());
+  }, 150);
+});
+$(document).on('click', 'button[paramClear]', function (event) {
+  setTimeout(() => {
+    window.location = location.href.split('?')[0];
   }, 150);
 });
 API.setPage = function(page) {
