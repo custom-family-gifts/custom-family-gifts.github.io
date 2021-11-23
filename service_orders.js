@@ -69,7 +69,7 @@ API.load = (urlParams) => {
       p: {
         orderId_raw: 1, items: 1, options: 1,
         custFirst: 1, custLast: 1, email: 1, custPhone: 1,
-        artist: 1, pipeline: 1,
+        artist: 1, pipeline: 1, chosen_proof: 1,
         created: 1, isPriority: 1, shopifyOrderId: 1, etsy_receipt_id: 1,
         customer: 1, shipAddress: 1, created_shopify_order: 1, 'Internal - newest on top please': 1,
         print_note: 1, etsy_link: 1, 'order link': 1, customer_order_link: 1, at_record_id: 1
@@ -138,6 +138,7 @@ Render.results = (data) => {
     created_shopify_order: { hide: true },
     at_record_id: { hide: true },
     customer_order_link: { hide: true },
+    chosen_proof: { hide: true },
     'order link': { hide: true },
     etsy_link: { hide: true },
     print_note: { hide: true },
@@ -150,10 +151,9 @@ Render.results = (data) => {
       display: (value, record) => {
         var result = `${(record.isPriority) ? '⭐ ' : ''}
         <a target="_blank" href="https://custom-family-gifts.myshopify.com/admin/orders/${record.shopifyOrderId}">
-          #${record.orderId_raw}
+          #${record.orderId_raw} ${(record.etsy_receipt_id)?'🍊':''}
         </a>`;
         result += `<span class="datetime small">${record.created_shopify_order}</span>`;
-        if (record.etsy_receipt_id) result += `<a style="float:right" href="https://www.etsy.com/your/orders/sold/?order_id=${record.etsy_receipt_id}" target="_blank">${record.etsy_receipt_id} 🍊</a>`;
         if (record.items) result += `${renderItems(record.items, record.options)}`;
         if (record['Internal - newest on top please']) {
           result += `<div class="note" style="display:inline-block;width:42%;margin-right:4px;background-color:#f77251"><div class="noteHeader">Internal Note:</div>${record['Internal - newest on top please']}</div>`;
@@ -175,6 +175,8 @@ Render.results = (data) => {
       display: (value, record) => {
         var result = `${renderPipeline(value)}`;
         if (record.artist) result += `${renderArtist(record.artist)}`;
+        if (record.chosen_proof) result += `<span>👌${record.chosen_proof}</span>`;
+        console.log(record.chosen_proof);
         return result;
       }
     },

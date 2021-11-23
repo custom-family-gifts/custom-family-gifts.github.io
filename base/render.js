@@ -127,5 +127,31 @@ const Render = {
       </header>
     `;
     return result;
+  },
+  toastInitted: false,
+  initToast: () => {
+    if (!Render.toastInitted) {
+      $('body').append('<span id="toast" class="toast" style="display:none;">default message</span>');
+      Render.toastInitted = true;
+    }
+  },
+  toast: (message, type = 0, durationMs = 2000) => { // -1 = negative, 0 = neutral, 1 = positive (green);
+    if (!Render.toastInitted) Render.initToast();
+    if (type == 0) message = '✅ ' + message;
+    if (type == -1) message = '❌ ' + message;
+    // make a log of this toast in console
+    console.log('TOAST', message, type);
+    $('#toast').text(message).attr('class', `toast type_${type}`).show();
+    setTimeout(function() {
+      $('#toast').fadeOut();
+    }, durationMs);
+  },
+  link: (name, url) => {
+    return `
+      <span class="link">
+        <span>📋</span>
+        <a target="_blank" href="${url}">${name}</a>
+      </span>
+    `;
   }
 };

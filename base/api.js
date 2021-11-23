@@ -242,11 +242,14 @@ $(document).on('change blur', "*[param]", function (event) {
 $(document).on('keydown', 'input[param]', function (event) {
   if (event.type == 'keydown' && event.keyCode != 13) return;
   setTimeout(() => {
+    API.setUrlParam('page', 1);
+    var params = Object.assign(API.getUrlParams(), { page: 1 });
     API.load(API.getUrlParams());
   }, 150);
 });
 $(document).on('click', 'button[paramSubmit]', function (event) {
   setTimeout(() => {
+    API.setUrlParam('page', 1);
     API.load(API.getUrlParams());
   }, 150);
 });

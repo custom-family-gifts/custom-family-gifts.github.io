@@ -5,6 +5,7 @@ var Drawer = {
   title: null,
   tabs: null,
   data: null,
+  renderExtra: null,
   init: function(drawerObj) {
     if (!drawerObj.title) throw new Error('Drawer.init() requires title (data) => {}');
     if (!drawerObj.apiCall) throw new Error('Drawer.init() requires apiCall (params) => {}');
@@ -15,9 +16,17 @@ var Drawer = {
     this.apiCall = drawerObj.apiCall;
     this.transformData = drawerObj.transformData;
     this.renderOverview = drawerObj.renderOverview;
+    this.renderExtra = drawerObj.renderExtra;
 
     if (this.initted) return;
     $(() => {
+      $(document).on('keydown', function(e) {
+        if (e.keyCode == 27) {
+          try {
+            Drawer.hide();
+          } catch (e) {/* do nothing */}
+        }
+      });
       $('body').append(`
         <style>
           #drawer {
@@ -63,7 +72,7 @@ var Drawer = {
             background-color: #e3e3e3;
           }
           #drawerNav {
-            border-top: 1px solid #ddd;
+            border-top: 3px solid #ddd;
           }
           #drawerNav li, #drawerTitleBar li {
             display: inline-block;
@@ -130,6 +139,7 @@ var Drawer = {
       $('body').append('<div id="drawerOverlay"></div>');
       $('body').append(`
         <div id="drawer">
+          <div id="drawerExtra"></div>
           <ul id="drawerTitleBar">
             <li id="drawerClose" onclick="Drawer.hide();">×</li>
             <li id="drawerTitle"></li>
@@ -162,6 +172,7 @@ var Drawer = {
     $('#drawerOverview').html('<div class="spinner"></div>');
     $('#drawerTitle').text('loading...')
     $('#drawerContents').html('<div class="spinner"></div>');
+    $('#drawerExtra').html('');
     var callObj = Object.assign({
       cacheMS: 0,
       onSuccess: (data) => {
@@ -179,11 +190,16 @@ var Drawer = {
         $('#drawerOverview').html(overviewHtml);
         Drawer.renderTab(currentTab);
         $('#drawerTitle').text(Drawer.title(data));
+        if (Drawer.renderExtra && typeof Drawer.renderExtra == 'function') {
+          $('#drawerExtra').html(Drawer.renderExtra(data))
+        }
+        Render.toLocalTime();
       },
       onFailure: (data) => {
         $('#drawerContents').html(`
           <div>💥 something went wrong... try again in a few</div>
         `);
+        $('#drawerExtra').html('');
       }
     }, this.apiCall(params));
     API.call(callObj);
