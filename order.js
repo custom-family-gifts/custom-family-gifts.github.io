@@ -261,6 +261,7 @@ Render.responseForm = (data) => {
     </div>
     <div id="messageForm" style="height:0; overflow: hidden;">
       <span class="messagePrompt" style="font-size: 0.8em;">Ready to approve? Want to request changes? Be sure to mention the letter in your message.</span>
+      <span class="messagePrompt" style="font-size: 0.8em;">Please help me check over all the spelling.</span>
       <span class="messagePrompt error" style="color:red;"></span>
 
       <textarea id="submitMessage" placeholder="example: I approve B! or I like A, but..."></textarea>
