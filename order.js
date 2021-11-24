@@ -1,13 +1,7 @@
-Render.try('navigation',[
-  { target: "/freshdesk.html", label: 'Freshdesk' },
-  { target: "/errors.html", label: 'API Errors' },
-  { target: "/api_log.html", label: 'API Log' },
-], true);
-
 API.load = (urlParams) => {
   Render.loading('main');
   API.call({
-    cacheMS: 60000, // 60s - customers don't have access to 'live' data for load issues.
+    cacheMS: 4000,
     method: 'v2-getCustomerOrder',
     onSuccess: (data) => {
       $('#main').html(Render.try('main',data));
@@ -29,7 +23,8 @@ API.load = (urlParams) => {
 Render.main = (data) => {
   var result = `
     ${Render.try('header', data)}
-    <h3 id="top">Order Details</h3>
+    <span id="top">&nbsp;</span><!-- this span for anchor otherwise can't see h3-->
+    <h3>Order Details</h3>
     <div class="row">
       ${Render.try('orderStatus', data)}
       ${Render.try('digitalDownload', data)}
@@ -38,24 +33,236 @@ Render.main = (data) => {
       ${Render.try('shipping', data)}
     </div>
 
-    <h3 id="proofs">Proofs</h3>
+    <span id="proofs">&nbsp;</span><!-- this span for anchor otherwise can't see h3-->
+    <h3>Proofs</h3>
     ${Render.try('proofs', data)}
     ${Render.try('proofThumbs', data)}
+
+    <span id="messages">&nbsp;</span><!-- this span for anchor otherwise can't see h3-->
+    <h3>Messages</h3>
+    ${Render.try('responseForm', data)}
+    <h3 style="font-size: 0.95em;">Message History</h3>
+    ${Render.try('messages', data)}
   `;
   return result;
 };
+
+Render.messages = (data) => {
+  var result = `
+    <style>
+      .message {
+        width: calc(100% - 60px);
+        background-color: white;
+        padding: 17px 16px 12px 16px;
+        border: 1px solid #ddd;
+        margin-top: 18px;
+        position: relative;
+        word-break: break-word;
+      }
+      .messageDate {
+        position: absolute;
+        left: 50%;
+        top: 0;
+        width: 120px;
+        font-size: 0.8em;
+        margin-left: -60px;
+        text-align: center;
+        background-color:#afafaf;
+        color: white;
+        border-radius: 15px;
+        line-height: 18px;
+        top: -11px;
+        padding-bottom: 1px;
+      }
+      .message.them {
+        margin-right: 20px;
+        border: 2px solid #1976d2;
+        border-radius: 5px;
+        color: #00478c;
+        background-color: #cde6ff;
+      }
+      .message.us {
+        border: 2px solid #f78d73;
+        margin-left: 20px;
+        border-radius: 5px;
+        color: #d74521;
+        background-color: #ffece7;
+      }
+      .message.us .messageDate {
+        margin-left: -80px;
+      }
+      .message img {
+        float: right;
+        display: inline;
+        width: 50px;
+        height: 50px;
+        margin-right: -20px;
+        margin-top: -20px;
+      }
+      .messageVia {
+        display: inline-block;
+        position: absolute;
+        left: -8px;
+        top: -8px;
+        text-transform: uppercase;
+        background-color: #f78d73;
+        color: white;
+        font-size: 12px;
+        font-weight: 600;
+        padding: 3px 8px;
+        border-radius: 10px;
+      }
+      .message.us .messageVia, .message.us .messageDate {
+        background-color: #f78d73;
+      }
+      .message.them .messageVia, .message.them .messageDate {
+        background-color: #1976d2;
+      }
+      /* hide this */
+      .freshdesk_quote, blockquote {
+        display: none;
+      }
+      @media only screen and (max-width: 870px) {
+        .messagePrompt {
+          line-height: 21px;
+          margin-bottom:10px;
+          width: calc(100% - 40px);
+        }
+        .message {
+          width: calc(100% - 65px);
+          margin-left: 8px;
+        }
+        .messageDate {
+          top: -5px;
+        }
+      }
+    </style>
+  `;
+  if (data.messages) {
+    console.log(data.messages);
+    var sortedMessages = data.messages.sort((a, b) => {
+      return (new Date(a.created) < new Date(b.created)) ? 1 : -1;
+    });
+    sortedMessages.forEach(message => {
+      result += `
+        <div class="message ${message.from_2}">
+          <div class="datetime messageDate">${message.created}</div>
+          ${(message.from_2 == 'us') ? `<img src="https://cdn.shopify.com/s/files/1/0060/6725/7434/files/heart.png?v=1607199816" />` : ''}
+          ${renderVia(message)}
+          ${((message.from == 'CFG' || message.to == 'CFG') && message.subject) ? `<div style="font-weight: 600">${message.subject}</div>` : ''}
+          ${message.html}
+          ${renderAttachments(message)}
+        </div>
+      `;
+    });
+  }
+  return result;
+};
+
+function renderAttachments(message) {
+  var result = ``;
+  if (message.attachments && message.attachments.length) {
+    message.attachments.forEach((attach, i) => {
+      result += `
+        <div>• attachment ${i+1} - ${attach.name}</div>
+      `;
+    });
+  }
+  return result;
+}
+
+function renderVia(message) {
+  var result = '';
+  if (message.to == 'CFG Etsy' || message.from == 'CFG Etsy') {
+    result += `<div class="messageVia">Etsy Message</div>`;
+  } else if (message.to == 'CFG SMS' || message.from == 'CFG SMS') {
+    result += `<div class="messageVia">SMS</div>`;
+  } else if (message.source_name == 'Portal') {
+    result += `<div class="messageVia">Order Form</div>`;
+  } else {
+    result += `<div class="messageVia">Email</div>`;
+  }
+
+  return result;
+}
 
 Render.header = (data) => {
   var result = `
     <header id="content_header">
       <img id="cfgLogo" src="https://cdn.shopify.com/s/files/1/0060/6725/7434/files/heart.png?v=1607199816">
       <a href="#top" class="button">#${data.orderId_raw}</a>
-      <a href="#proofs" class="button">Proofs</a>
-      <!--<a href="#message" class="button">messages</a>-->
+      <a href="#proofs" class="button">Proofs${(data.auto_proof_files && data.auto_proof_files.length) ? `<span class="countTag">${data.auto_proof_files.length}</span>`: ''}</a>
+      <a href="#messages" class="button">messages${(data.messages.length) ? `<span class="countTag">${data.messages.length}</span>` : '' }</a>
     </header>
   `;
   return result;
 };
+
+function showMessageForm() {
+  $('#messageForm').css({ height: '1%' });
+  $('#messageForm').animate({ height: '100%' }, 1500);
+  $('#showMessageForm').hide();
+}
+
+function sendMessage(orderId) {
+  var value = $('#submitMessage').val();
+  $('.messagePrompt.error').hide();
+  if (value.trim().length == 0) {
+    return $('.messagePrompt.error').text('please write a message before sending').show();
+  }
+  $('#submitMessageButton').prop('disabled', true);
+  $('#submitMessage').prop('disabled', true);
+  $('#submitMessageButton').after(`<div id="messageSubmitSpinner" class="spinner primary"></div>`);
+  API.call({
+    cacheMS: 0,
+    method: 'v2-sendCustomerOrderMessage',
+    httpMethod: 'POST',
+    body: JSON.stringify({
+      orderId: orderId,
+      message: value
+    }),
+    onSuccess: (data) => {
+      API.clearCache('v2-getCustomerOrder');
+      $('#submitMessageButton').prop('true', false).text('Send Another');
+      $('#submitMessage').prop('true', false).val('');
+      $('#messageSubmitSpinner').remove();
+      Render.toast('Message Sent! Will get back to you soon', 1, 3500);
+      location.reload();
+    },
+    onFailure: (data) => {
+      $('#submitMessageButton').prop('disabled', false);
+      $('#submitMessage').prop('disabled', false);
+      $('#messageSubmitSpinner').remove();
+      Render.toast('Message Not Sent! something went wrong :( try emailing us instead', -1, 3500);
+    }
+  });
+}
+
+Render.responseForm = (data) => {
+  return `
+    <style>
+      .messagePrompt {
+        font-size: 0.8em;
+        width: 100%;
+        padding-left: 15px;
+        opacity; 0.8;
+        display: block;
+        line-height: 35px;
+        margin-top; -15px;
+      }
+    </style>
+    <div>
+      <button id="showMessageForm" onclick="showMessageForm();" class="primary">send us a message</button>
+    </div>
+    <div id="messageForm" style="height:0; overflow: hidden;">
+      <span class="messagePrompt" style="font-size: 0.8em;">Ready to approve? Want to request changes? Be sure to mention the letter in your message.</span>
+      <span class="messagePrompt error" style="color:red;"></span>
+
+      <textarea id="submitMessage" placeholder="example: I approve B! or I like A, but..."></textarea>
+      <button id="submitMessageButton" onclick="sendMessage(${data.orderId_raw})" class="primary">Send Message</button>
+    </div>
+  `;
+}
 
 Render.orderStatus = (data) => {
   // tracking links
@@ -66,7 +273,6 @@ Render.orderStatus = (data) => {
     });
   }
   // download links
-  console.log(data);
 
   var result = `
     <style>
@@ -129,7 +335,7 @@ Render.orderInfo = (data) => {
         <p>${data.custFirst} ${data.custLast}</p>
         <p>${data.email}</p>
         <h5>on</h5>
-        <p class="datetime">${data.created}</p>
+        <p class="datetime">${data.created || data.created_shopify_order}</p>
       </div>
     </div>
   `;
@@ -248,8 +454,8 @@ Render.proofs = (data) => {
       }
       .proof_overlay p {
         font-size: 0.8em;
-        line-height: 12px;
-        font-weight: bold;
+        line-height: 10px;
+        font-weight: 600;
         white-space: nowrap;
       }
       .proof_overlay.top {
@@ -268,9 +474,11 @@ Render.proofs = (data) => {
       }
     </style>
   `;
+  result += `<div id="proofsContainer">`;
   sortedProofs.forEach((proof) => {
     result += Render.try('proof', proof);
   });
+  result += `</div>`;
   return result;
 };
 
@@ -426,11 +634,26 @@ Render.proofThumbs = (data) => {
   `;
 };
 
+var selectThumbInitted = false;
 function selectThumb(letter) {
+  if (selectThumbInitted) {
+    $('#proofsContainer').css({ height: $('.imageRow.row:visible').height() }); // show/hide causes collapse and scroll jump
+    // alternate logic, on subsequent thumbs, alternate them all
+    $('.imageRow.row').css({
+      position: 'absolute',
+      left: 0,
+      top: 0,
+      width: '100%'
+    });
+  }
+
+  // this happens first time, as it used to.
   $('.proofThumb.selected').removeClass('selected');
   $('.proofThumb.thumb_'+letter).addClass('selected');
-  $('.imageRow').hide();
   $('.imageRow.row_'+letter).show();
+  $('.imageRow').not('.imageRow.row_'+letter).hide();
+
+  selectThumbInitted = true;
 }
 
 function selectInitialProof() {
@@ -444,6 +667,6 @@ function selectInitialProof() {
   if ($approved.length) {
     return selectThumb($approved.attr('letter'));
   } else {
-    return selectThumb($approved.attr('letter'));
+    return selectThumb($first.attr('letter'));
   }
 }
