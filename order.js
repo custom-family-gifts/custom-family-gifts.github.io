@@ -39,7 +39,7 @@ Render.main = (data) => {
     ${Render.try('proofThumbs', data)}
 
     <span id="messages">&nbsp;</span><!-- this span for anchor otherwise can't see h3-->
-    <h3>Messages</h3>
+    <h3>Messages${data.pipeline.toLowerCase().includes('proof sent') ? ' 👇 Approve a proof':''}</h3>
     ${Render.try('responseForm', data)}
     <h3 style="font-size: 0.95em;">Message History</h3>
     ${Render.try('messages', data)}
@@ -131,15 +131,19 @@ Render.messages = (data) => {
         .message {
           width: calc(100% - 65px);
           margin-left: 8px;
+          border-width: 1px !important;
         }
         .messageDate {
           top: -5px;
+          border-width: 1px !important;
+        }
+        .messageVia {
+          font-weight: 400;
         }
       }
     </style>
   `;
   if (data.messages) {
-    console.log(data.messages);
     var sortedMessages = data.messages.sort((a, b) => {
       return (new Date(a.created) < new Date(b.created)) ? 1 : -1;
     });
@@ -202,6 +206,7 @@ function showMessageForm() {
   $('#messageForm').css({ height: '1%' });
   $('#messageForm').animate({ height: '100%' }, 1500);
   $('#showMessageForm').hide();
+  $('#submitMessage').select();
 }
 
 function sendMessage(orderId) {
