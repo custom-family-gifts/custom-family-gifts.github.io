@@ -14,7 +14,6 @@ Drawer.init({
     return renderNotes(data);
   },
   renderOverview: (data) => {
-    console.log(data);
     return `
       <div class="row" style="position:absolute;top:6px;left:184px;">${renderPipeline(data.pipeline)} ${renderArtist(data.artist)}${(data.chosen_proof)?` 👌${data.chosen_proof}`:''}</div>
       <div style="white-space: nowrap; position: relative; height: 100%;">
@@ -34,6 +33,7 @@ Drawer.init({
       name: 'main',
       render: (data) => {
         var result = ``;
+        if (!data.options) data.options = '';
         result += renderTabSection('Shipping Address', renderShippingAddress(data));
         result += renderTabSection('options', `
           <div style="max-height: 240px; overflow-x: hidden; overflow-y: auto; font-size: 12px;">
@@ -53,14 +53,28 @@ Drawer.init({
       render: (data) => {
         if (!data.messages) data.messages = [];
         var result = '';
+        // zero messages
         if (data.messages.length == 0) {
           result += `<div class="message" style="background-color: #ddd;font-size: 0.9em;">🙈 no messages found in freshdesk</div>`;
         }
+
+        // main notification on messages
         result += `<div class="message" style="background-color: #ddd;font-size: 0.9em;">NOTE: Freshdesk tickets without correct <span style="font-weight:600">order_number</span> will <span style="font-weight:600">not</span> appear here.</div>`;
+
+        // queued etsy
+        if (data.queued_etsy_messages && data.queued_etsy_messages.records.length) {
+          data.queued_etsy_messages.records.forEach((qe => {
+            result += `<div style="opacity:0.6" class="message us" style="background-color: #ddd;font-size: 0.9em;"><b>Queued but unsent Etsy message:</b></br> ${qe.message}</div>`;
+          }));
+        }
+
+        // orders. messages
         for (var i = data.messages.length-1; i >= 0; i--) {
           var message = data.messages[i];
           result += renderMessage(message, data);
         }
+
+        // etsy notif
         if (data.etsy_receipt_id) {
           result += `<div class="message" style="background-color: #ddd;font-size: 0.9em;">🍊 NOTE: Rarely, The origin etsy request may not appear here or in FD.<br>If the conversation feels like something is missing. Check the Etsy Order Link</div>`;
         }
@@ -71,7 +85,6 @@ Drawer.init({
       name: (data) => {
         var name = 'prints';
         if (data.printed_order.length > 0) name = `${Drawer.renderTabCount(data.printed_order.length)} ${name}`;
-        name += ' & proofs';
         return name;
       },
       render: (data) => {
@@ -79,7 +92,7 @@ Drawer.init({
         if (data.printed_order && data.printed_order.length) {
           data.printed_order.forEach(printed_order => {
             var html = renderPrintedOrder(printed_order);
-            result += renderTabSection(`${printed_order.printing_service} : ${printed_order.printer_id}`, html);
+            result += renderTabSection(`Printed Order ${printed_order.printing_service} : ${printed_order.printer_id}`, html);
           });
         }
         if (data.to_print && data.to_print.length) {
@@ -90,6 +103,14 @@ Drawer.init({
         if (data.printed_order && data.printed_order.length == 0 && data.to_print && data.to_print.length == 0) {
           result += `no records found`;
         }
+        return result;
+      },
+    },
+    {
+      name: 'misc',
+      render: (data) => {
+        var result = '';
+
         return result;
       }
     }
@@ -123,9 +144,7 @@ function renderToPrint(to_print, order) {
   var proofs = order.auto_proof_files || [];
 
   let html = ``;
-  html += `<div>Printer: ${to_print.printer}</div>`;
-  html += `<div>Size: ${to_print.print_choice_size}</div>`;
-  html += `<div>Frame: ${to_print.print_choice_frame}</div>`;
+  html += `<div>${to_print.printer} | ${to_print.print_choice_size} | ${to_print.print_choice_frame}</div>`;
   if (!data.chosen_proof || data.chosen_proof.trim() == '') {
     // solve for select
     var options = ``;
@@ -140,7 +159,13 @@ function renderToPrint(to_print, order) {
       html += `<button class="primary" onclick="">Print ${to_print['2_chosen_proof']}</button>`;
     } else {
       html += `<select onchange="changeChosenProof(this)" to_print_id="${to_print.to_print_id}"><option value="">--</option>${options}</select>`;
-      html += `<button onclick="setChosenProof(${order.orderId_raw}, ${to_print.to_print_id})" disabled to_print_id="${to_print.to_print_id}">set chosen proof</button>`;
+      html += Render.button({
+        class: "primary",
+        disabled: null,
+        text: 'print',
+        onclick: `setChosenProof(${order.orderId_raw}, ${to_print.to_print_id})`,
+        to_print_id: to_print.to_print_id
+      });
     }
   }
   return html;
@@ -154,7 +179,7 @@ function setChosenProof(orderId, to_print_id) {
   var letter = $select.val();
   if (!letter) return;
 
-  $button.prop('disabled', true).append('<span><span class="spinner"></span></span>');
+  $button.prop('disabled', true);
   $select.prop('disabled', true);
 
   API.call({
@@ -168,7 +193,7 @@ function setChosenProof(orderId, to_print_id) {
     onFailure: (e) => {
       console.warn(e);
       Render.toast('Something went wrong - Chosen Proof', -1, 5000);
-      $button.prop('disabled', false).html('set chosen proof');
+      $button.prop('disabled', false);
       $select.prop('disabled', false);
     }
   });
@@ -179,21 +204,76 @@ function changeChosenProof(select) {
   var to_print_id = $(select).attr('to_print_id');
   var $button = $(`button[to_print_id=${to_print_id}]`);
   if (letter) {
-    $button.prop('disabled', false).addClass('primary');
+    $button.prop('disabled', false);
   } else {
-    $button.prop('disabled', true).removeClass('primary');
+    $button.prop('disabled', true);
   }
 }
 
 function renderProofs(order) {
-  var result = `<ul class="proofs">`;
+  var result = `
+    <style>
+      ul.proofs {
+        padding: 0;
+        margin: 5px;
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        overflow-x: auto;
+        margin-bottom: 0px;
+      }
+      ul.proofs li {
+        list-style: none;
+        display: inline-block;
+        position: relative;
+        cursor: zoom-in;
+      }
+      ul.proofs span.letter {
+        position: absolute;
+        top: 0;
+        left: 0;
+        color: white;
+        background-color: #bbb;
+        height: 12px;
+        width: 12px;
+        font-weight: 600;
+        font-size: 10px !important;
+        line-height: 12px;
+        text-align: center;
+      }
+      ul.proofs li img {
+        max-height: 60px;
+        max-width: 60px;
+        border: 1px dashed #bbb;
+      }
+      ul.proofs li.chosen img{
+        border: 1px dashed #00cb00;
+      }
+      ul.proofs li.chosen span.letter {
+        background-color: #00cb00;
+      }
+    </style>
+
+    <ul class="proofs">
+  `;
   if (order.auto_proof_files && order.auto_proof_files.length > 0) {
     var proofs = order.auto_proof_files;
     var sortedProofs = proofs.sort((a, b) => {
       return (a.filename.toLowerCase() > b.filename.toLowerCase()) ? -1 : 1;
     });
+    var finalsByLetter = {};
+    if (order.auto_final_files) {
+      order.auto_final_files.forEach(final => {
+        var finalSplit = final.filename.split('_');
+        if (finalSplit.length == 3 && finalSplit[1].length == 1) {
+          finalsByLetter[finalSplit[1].toUpperCase()] = final;
+        }
+      });
+    }
     sortedProofs.forEach((proof, i) => {
       var url = proof.url;
+      console.log(proof);
       if (proof.thumbnails && proof.thumbnails.large) {
         url = proof.thumbnails.large.url;
       }
@@ -205,16 +285,34 @@ function renderProofs(order) {
       var isSent = false;
       if (order.sent_proofs_record && order.sent_proofs_record.toUpperCase().includes(letter)) isSent = true;
       if (order.chosen_proof && order.chosen_proof.toUpperCase().includes(letter)) isChosenProof = true;
+      var thumbUrl = proof.url;
+      var final = finalsByLetter[letter] || null;
+
+      if (proof.thumbnails && proof.thumbnails.large) thumbUrl = proof.thumbnails.large.url;
       result += `
-        <li class="${(isChosenProof) ? 'chosen' : ''}">
+        <li onclick="proofModal('${url}', '${(final) ? final.url : ''}', '${letter}', '${(final) ? final.width : ''}', '${(final) ? final.height : ''}')" class="${(isChosenProof) ? 'chosen' : ''}">
           <span class="letter">${letter}</span>
-          <img src="${url}" />
+          <img src="${thumbUrl}" />
         </li>
       `;
     });
     result += '</ul>'
   }
   return result;
+}
+
+function proofModal(url, finalUrl, letter, finalX, finalY) {
+  Render.modal(
+    `
+      <span>Proof ${letter.toUpperCase()}</span>
+      ${(finalUrl) ? ` <a href="${finalUrl}" target="_blank">view final</a>` : ''}
+      ${(finalX) ? `${finalX}×${finalY}` : ''}
+    `,
+    `
+      <img src="${url}" />
+    `,
+    false
+  );
 }
 
 function renderTabSection(title, html) {
@@ -397,26 +495,18 @@ function renderLinks(order) {
   if (order.pipeline.toLowerCase() == 'delivered') atLinkUrl = `https://airtable.com/appa8QniOsPWSRDEF/tblBu8Y9Hvjwiz2Mm/viwaLSolT6dAYWC7f/${order.at_record_id}?blocks=hide`
 
   var result = `
-  ${(order.at_record_id) ? renderLink(atLinkUrl, 'Airtable Link') : ''}
-  ${(order.customer_order_link) ? renderLink(order.customer_order_link, 'Smile Cust Link') : ''}
-  ${(order.customer_order_link) ? renderLink(`https://smile.customfamilygifts.com/service_orders?drawer_orderId=${order.orderId_raw}`, 'Smile Link') : ''}
-  ${(order['order link']) ? renderLink(order['order link'], 'Shopify Link') : ''}
-  ${(order.etsy_link && order.etsy_link.length) ? renderLink(order.etsy_link[0],'Etsy Link') : ''}
+    <style>
+      .drawerDiv .link {
+        float: right;
+      }
+    </style>
+    <div>${(order.at_record_id) ? Render.link(atLinkUrl, 'Airtable Link') : ''}</div>
+    <div>${(order.customer_order_link) ? Render.link(order.customer_order_link, 'Smile Cust Link') : ''}</div>
+    <div>${(order.customer_order_link) ? Render.link(`https://smile.customfamilygifts.com/service_orders?drawer_orderId=${order.orderId_raw}`, 'Smile Link') : ''}</div>
+    <div>${(order['order link']) ? Render.link(order['order link'], 'Shopify Link') : ''}</div>
+    <div>${(order.etsy_link && order.etsy_link.length) ? Render.link(order.etsy_link[0],'Etsy Link') : ''}</div>
   `;
   return result;
-}
-
-function renderLink(url, name) {
-  return `
-    <div class="orderLink">
-      <a class="orderLinks" target="_blank" href="${url}">${name} ▶</a>
-      <span class="copypaste" onclick="copyToClipboard(\`${url}\`)" title="copy to clipboard">📋</span>
-    </div>
-  `;
-}
-function copyToClipboard(value) {
-  navigator.clipboard.writeText(value);
-  Render.toast('copied to clipboard', 1);
 }
 
 function renderOptions(value) {

@@ -1,4 +1,22 @@
 /* assumes render.js & api.js above it */
+Render.table = (data, columnDefs) => {
+  return `
+    <table id="mainTable">
+      ${Render.css(columnDefs)}
+      ${Render.thead(data, columnDefs)}
+      ${Render.tbody(data, columnDefs)}
+    </table>
+  `;
+};
+Render.css = (columnDefs) => {
+    var result = ``;
+    for (var key in columnDefs) {
+      if (columnDefs[key].css) {
+        result += columnDefs[key].css;
+      }
+    }
+    return `<style>${result}</style>`;
+};
 Render.thead = (mdbData, definition = {}, data) => { // default to hiding those 2 internal cols
   var columnDefs = buildTableDefinition(mdbData, definition);
 
@@ -34,7 +52,7 @@ Render.thead = (mdbData, definition = {}, data) => { // default to hiding those 
           }
         } else {
           headers += `
-            <th${style}>
+            <th${style} class="${columnDef.thClass || ''}">
               <a href="javascript:void(0)" onclick="API.setSort('${column}', ${changeToOrder});">
                 ${columnDef.label || column}${sortIcon}
               </a>

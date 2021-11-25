@@ -213,6 +213,20 @@ div.paginate {
   background-color: red;
 }
 
+.renderButton .spinnerSpacer {
+  display:none;
+  padding-left: 5px;
+}
+.renderButton.loading .spinnerSpacer {
+  display: inline;
+}
+button.renderButton .spinner {
+  height: 15px;
+  width: 15px;
+  margin: 0;
+  vertical-align: top;
+}
+
 @media screen and (max-width: 767px) {
   table td {
     max-width: 100% !important;

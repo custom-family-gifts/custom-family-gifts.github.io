@@ -146,12 +146,202 @@ const Render = {
       $('#toast').fadeOut();
     }, durationMs);
   },
-  link: (name, url) => {
+  link: (url, name) => {
     return `
+      <style>
+        .link > span {
+          cursor: pointer;
+          opacity: 0.5;
+        }
+        .link > span: hover {
+          opacity: 1;
+        }
+      </style>
       <span class="link">
-        <span>📋</span>
-        <a target="_blank" href="${url}">${name}</a>
+        <span onclick="Render.linkToClipboard('${url}')">📋</span>
+        <a target="_blank" href="${url}">${name} ▶</a>
       </span>
     `;
+  },
+  linkToClipboard: (value) => {
+    navigator.clipboard.writeText(value);
+    Render.toast('copied to clipboard', 1);
+  },
+  button: (options) => {
+    if (!options.class) options.class = '';
+    options.class += ` renderButton`;
+
+    var innards = ``;
+    for (var attr in options) {
+      if (options[attr] == null) { // properties such as disabled
+        innards += ` ${attr} `;
+      } else {
+        innards += ` ${attr}="${options[attr]}" `;
+      }
+    }
+    var html = `
+      <button ${innards}>
+        ${options.text}
+        <span class="spinnerSpacer"><b class="spinner primary"></b></span>
+      </button>
+    `;
+    return html;
+  },
+  modalInitted: false,
+  initModal: () => {
+    if (Render.modalInitted) return;
+    $('body').append(`
+      <style>
+        #modalOverlay {
+          position: fixed;
+          width: 100%;
+          height: 100%;
+          top: 0;
+          left: 0;
+          z-index: 999998;
+          background-color: rgba(0,0,0,0.5);
+          overflow: hidden;
+          text-align: center;
+          display: none;
+        }
+        #modalOverlay.transparent {
+          background-color: transparent;
+          pointer-events: none;
+        }
+        .modalContents {
+          background-color: #ddd;
+          padding:5px;
+        }
+        .modalContents > *  {
+          vertical-align: top;
+        }
+        #modal {
+          z-index: 999999;
+          background-color: white;
+          display: inline-block;
+          min-width: 150px;
+          min-height: 150px;
+          position: absolute;
+          top: 35%;
+          left: 30%;
+          max-width: 80%;
+          max-height: 80%;
+          transform: translate(-50%, -50%);
+          pointer-events: all;
+          overflow: auto;
+          box-shadow: 4px 4px 12px rgb(0 0 0 / 30%);
+        }
+        .modalBar {
+          background-color: white;
+          height: 25px;
+          padding: 8px;
+          text-align: left;
+        }
+        .modalClose {
+          padding: 15px;
+          width: 12px;
+          height: 12px;
+          text-align: center;
+          line-height: 7px;
+          font-size: 20px;
+          cursor: pointer;
+          opacity: 0.7;
+          position: absolute;
+          right: 0;
+          top: 0;
+          z-index: 1000000
+        }
+        .modalClose:hover {
+          background-color: #ddd;
+          opacity:1;
+        }
+        @media screen and (max-width: 1220px) {
+          #modal {
+            top: 35%;
+            left: 50%;
+          }
+        }
+      </style>
+    `);
+    $('body').append('');
+    $('body').append(`
+      <div id="modalOverlay" onclick="if(Render.modalOverlayExit)Render.modalHide();">
+        <div id="modal">
+          <div class="modalBar">
+          </div>
+          <div class="modalClose" onclick="Render.modalHide()">×</div>
+          <div class="modalContents"></div>
+        </div>
+      </div>
+    `);
+    Render.$modal = $('#modal');
+    $('.modalBar').on('mousedown', (evt) => {
+      // console.log('mousedown', evt);
+      Render.modalDrag = true;
+      // set the modal initial values
+      Render.modalY = Render.$modal.offset().top;
+      Render.modalX = Render.$modal.offset().left;
+      var modalHeight = Render.$modal.height();
+      var modalWidth = Render.$modal.width();
+      var windowHeight = $(window).outerHeight();
+      var windowWidth = $(window).outerWidth();
+      Render.modalYMax = windowHeight - modalHeight;
+      Render.modalXMax = windowWidth - modalWidth;
+      // move the modal to absolute locations
+      Render.$modal.css({
+        position: 'absolute',
+        left: Render.modalX,
+        top: Render.modalY,
+        transform: 'none'
+      });
+
+      // se the mouse initial values
+      Render.initialMouseX = evt.originalEvent.clientX;
+      Render.initialMouseY = evt.originalEvent.clientY;
+    });
+    $(document).on('mouseup.modal', (evt) => {
+      // console.log('mouseup', evt);
+      if (Render.modalDrag) Render.modalDrag = false;
+    });
+    $(document).on('mousemove.modal', (evt) => {
+      // console.log('mousemove', evt);
+      if (!Render.modalDrag) return;
+      var left = Render.modalX + (evt.originalEvent.clientX - Render.initialMouseX);
+      var top = Render.modalY + (evt.originalEvent.clientY - Render.initialMouseY);
+      if (left < 0) left = 0;
+      if (top < 0) top = 0;
+      if (top > Render.modalYMax) top = Render.modalYMax;
+      if (left > Render.modalXMax) left = Render.modalXMax;
+      Render.$modal.css({
+        left: left,
+        top: top
+      });
+    });
+    Render.modalInitted = true;
+  },
+  modalOverlayExit: true,
+  modal: (titleHtml, html, overlayExit = false) => {
+    Render.modalOverlayExit = overlayExit;
+    if (!overlayExit) {
+      $('#modalOverlay').addClass('transparent');
+      // add controls and border
+    } else {
+      $('#modalOverlay').removeClass('transparent');
+    }
+    $('')
+    $('.modalContents').html(html);
+    $('.modalBar').html(titleHtml);
+    Render.modalShow();
+  },
+  modalShow: () => {
+    // Render.$modal.attr('style', '');
+    $('#modalOverlay').show();
+  },
+  modalHide: () => {
+    $('#modalOverlay').hide();
+    Render.$modal.attr('style', '');
   }
 };
+$(() => {
+  Render.initModal();
+});

@@ -222,7 +222,6 @@ API.paramsToUrl = function(paramObj) {
 
   var result = '';
   Object.keys(paramObj).forEach((key) => {
-    console.log('key', key, paramObj[key]);
     if (key === undefined || key === null) return;
     if (paramObj[key] != null && paramObj[key] != undefined && paramObj[key] != '') {
       if (result != '') result += '&';

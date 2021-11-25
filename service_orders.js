@@ -182,18 +182,29 @@ Render.results = (data) => {
     },
     links: {
       hide: false,
+      thClass: "tdLinks",
+      class: "tdLinks",
+      css: `
+        #mainTable td .link {
+          font-size: 13px;
+          text-align: right;
+        }
+        .tdLinks {
+          text-align: right;
+        }
+        .tdLinks > div > div {
+          height:19px;
+        }
+      `,
       display: (value, record) => {
-        return `<div>${renderLinks(record)}</div>`;
+        return `
+          <div>${renderLinks(record)}</div>
+        `;
       }
     }
   };
 
-  var result = `
-    <table id="mainTable">
-      ${Render.thead(data, columnDefs)}
-      ${Render.tbody(data, columnDefs)}
-    </table>
-  `;
+  var result = Render.table(data, columnDefs);
   return result;
 };
 
