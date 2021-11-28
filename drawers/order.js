@@ -757,6 +757,7 @@ function renderLinks(order) {
     <div>${(order.customer_order_link) ? Render.link(`https://smile.customfamilygifts.com/service_orders?drawer_orderId=${order.orderId_raw}`, 'Smile Link') : ''}</div>
     <div>${(order['order link']) ? Render.link(order['order link'], 'Shopify Link') : ''}</div>
     <div>${(order.etsy_link && order.etsy_link.length) ? Render.link(order.etsy_link[0],'Etsy Link') : ''}</div>
+    ${(order.slack_channel_id) ? `<div>${Render.link('https://app.slack.com/client/TRN1ZEESE/'+order.slack_channel_id, 'Slack #'+order.orderId_raw)}</div>` : ''}
   `;
   return result;
 }

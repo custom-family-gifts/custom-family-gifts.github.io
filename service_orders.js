@@ -155,9 +155,10 @@ Render.results = (data) => {
           result += `<span style="color:#e56111;margin-left:5px;">🍊 ${record.etsy_receipt_id}</span>`;
         }
         result += `<span class="datetime small" style="margin-left:5px;">${record.created_shopify_order}</span>`;
-        if (record.items) result += `${renderItems(record.items, record.options)}`;
+        if (record.items) result += `${renderItems(record.items, record.options)}<br style="clear:both">`;
         if (record['Internal - newest on top please']) {
-          result += `<div class="note" style="display:inline-block;width:42%;margin-right:4px;background-color:#f77251"><div class="noteHeader">Internal Note:</div>${record['Internal - newest on top please']}</div>`;
+          result += `<div style="display:inline-block;width:42%;margin-right:3px;">${renderInternalNotes(record)}</div>`;
+          // result += `<div class="note" style="display:inline-block;width:42%;margin-right:4px;background-color:#f77251"><div class="noteHeader">Internal Note:</div>${record['Internal - newest on top please']}</div>`;
         }
         if (record.print_note) {
           result += `<div class="note" style="display:inline-block;width:42%;margin-right:4px;background-color:#1976d2"><div class="noteHeader">Print Note:</div>${record.print_note}</div>`;

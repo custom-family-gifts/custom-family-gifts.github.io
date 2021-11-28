@@ -139,6 +139,8 @@ var Drawer = {
             left: -190px;
             width: 180px;
             padding: 5px;
+            height: 100vh;
+            overflow-y: auto;
           }
           #drawerContents .card {
             padding: 4px 8px;
