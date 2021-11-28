@@ -98,18 +98,23 @@ const Render = {
     }
   },
   navigation: (navDef = []) => {
+    var isLocal = !location.host.includes('smile.customfamilygifts.com');
     var buttons = '';
     navDef.forEach(nav => {
       var current = '';
       if (nav.target.includes('/')) {
         var pathSplit = location.pathname.split('/');
-        if (pathSplit[pathSplit.length-1].includes(nav.target.split('/')[1])) {
+        if (nav.target.split('/')[1].includes(pathSplit[pathSplit.length-1])) {
           current = '<div class="currentBar"></div>';
         }
+        // if (pathSplit[pathSplit.length-1].includes(nav.target.split('/')[1])) {
+        //   current = '<div class="currentBar"></div>';
+        // }
         var target = nav.target;
         if (pathSplit.length > 2) { // local development, the paths have full filepath, vs onlien it'll be simply /error
           pathSplit.pop();
           target = pathSplit.join('/') + nav.target;
+          if (!isLocal) target.replace('.html','');
         }
       }
       buttons += `<a href="${target}" class="button">${current}${nav.label}</a>`;
@@ -632,7 +637,7 @@ var Admin = {
   },
   render: () => {
     $('body').append(`
-      <div id="adminKey">welcome <a href="javascript:API.newAdminKey(true)">${Admin.getName()}</a></div>
+      <div id="adminKey">welcome <a href="javascript:Admin.updateKey()">${Admin.getName()}</a></div>
     `);
   },
   updateKey: () => {
