@@ -302,6 +302,7 @@ var Modal = {
     Modal.initDraggable();
     Modal.initted = true;
   },
+  isAbsolute: false,
   initDraggable: () => {
     $('.modalBar').on('mousedown', (evt) => {
       // console.log('mousedown', evt);
@@ -316,13 +317,16 @@ var Modal = {
       Modal.modalYMax = windowHeight - modalHeight;
       Modal.modalXMax = windowWidth - modalWidth;
 
-      // move the modal to absolute locations
-      Modal.$modal.css({
-        position: 'absolute',
-        left: Modal.modalX,
-        top: Modal.modalY,
-        transform: 'none'
-      });
+      if (!Modal.isAbsolute) {
+        // move the modal to absolute locations
+        Modal.$modal.css({
+          position: 'absolute',
+          left: Modal.modalX,
+          top: Modal.modalY - $(window).scrollTop(),
+          transform: 'none'
+        });
+        Modal.isAbsolute;
+      }
 
       // se the mouse initial values
       Modal.initialMouseX = evt.originalEvent.clientX;
@@ -364,11 +368,22 @@ var Modal = {
   show: () => {
     Modal.shown = true;
     $('#modalOverlay').show();
+    // check modal position
+    if (Modal.$modal.offset().top - $(window).scrollTop() < 0) {
+      Modal.$modal.css({
+        position: 'absolute',
+        left: Modal.$modal.offset().left,
+        top: 0,
+        transform: 'none'
+      });
+    }
+    console.log(Modal.$modal.offset());
   },
   hide: () => {
     $('#modalOverlay').hide();
     Modal.shown = false;
     Modal.$modal.attr('style', '');
+    Modal.isAbsolute = false;
   },
   renderEdit: (_ATID, title, fieldsArr, currentData = {}, table = 'orders', onsubmit = Modal.updateATFields) => { // unsubmit is uninvoked
     if (!fieldsArr) throw new Error('needs Fields');
