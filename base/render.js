@@ -315,6 +315,7 @@ var Modal = {
       var windowWidth = $(window).outerWidth();
       Modal.modalYMax = windowHeight - modalHeight;
       Modal.modalXMax = windowWidth - modalWidth;
+
       // move the modal to absolute locations
       Modal.$modal.css({
         position: 'absolute',
@@ -325,7 +326,7 @@ var Modal = {
 
       // se the mouse initial values
       Modal.initialMouseX = evt.originalEvent.clientX;
-      Modal.initialMouseY = evt.originalEvent.clientY;
+      Modal.initialMouseY = evt.originalEvent.clientY + $(window).scrollTop();
     });
     $(document).on('mouseup.modal', (evt) => {
       // console.log('mouseup', evt);
