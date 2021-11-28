@@ -1,6 +1,6 @@
 Drawer.init({
   title: (data) => {
-    return `${(data.isPriority) ? '⭐ ' : ''}Order #${data.orderId_raw}`;
+    return `${(data.isPriority) ? '<span style="font-weight:normal">⭐</span> ' : ''}Order #${data.orderId_raw}`;
   },
   apiCall: (params) => {
     if (!params.orderId) throw new Error('Drawer needs orderId');
@@ -11,11 +11,44 @@ Drawer.init({
     return call;
   },
   renderExtra: (data) => {
-    return renderNotes(data);
+    var modalFnId1 = Modal.getUniqueId();
+    Modal.fns[modalFnId1] = () => {
+      // call v2-addOrderInternalNote(orderId, message, admin_key)
+      var orderId = data.orderId_raw;
+      var message = $('#modal form textarea[name=message]').val();
+      var admin_key = Admin.key;
+      Modal.editLoading();
+      API.call({
+        cacheMS: 0,
+        method: 'v2-addOrderInternalNote',
+        body: JSON.stringify({
+          orderId: orderId,
+          message: message,
+          admin_key: admin_key
+        }),
+        onSuccess: (data) => {
+          Modal.editSuccess();
+        },
+        onFailure: (data) => {
+          Modal.editFailure();
+        }
+      });
+    };
+
+    var modalFnId2 = Modal.getUniqueId();
+    Modal.fns[modalFnId2] = () => {
+      Modal.renderEdit(data.at_record_id, 'Set Chosen Proof', [
+        { name: 'message', required: true, textarea: true, instructions:'auto adds name & date' },
+      ], {}, 'orders', Modal.fns[modalFnId1]);
+    };
+
+    var html = `<button style="background-color:#f77251;width:90%;color:white;" onclick="Modal.fns[${modalFnId2}]()">add note</button>`;
+    html += renderNotes(data);
+    return html;
   },
   renderOverview: (data) => {
     return `
-      <div class="row" style="position:absolute;top:6px;left:184px;">${renderPipeline(data.pipeline)} ${renderArtist(data.artist)}${(data.chosen_proof)?` 👌${data.chosen_proof}`:''}</div>
+      <div class="row" style="position:absolute;top:6px;left:184px;">${renderPipeline(data.pipeline)} ${renderArtist(data.artist)}</div>
       <div style="white-space: nowrap; position: relative; height: 100%;">
         <div class="drawerDiv" style="width:calc(100% - 138px);display:inline-block">
           <div class="row">${renderItems(data.items, data.options)}</div>
@@ -34,12 +67,79 @@ Drawer.init({
       render: (data) => {
         var result = ``;
         if (!data.options) data.options = '';
-        result += renderTabSection('Shipping Address', renderShippingAddress(data));
-        result += renderTabSection('options', `
-          <div style="max-height: 240px; overflow-x: hidden; overflow-y: auto; font-size: 12px;">
+        var leftColumn = `<div class="column">`;
+        var rightColumn = `<div class="column">`;
+
+        var pipelines = getPipelines();
+        var approved = pipelines.filter(pipeline => {
+          return Boolean(pipeline.toLowerCase().includes('approved'));
+        });
+
+        leftColumn += renderTabSection(
+          'pipeline',
+          `<div style="padding-top: 9px;padding-bottom: 4px;">${renderPipeline(data.pipeline)}</div>`,
+          () => {
+            Modal.renderEdit(data.at_record_id, 'Set Pipeline', [
+              { name: 'pipeline', options: pipelines }
+            ], data);
+          }
+        );
+
+        leftColumn += renderTabSection(
+          'addons',
+          renderAddons(data),
+          () => {
+            Modal.renderEdit(data.at_record_id, 'Addons', [
+              { name: 'isPriority', label: 'Priority', boolean: true },
+              { name: 'Needs Digital Art', label: 'Send Digital', boolean: true },
+            ], data);
+          }
+        );
+
+        leftColumn += renderTabSection(
+          'Shipping Details',
+          renderShippingAddress(data),
+          () => {
+            Modal.renderEdit(data.at_record_id, 'Edit Shipping Details', [
+              { name: 'shippingChoice', label: 'Shipping Choice', options: ['', 'expedited'], instructions: 'blank = standard' },
+              { name: 'shipAddFname', label: 'Ship First Name', required: true },
+              { name: 'shipAddLname', label: 'Ship Last Name', required: true },
+              { name: 'shipAddStreet1', label: 'Street 1', required: true },
+              { name: 'shipAddStreet2', label: 'Street 2' },
+              { name: 'shipAddCity', label: 'City', required: true },
+              { name: 'shipAddState', label: 'State'},
+              { name: 'shipAddZip', label: 'Postal Code' },
+              { name: 'shipAddCountry', label: 'Country', reqiored: true, options: ['United States','Canada','Australia','United Kingdom','Germany','France','Ireland','Philippines'] }
+            ], data);
+          }
+        );
+
+        rightColumn += renderTabSection(
+          'chosen proof(s)',
+          renderChosenProofs(data.chosen_proof),
+          () => {
+            Modal.renderEdit(data.at_record_id, 'Set Chosen Proof', [
+              { name: 'chosen_proof', label: 'Chosen Proof(s)', instructions:'comma separated B, N, X' },
+              { name: 'pipeline', options: approved }
+            ], data);
+          }
+        );
+
+        rightColumn += renderTabSection(
+          'options',
+          `<div style="max-height: 240px; overflow-x: hidden; overflow-y: auto; font-size: 12px;">
             ${data.options.replace(/\n/g, '<br>')}
-          </div>
-        `);
+          </div>`,
+          () => {
+            Modal.renderEdit(data.at_record_id, 'Edit Shipping Details', [
+              { name: 'options', textarea: true },
+            ], data);
+          }
+        );
+
+        leftColumn += `</div>`;
+        rightColumn += `</div>`;
+        result = leftColumn + rightColumn;
         return result;
       }
     },
@@ -53,6 +153,48 @@ Drawer.init({
       render: (data) => {
         if (!data.messages) data.messages = [];
         var result = '';
+
+        result += `<button disabled>Reproof</button>`
+
+        // SMS stuff
+        if (data.custPhoneSanitized) data.custPhoneSanitized = `${data.custPhoneSanitized}`;
+        if (!data.custPhoneSanitized) data.custPhoneSanitized = '';
+        if (data.custPhoneSanitized.length == 10) data.custPhoneSanitized = '1'+data.custPhoneSanitized;
+        if (data.custPhoneSanitized.charAt(0) == '1' && data.custPhoneSanitized.length == 11) {
+          var modalFnId1 = Modal.getUniqueId();
+          Modal.fns[modalFnId1] = () => {
+            // call v2-addOrderInternalNote(orderId, message, admin_key)
+            var orderId = data.orderId_raw;
+            var message = $('#modal form textarea[name=sms]').val();
+            var number = data.custPhoneSanitized;
+            Modal.editLoading();
+            API.call({
+              cacheMS: 0,
+              method: 'v2-sendOrderSms',
+              body: JSON.stringify({
+                orderId: data.orderId_raw,
+                message: message,
+                number: number
+              }),
+              onSuccess: (data) => {
+                Modal.editSuccess();
+              },
+              onFailure: (data) => {
+                Modal.editFailure('SMS may have been sent. Please do not send again', 10000);
+              }
+            });
+          };
+          var modalFnId2 = Modal.getUniqueId();
+          Modal.fns[modalFnId2] = () => {
+            Modal.renderEdit(data.at_record_id, `Send SMS to ${data.custPhone} for #${data.orderId_raw} `, [
+              { name: 'sms', label: 'message', required: true, textarea: true, instructions:'max 150 char', maxLength: 150 },
+            ], {}, 'orders', Modal.fns[modalFnId1]);
+          };
+          result += `<button class="primary" onclick="Modal.fns[${modalFnId2}]()">send sms</button>`;
+        }
+        result += `<button disabled>send Etsy</button>`;
+        result += `<button disabled>reply Email</button>`;
+
         // zero messages
         if (data.messages.length == 0) {
           result += `<div class="message" style="background-color: #ddd;font-size: 0.9em;">🙈 no messages found in freshdesk</div>`;
@@ -89,10 +231,23 @@ Drawer.init({
       },
       render: (data) => {
         var result = ``;
+        // count expected and actual prints
+        var expectedPrints = data.item_count;
+        var actualPrinted = (data.printed_order) ? data.printed_order.length : 0;
+        if (data.items.toLowerCase().includes('digital only')) {
+          result = `<div class="message" style="background-color:#e0ffd1;">Digital Only - nothing to print</div>`;
+        } else {
+          if (actualPrinted != expectedPrints) {
+            result = `<div class="message" style="color: orange; background-color: #ffebc8;">${actualPrinted} of ${expectedPrints} expected items Printed</div>`;
+          } else {
+            result = `<div class="message" style="background-color:#e0ffd1;">✅ ${actualPrinted} of ${expectedPrints} expected items Printed</div>`;
+          }
+        }
+
         if (data.printed_order && data.printed_order.length) {
           data.printed_order.forEach(printed_order => {
             var html = renderPrintedOrder(printed_order);
-            result += renderTabSection(`Printed Order ${printed_order.printing_service} : ${printed_order.printer_id}`, html);
+            result += renderTabSection(`📦 Printed Order ${printed_order.printing_service} : ${printed_order.printer_id}`, html);
           });
         }
         if (data.to_print && data.to_print.length) {
@@ -101,7 +256,7 @@ Drawer.init({
           });
         }
         if (data.printed_order && data.printed_order.length == 0 && data.to_print && data.to_print.length == 0) {
-          result += `no records found`;
+          result += `<b>to_print</b> or <b>printed_order</b> found`;
         }
         return result;
       },
@@ -109,13 +264,96 @@ Drawer.init({
     {
       name: 'misc',
       render: (data) => {
-        var result = '';
-
+        var result = `
+          <div>_ATID: ${data.at_record_id}</div>
+          <div>_id: ${data._id}</div>
+          ${Render.button({
+            id: 'mdbUpdate',
+            text: 'sync latest',
+            class: 'primary',
+            onclick: `triggerMdbUpdate(${data.orderId_raw})`
+          })}
+        `;
         return result;
       }
     }
   ]
 });
+
+function getPipelines() {
+  return [
+    'Cancelled',
+    'Delivered',
+    'HOLD',
+    'PRINTED: Check Delivery',
+    'APPROVED: Print Me',
+    'PROOF SENT: waiting',
+    'PROOF READY: Email Cust',
+    'PROOF RDY: Review',
+    'ART: Done',
+    'ART: Proof Me',
+    'ART: Re-Proof'
+  ];
+}
+
+function renderAddons(order) {
+  var html = ``;
+  if (!order.isPriority) {
+    html += `<div>priority: standard</div>`;
+  } else {
+    html += `<div>⭐ Priority</div>`;
+  }
+  if (order[`Needs Digital Art`]) {
+    html += `<div>📨 Yes Digital</div>`;
+    if (order.email_digital_art_sent) html += `<div><span class="datetime">${order.email_digital_art_sent}</span></div>`;
+    if (order.digital_dl_links) {
+      var linkCount = 0;
+      order.digital_dl_links.split(',').forEach((link, i) => {
+        if (!link.trim()) return;
+        linkCount++;
+        html += '<div>';
+        html += Render.link(link.trim(), `DL link ${linkCount}`);
+        html += '</div>';
+      });
+    }
+  } else {
+    html += `<div>digital art: no</div>`;
+  }
+  return html;
+}
+
+function triggerMdbUpdate(orderId) {
+  $('button#mdbUpdate').addClass('loading').prop('disabled', true);
+  API.call({
+    cacheMS: 0,
+    method: 'v2-updateMdbOrder',
+    body: JSON.stringify({
+      orderId: orderId
+    }),
+    onSuccess: () => {
+      Drawer.reload();
+      $('button#mdbUpdate').removeClass('loading').prop('disabled', false);
+    },
+    onFailure: () => {
+      $('button#mdbUpdate').removeClass('loading').prop('disabled', false);
+      Toast.show('mdbUpdate failed', -1, 5000);
+    }
+  });
+}
+
+function renderChosenProofs(chosen_proofs) {
+  if (!chosen_proofs) return `<span>--</span>`;
+  var result = ``;
+  var chosenProofsArr = chosen_proofs.split(',');
+  chosenProofsArr.forEach((letter, i) => {
+    result += `
+      <span
+        class="tag"
+        style="background-color:${(i%2==0)?'#00cb00':'#00c4b9'};margin:4px 0px;color:white;display:inline-block"
+      >${letter.trim()}</span>`;
+  });
+  return result;
+}
 
 function renderPrintedOrder(printed_order) {
   let html = `<div>created at <span class="datetime">${printed_order.printed_order_created}</span></div>`;
@@ -192,7 +430,7 @@ function setChosenProof(orderId, to_print_id) {
     },
     onFailure: (e) => {
       console.warn(e);
-      Render.toast('Something went wrong - Chosen Proof', -1, 5000);
+      Toast.show('Something went wrong - Chosen Proof', -1, 5000);
       $button.prop('disabled', false);
       $select.prop('disabled', false);
     }
@@ -273,7 +511,6 @@ function renderProofs(order) {
     }
     sortedProofs.forEach((proof, i) => {
       var url = proof.url;
-      console.log(proof);
       if (proof.thumbnails && proof.thumbnails.large) {
         url = proof.thumbnails.large.url;
       }
@@ -302,7 +539,7 @@ function renderProofs(order) {
 }
 
 function proofModal(url, finalUrl, letter, finalX, finalY) {
-  Render.modal(
+  Modal.render(
     `
       <span>Proof ${letter.toUpperCase()}</span>
       ${(finalUrl) ? ` <a href="${finalUrl}" target="_blank">view final</a>` : ''}
@@ -315,10 +552,19 @@ function proofModal(url, finalUrl, letter, finalX, finalY) {
   );
 }
 
-function renderTabSection(title, html) {
+function renderTabSection(title, html, editFn) { // editFn is a fully envocable function
+  var modalId = Modal.getUniqueId();
+  if (editFn) {
+    Modal.fns[modalId] = () => {
+      editFn();
+    };
+  }
   return `
     <div class="card">
-      <div class="card-title">${title}</div>
+      <div class="card-title">
+        ${title}
+        ${(editFn) ? `<span class="drawer-card-edit" style="float:right" onclick="Modal.fns[${modalId}]();">⚙</span>` : ''}
+      </div>
       ${html}
     </div>
   `;
@@ -382,7 +628,8 @@ function renderFrom(message, order) {
     }
   }
   if (message.isNote) from = `FD Note ${(message.private_user) ? `from ${message.private_user}` : ''}`;
-  if (message.to == 'CFG SMS') from = 'Phone';
+  if (message.to == 'CFG SMS') from = 'SMS';
+  if (message.to == 'CFG Smile') from = '💗 Smile Link';
   return `
     ${renderFromIcon(message)}
     <span class="messageFrom">${from}</span>
@@ -426,7 +673,12 @@ function renderItems(items, options) {
     var itemSplit = itemLine.split('/');
     if (itemSplit.length != 3) return result += `<div>${itemLine}</div>`;
     result += `
-      <ul class="items"><li>${itemSplit[0].replace(' Map','')}</li><li>${itemSplit[1]}</li><li>${itemSplit[2]}</li>${(mapCountValues[i]) ? `<li>${MAPCOUNT_NAMES[mapCountValues[i]] || mapCountValues[i]}M</li>` : ''}</ul>
+      <ul class="items">
+        <li title="${itemSplit[0]}">${itemSplit[0].split(' ')[0]}</li>
+        <li>${itemSplit[1]}</li>
+        <li title="${itemSplit[2]}">${itemSplit[2].replace('Canvas Wrap','Canvas Wrp').replace('Black', 'Blk').replace('White','Wh').replace('Walnut','Wal').replace(' Only', '')}</li>
+        ${(mapCountValues[i]) ? `<li>${MAPCOUNT_NAMES[mapCountValues[i]] || mapCountValues[i]}M</li>` : ''}
+      </ul>
     `;
   });
   return result;
@@ -573,8 +825,22 @@ function renderArtist(artist) {
   return `<span class="tag" style="color:${color};background-color:${bgColor}">${artist}</span>`;
 }
 
-function renderCustomer(order) {
-  var result = `🙋‍♀️ ${order.custFirst} ${order.custLast}`;
+function renderCustomer(order, editable = true) {
+  var modalFnId = Modal.getUniqueId();
+  Modal.fns[modalFnId] = () => {
+    Modal.renderEdit(order.at_record_id, 'Edit Customer', [
+      { name: 'custFirst', label: 'First Name', required: true, instructions:'used in emails - please keep updated' },
+      { name: 'custLast', label: 'Last Name', required: true },
+      { name: 'email', required: true },
+      { name: 'custPhone' }
+    ], order);
+  };
+
+  var result = `
+    <span>🙋‍♀️ ${order.custFirst} ${order.custLast}
+      ${(editable) ? `<span class="drawer-card-edit" style="float:none;margin-left:5px;vertical-align:top;" onclick="Modal.fns[${modalFnId}]();">⚙</span>`:''}
+    </span>
+  `;
   result += `<br>📧 ${order.email}`;
   if (order.custPhone) result += `<br>📞 ${order.custPhone}`;
   // if (order.shipAddress) result += `<br><div class="small" style="display:block;">🚛 ${order.shipAddress.replace(/\n/g,'<br>')}</div>`;
@@ -585,6 +851,7 @@ function renderShippingAddress(order) {
   if (!order.shipAddress) return '';
   return `
     <div>
+      ${(order.shippingChoice) ? `🚀 <b style="font-weight:600;color:orange">${order.shippingChoice}</b><br>`:'Standard Shipping<br>' }
       ${order.shipAddress.replace(/\n/g,'<br>')}
     </div>
   `
@@ -609,9 +876,7 @@ function renderNotes(order) {
     });
   }
 
-  if (order['Internal - newest on top please']) {
-    result += `<div class="note" style="background-color:#f77251"><div class="noteHeader">Internal Note:</div>${order['Internal - newest on top please']}</div>`;
-  }
+  result += renderInternalNotes(order);
   if (order.print_note) {
     result += `<div class="note" style="background-color:#1976d2"><div class="noteHeader">Print Note:</div>${order.print_note}</div>`;
   }
@@ -634,4 +899,56 @@ function renderNotes(order) {
     });
   }
   return result;
+}
+
+function renderInternalNotes(order) {
+  var result = ``;
+  if (!order['Internal - newest on top please']) return '';
+  var notes = order['Internal - newest on top please'];
+  try {
+    var formattedNotes = [];
+    var oldNote = '';
+    var barSplit = notes.split('||');
+    barSplit.forEach(barSection => {
+      if (barSection == '') return;
+      var admin = barSection.split('@')[0];
+      var date = barSection.split('@')[1].split('!!')[0];
+      var endSplit = barSection.split('!!')[1].split('==END==');
+      var message = endSplit[0];
+      if (endSplit.length == 2) {
+        oldNote = endSplit[1].trim();
+      }
+      formattedNotes.push({
+        admin: admin,
+        date: date,
+        message: message
+      });
+    });
+    formattedNotes.forEach(note => {
+      result += `
+        <div class="note" style="background-color:#f77251">
+          <div class="noteHeader">${note.admin} @ <span class="datetime">${note.date}</span></div>
+          ${note.message}
+        </div>
+      `;
+    });
+    if (oldNote) {
+      result += `
+        <div class="note" style="background-color:#f77251">
+          <div class="noteHeader">old internal note:</span></div>
+          ${oldNote}
+        </div>
+      `;
+    }
+    return result;
+  } catch(e) {
+    /* in case formatting gets broken */
+  }
+
+  return `
+    <div class="note" style="background-color:#f77251">
+      <div class="noteHeader">internal notes:</span></div>
+      ${notes}
+    </div>
+  `;
 }

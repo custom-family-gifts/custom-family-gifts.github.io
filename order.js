@@ -231,14 +231,14 @@ function sendMessage(orderId) {
       $('#submitMessageButton').prop('true', false).text('Send Another');
       $('#submitMessage').prop('true', false).val('');
       $('#messageSubmitSpinner').remove();
-      Render.toast('Message Sent! Will get back to you soon', 1, 3500);
-      location.reload();
+      Toast.show('Message Sent! Will get back to you soon', 1, 5000);
+      // location.reload();
     },
     onFailure: (data) => {
       $('#submitMessageButton').prop('disabled', false);
       $('#submitMessage').prop('disabled', false);
       $('#messageSubmitSpinner').remove();
-      Render.toast('Message Not Sent! something went wrong :( try emailing us instead', -1, 3500);
+      Toast.show('Message Not Sent! something went wrong :( try emailing us instead', -1, 5000);
     }
   });
 }

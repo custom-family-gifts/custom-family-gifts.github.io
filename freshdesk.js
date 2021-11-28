@@ -4,7 +4,7 @@ Render.try('navigation',[
   { target: "/errors.html", label: 'API Errors' },
   { target: "/api_log.html", label: 'API Log' },
 ], true);
-API.promptAdminKey();
+Admin.init();
 
 
 /* nothing here so far - i think most of the logic will be with the render functions */
@@ -184,7 +184,7 @@ Render.results = (data) => {
     messages: {
       label: 'latest_msg',
       format: (messages) => {
-        if (messages && messages.length == 0) return '--';
+        if (!messages || messages.length == 0) return '--';
         return `${messages.length} message(s)`;
       },
       display: (messages) => {

@@ -69,13 +69,12 @@ API.call = function(options) {
 
   // 3. make the call
   var callURL = `https://us-central1-custom-family-gifts.cloudfunctions.net/v2-call?cypherKey=${API.zKey || API.z}&method=${options.method}${options.urlParams}`;
+  if (options.body) options.httpMethod = 'POST';
   var ajaxOptions = {
     method: `${options.httpMethod}`,
     headers: (options.httpMethod == 'GET') ? {} : { "Content-Type": "application/json" }
   };
-  if (options.body) {
-    ajaxOptions.data = options.body;
-  }
+  if (options.body) ajaxOptions.data = options.body;
 
   API.currentCall = $.ajax(callURL, ajaxOptions).done(function(data, status, res) {
     if (res.status == 200) {
@@ -83,6 +82,7 @@ API.call = function(options) {
       if (options.onSuccess) options.onSuccess(data);
       // save the cache
       API.saveCache(options.method, data);
+      if (data.admin) Admin.setName(data.admin);
     } else if (res.status == 202) {
       if (options.onFailure) options.onFailure(data, res.status);
     } else {
@@ -158,23 +158,6 @@ API.getCache = function(method, cacheMS) {
   return null;
 }
 
-// prompts user for admin access key, to be stored for future use
-API.promptAdminKey = function() {
-  var admin_key = localStorage.getItem('admin_key') || null;
-  if (!admin_key) {
-    var key_attempt = prompt('enter your access key');
-    localStorage.setItem('admin_key', key_attempt);
-  }
-  API.zKey = localStorage.getItem('admin_key');
-  API.z = '';
-  Render.adminKey();
-}
-API.newAdminKey = function() {
-  var key_attempt = prompt('enter your access key');
-  localStorage.setItem('admin_key', key_attempt);
-  location.reload();
-}
-
 API.clearCache = function(method) {
   if (!localStorage) return;
   localStorage.removeItem(`${method}_${API.z}`);
@@ -240,6 +223,10 @@ $(document).on('change blur', "*[param]", function (event) {
 });
 $(document).on('keydown', 'input[param]', function (event) {
   if (event.type == 'keydown' && event.keyCode != 13) return;
+  try{
+    if (Drawer.shown || Render.modalShown) return;
+  } catch(e) {/* try catch because maybe Render doesn't exist */}
+
   setTimeout(() => {
     API.setUrlParam('page', 1);
     var params = Object.assign(API.getUrlParams(), { page: 1 });

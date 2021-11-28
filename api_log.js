@@ -4,7 +4,7 @@ Render.try('navigation',[
   { target: "/errors.html", label: 'API Errors' },
   { target: "/api_log.html", label: 'API Log' },
 ], true);
-API.promptAdminKey();
+Admin.init();
 
 
 Render.header = (data) => {

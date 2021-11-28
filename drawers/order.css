@@ -43,6 +43,7 @@
   height: 22px;
   position: absolute;
   top: 0;
+  padding-left:5px;
   left: 0
 }
 .message.suspect {
@@ -94,6 +95,8 @@ span.tag {
   letter-spacing: 0.2px;
   overflow-wrap: break-word;
   vertical-align: top;
+  max-height: 170px;
+  overflow-y:auto;
 }
 .noteHeader {
   font-size: 12px !important;
@@ -104,6 +107,9 @@ span.tag {
 ul.items {
   padding: 0;
   margin: 0px 4px 4px 0px;
+  font-size: 0;
+  clear: both;
+  margin-top: 3px;
 }
 ul.items li {
   list-style: none;
@@ -114,6 +120,10 @@ ul.items li {
   border: 1px solid #bbb;
   background-color: #eee;
   margin-right: -1px;
+  float:left;
+}
+ul.items li:first-child {
+  border-left: 4px solid #f77251;
 }
 .orderLink {
   clear: both;

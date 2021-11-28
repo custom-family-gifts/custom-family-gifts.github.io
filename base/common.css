@@ -5,6 +5,16 @@ header {
   width:100%;
   z-index: 99;
 }
+button {
+  text-transform: uppercase;
+  font-weight: 600;
+  font-size: 14px;
+  letter-spacing: 0.4px;
+  opacity: 0.85;
+}
+button:hover {
+  opacity: 1;
+}
 body {
   padding-top: 55px;
   background-color: #f3f3f3;
@@ -178,28 +188,6 @@ div.paginate {
   padding: 10px 20px;
   font-size: 0.8em;
 }
-#drawerExtra {
-  position: absolute;
-  left: -190px;
-  width: 180px;
-  padding: 5px;
-}
-#drawerContents .card {
-  padding: 4px 8px;
-  width: 45%;
-  display: inline-block;
-  margin: 7px 0px 0px 7px;
-  vertical-align: top;
-}
-#drawerContents .card-title {
-  font-weight: 600;
-  color: #666;
-  text-transform: uppercase;
-  font-size: 12px;
-  border-bottom: 1px solid #ddd;
-  line-height: 20px;
-  padding-bottom: 3px;
-}
 #toast {
   background-color: #1976d2;
   opacity: 0.8;
@@ -225,6 +213,18 @@ button.renderButton .spinner {
   width: 15px;
   margin: 0;
   vertical-align: top;
+}
+.drawer-card-edit {
+  float: right;
+  font-size: 21px !important;
+  line-height: 18px;
+  opacity: 0.7;
+  cursor: pointer;
+  color: #666;
+  font-weight: bold;
+}
+.drawer-card-edit:hover {
+  opacity: 1;
 }
 
 @media screen and (max-width: 767px) {

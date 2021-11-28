@@ -4,7 +4,7 @@ Render.try('navigation',[
   { target: "/errors.html", label: 'API Errors' },
   { target: "/api_log.html", label: 'API Log' },
 ], true);
-API.promptAdminKey();
+Admin.init();
 
 Render.header = (data) => {
   var result = `
@@ -57,7 +57,7 @@ API.load = (urlParams) => {
   }
 
   API.call({
-    cacheMS: 4000,
+    cacheMS: 0,
     method: 'v2-mdb',
     httpMethod: 'POST',
     body: JSON.stringify({
@@ -110,7 +110,7 @@ Render.filter = (data) => {
     <div class="row">
       <div class="card small">
         <strong>search</strong>
-        <input param name="search" placeholder="name, email, phone, ids" value="${urlParams.search || ''}">
+        <input param name="search" placeholder="ids,name,email,phone,addy" value="${urlParams.search || ''}">
       </div>
 
       <button class="primary" paramSubmit>Go</button>
@@ -150,10 +150,11 @@ Render.results = (data) => {
       height: '150px',
       display: (value, record) => {
         var result = `${(record.isPriority) ? '⭐ ' : ''}
-        <a target="_blank" href="https://custom-family-gifts.myshopify.com/admin/orders/${record.shopifyOrderId}">
-          #${record.orderId_raw} ${(record.etsy_receipt_id)?'🍊':''}
-        </a>`;
-        result += `<span class="datetime small">${record.created_shopify_order}</span>`;
+        <span>#${record.orderId_raw}</span>`;
+        if (record.etsy_receipt_id) {
+          result += `<span style="color:#e56111;margin-left:5px;">🍊 ${record.etsy_receipt_id}</span>`;
+        }
+        result += `<span class="datetime small" style="margin-left:5px;">${record.created_shopify_order}</span>`;
         if (record.items) result += `${renderItems(record.items, record.options)}`;
         if (record['Internal - newest on top please']) {
           result += `<div class="note" style="display:inline-block;width:42%;margin-right:4px;background-color:#f77251"><div class="noteHeader">Internal Note:</div>${record['Internal - newest on top please']}</div>`;
@@ -167,7 +168,7 @@ Render.results = (data) => {
     customer: {
       order: 1,
       display: (value, record) => {
-        return renderCustomer(record);
+        return renderCustomer(record, false);
       }
     },
     pipeline: {
@@ -175,8 +176,7 @@ Render.results = (data) => {
       display: (value, record) => {
         var result = `${renderPipeline(value)}`;
         if (record.artist) result += `${renderArtist(record.artist)}`;
-        if (record.chosen_proof) result += `<span>👌${record.chosen_proof}</span>`;
-        console.log(record.chosen_proof);
+        if (record.chosen_proof) result += renderChosenProofs(record.chosen_proof);
         return result;
       }
     },

@@ -134,12 +134,72 @@ var Drawer = {
             background-color: #f8886d;
             color: white;
           }
+          #drawerExtra {
+            position: absolute;
+            left: -190px;
+            width: 180px;
+            padding: 5px;
+          }
+          #drawerContents .card {
+            padding: 4px 8px;
+            width: 90%;
+            display: inline-block;
+            margin: 7px 0px 0px 7px;
+            vertical-align: top;
+          }
+          #drawerContents .card-title {
+            font-weight: 600;
+            color: #666;
+            text-transform: uppercase;
+            font-size: 12px;
+            border-bottom: 1px solid #ddd;
+            line-height: 20px;
+            padding-bottom: 3px;
+          }
+          .drawerLoadingOverlay {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(255, 255, 255, 0.5);
+            top: 0;
+            left: 0;
+            z-index: 9999;
+            display: none;
+          }
+          #drawer progress {
+            height: 39px;
+            border: 15px solid #f1f1f1;
+            margin-top: 0;
+          }
+          #drawer.loading .drawerLoadingOverlay{
+            display: block;
+          }
+          #drawer.modalLoading .drawerLoadingOverlay {
+            display: block;
+          }
+          #drawer.modalLoading progress {
+            display: none;
+          }
+          progress::-webkit-progress-value {
+            transition: 1s width;
+          }
+          #drawerContents .column {
+            margin:0;
+            padding: 0;
+            display: inline-block;
+            width: 50%;
+            vertical-align: top;
+          }
         </style>
       `);
       $('body').append('<div id="drawerOverlay"></div>');
       $('body').append(`
         <div id="drawer">
-          <div id="drawerExtra"></div>
+          <div class="drawerLoadingOverlay">
+            <progress id="drawerLoadingProgress" style="transition: all 0.5s ease;" class="primary" value="450" max="1000"></progress>
+          </div>
+          <div id="drawerExtra">
+          </div>
           <ul id="drawerTitleBar">
             <li id="drawerClose" onclick="Drawer.hide();">×</li>
             <li id="drawerTitle"></li>
@@ -162,17 +222,42 @@ var Drawer = {
       }
     });
   },
-  load: function(params) {
-    console.log('load', params);
-    this.paramsToUrl(params);
+  loadProgress: 0,
+  loadProgressBegin: () => {
+    var $bar = $('#drawerLoadingProgress');
+    Drawer.loadProgress = 0;
+    $bar.attr('value', 0);
+    Drawer.loadProgressInterval = setInterval(() => {
+      var progressRemaining = 950 - Drawer.loadProgress; // not 1000 so it never gets THAT close
+      var percent = 6;
+      var rand = 3 * Math.random(); // 0-10
+      percent += rand;
+      var progress = progressRemaining * (percent / 100);
 
+      Drawer.loadProgress += progress;
+      $bar.attr('value', Drawer.loadProgress);
+    }, 150);
+  },
+  loadProgressEnd: () => {
+    clearInterval(Drawer.loadProgressInterval);
+  },
+  reload: function() {
+    var params = Drawer.getParams();
+    Drawer.load(params);
+  },
+  shown: false,
+  load: function(params) {
+    Drawer.loadProgressBegin();
+    if (Modal.shown) {
+      Modal.hide();
+    }
+    this.paramsToUrl(params);
     this.show();
     this.data = null;
     this.clearTabButtons();
-    $('#drawerOverview').html('<div class="spinner"></div>');
+    $('#drawer').addClass("loading");
     $('#drawerTitle').text('loading...')
-    $('#drawerContents').html('<div class="spinner"></div>');
-    $('#drawerExtra').html('');
+    $('#drawerExtra').append('<div class="drawerLoadingOverlay"></div>')
     var callObj = Object.assign({
       cacheMS: 0,
       onSuccess: (data) => {
@@ -189,26 +274,35 @@ var Drawer = {
         var overviewHtml = Drawer.renderOverview(data);
         $('#drawerOverview').html(overviewHtml);
         Drawer.renderTab(currentTab);
-        $('#drawerTitle').text(Drawer.title(data));
+        $('#drawerTitle').html(Drawer.title(data));
         if (Drawer.renderExtra && typeof Drawer.renderExtra == 'function') {
           $('#drawerExtra').html(Drawer.renderExtra(data))
         }
         Render.toLocalTime();
+        $('#drawer').removeClass("loading");
+        Drawer.loadProgressEnd();
       },
       onFailure: (data) => {
+        $('#drawer').removeClass("loading");
         $('#drawerContents').html(`
           <div>💥 something went wrong... try again in a few</div>
         `);
         $('#drawerExtra').html('');
+        Drawer.loadProgressEnd();
       }
     }, this.apiCall(params));
     API.call(callObj);
   },
   show: function() {
+    Drawer.shown = true;
     $('body').addClass('showDrawer');
   },
   hide: function() {
+    Drawer.shown = false;
     Render.selectedIdsReset();
+    $('#drawerContents').html('');
+    $('#drawerExtra').html('');
+    $('#drawerOverview').html('');
     $('body').removeClass('showDrawer');
     // clear url Params
     var urlParams = API.getUrlParams();
@@ -217,6 +311,9 @@ var Drawer = {
       if (key == 'drawerTabIndex') delete urlParams[key];
     }
     API.paramsToUrl(urlParams);
+    // drawer stuff
+    if (Render.modalShown) Render.modalHide();
+
   },
   clearTabButtons: function() {
     var $nav = $('ul#drawerNav');
