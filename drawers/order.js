@@ -1,6 +1,6 @@
 Drawer.init({
   title: (data) => {
-    return `${(data.isPriority) ? '<span style="font-weight:normal">⭐</span> ' : ''}Order #${data.orderId_raw}`;
+    return `${(data.isPriority) ? '<span style="font-weight:normal">⭐</span> ' : ''}Order #${data.orderId_raw} ${(data.is_etsy) ? '<span style="font-weight:normal">🍊</span>': ''}`;
   },
   apiCall: (params) => {
     if (!params.orderId) throw new Error('Drawer needs orderId');
@@ -258,6 +258,27 @@ Drawer.init({
         if (data.printed_order && data.printed_order.length == 0 && data.to_print && data.to_print.length == 0) {
           result += `<b>to_print</b> or <b>printed_order</b> found`;
         }
+
+        // add buttons
+        result += `
+          <div class="row">
+            <a target="_blank" href="https://airtable.com/shro7hjgAxXllkZEy?prefill_order=${data.at_record_id}">
+              ${Render.button({
+                text: 'add to_print',
+                instructions: 'to enable autoprint',
+                class: 'primary'
+              })}
+            </a>
+
+            <a target="_blank" href="https://airtable.com/shr0QL2hcaP9erZzU?prefill_order=${data.at_record_id}">
+              ${Render.button({
+                text: 'record printed_order',
+                instructions: 'to capture manual order',
+                class: 'primary'
+              })}
+            </a>
+          </div>
+        `;
         return result;
       },
     },

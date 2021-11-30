@@ -8,9 +8,10 @@ header {
 button {
   text-transform: uppercase;
   font-weight: 600;
-  font-size: 14px;
+  font-size: 14px !important;
   letter-spacing: 0.4px;
   opacity: 0.85;
+  position: relative;
 }
 button:hover {
   opacity: 1;
@@ -225,6 +226,19 @@ button.renderButton .spinner {
 }
 .drawer-card-edit:hover {
   opacity: 1;
+}
+button.hasInstructions {
+  padding-bottom: 13px;
+  padding-top: 2px;
+}
+button .instructions {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  padding: 0;
+  opacity: 0.6;
+  font-size: 10px !important;
 }
 
 @media screen and (max-width: 767px) {

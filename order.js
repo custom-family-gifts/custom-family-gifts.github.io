@@ -6,6 +6,20 @@ API.load = (urlParams) => {
     onSuccess: (data) => {
       $('#main').html(Render.try('main',data));
       selectInitialProof();
+
+      if (urlParams.s) {
+        API.call({
+          cacheMS: 0,
+          method: 'v2-setCustomerPortalSource',
+          urlParams: `&orderId=${data.orderId_raw}&s=${urlParams.s}`,
+          onSuccess: (data) => {
+            console.log('customerPortalSourceSet', data);
+          },
+          onFailure: (data) => {
+            console.log(data);
+          }
+        })
+      }
     },
     onFailure: (data) => {
       console.log('order on failure');

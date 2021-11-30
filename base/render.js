@@ -153,6 +153,10 @@ const Render = {
     if (!options.class) options.class = '';
     options.class += ` renderButton`;
 
+    if (options.instructions) {
+      options.class += ` hasInstructions`;
+    }
+
     var innards = ``;
     for (var attr in options) {
       if (options[attr] == null) { // properties such as disabled
@@ -164,6 +168,7 @@ const Render = {
     var html = `
       <button ${innards}>
         ${options.text}
+        ${(options.instructions) ? `<span class="instructions">${options.instructions}</span>` : ''}
         <span class="spinnerSpacer"><b class="spinner primary"></b></span>
       </button>
     `;
