@@ -72,6 +72,7 @@ API.load = (urlParams) => {
     }),
     onSuccess: (data) => {
       window.data = data;
+      console.log(data);
       Render.try('main', data, true);
     },
     onFailure: (data) => {
@@ -152,7 +153,8 @@ Render.results = (data) => {
     message: { width: '120px', height: '150px' },
     name: { order: 1, label: 'gcf name', width: '200px',
       display: (value, record) => {
-        var result = value;
+        var searchNameUrl = location.href;
+        var result = `<a href="javascript:searchForLink('name', \`${value}\`)">${value}<a>`;
         if (record.resolved) {
           result += `
             <div class="resolved">
@@ -178,7 +180,7 @@ Render.results = (data) => {
       style: "max-height:100px; overflow-y: auto;",
       display: (value, record) => {
         return `
-          <code>${value}</code>
+          <code>${sanitizeCodeDisplay(value)}</code>
         `;
       }
     },
@@ -196,10 +198,10 @@ Render.results = (data) => {
           urlParamCounter++;
         }
         if (record.body_JSON && Object.keys(record.body_JSON).length > 0) {
-          result += `<div class="code"><code title="body json" style="color:purple">${JSON.stringify(record.body_JSON, null, 2)}</code></div>`;
+          result += `<div class="code"><code title="body json" style="color:purple">${JSON.stringify(sanitizeCodeDisplay(record.body_JSON), null, 2)}</code></div>`;
         }
         if (record.body_text) {
-          result += `<div class="code"><code title="body text" style="color:purple">${record.body_text}</code></div>`;
+          result += `<div class="code"><code title="body text" style="color:purple">${sanitizeCodeDisplay(record.body_text)}</code></div>`;
         }
         if (record.headers && Object.keys(record.headers).length > 0) {
           for (var key in record.headers) {
@@ -216,7 +218,7 @@ Render.results = (data) => {
       display: (value) => {
         var result = '';
         if (value && Object.keys(value).length > 0) {
-          result += `<div class="code"><code title="debug">${JSON.stringify(value, null, 2)}</code></div>`;
+          result += `<div class="code"><code title="debug">${sanitizeCodeDisplay(JSON.stringify(value, null, 2))}</code></div>`;
         }
         return result;
       }
@@ -230,6 +232,17 @@ Render.results = (data) => {
     </table>
   `;
   return result;
+};
+
+function searchForLink(paramName, value) {
+  API.setUrlParam(paramName, value);
+  location.reload();
+}
+
+function sanitizeCodeDisplay(string) {
+  if (string == undefined) return '';
+  if (typeof string == 'object') string = JSON.stringify(string);
+  return string.replace(/<style/g,'<!style').replace(/<script/g,'<!script');
 };
 
 Render.selectedIdsUpdate = (selectedIds) => {
