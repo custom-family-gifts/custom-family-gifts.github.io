@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Custom Family Gifts</title>
+
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <script src="index.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/mini.css/3.0.1/mini-default.min.css">
+    <link rel="stylesheet" href="./base/common.css">
+    <script src="./base/api.js"></script>
+  </head>
+  <body>
+    <h3>Etsy OAUTH</h3>
+    <a id="oauthlink" href="https://www.yahoo.com">
+      <button>auth</button>
+    </a>
+
+    <script>
+      var urlParams = API.getUrlParams();
+      console.log(urlParams);
+      var client_id = urlParams.client_id;
+      var redirect_uri = encodeURIComponent('https://smile.customfamilygifts.com/etsy_oauth');
+      var scopes = encodeURIComponent(`address_w,transactions_w,shops_w,feedback_r,billing_r`);
+      var state = '11234567890';
+      var code_challenge = urlParams.code_challenge;
+      var oauth_get_url = `https://www.etsy.com/oauth/connect?response_type=code&`;
+      oauth_get_url += `&client_id=${client_id}`;
+      oauth_get_url += `&redirect_uri=${redirect_uri}`;
+      oauth_get_url += `&scope=${scopes}`;
+      oauth_get_url += `&state=superstate`;
+      oauth_get_url += `&code_challenge_method=S256`;
+      oauth_get_url += `&code_challenge=${code_challenge}`;
+
+      $('#oauthlink').attr('href', oauth_get_url);
+    </script>
+
+  </body>
+</html>
