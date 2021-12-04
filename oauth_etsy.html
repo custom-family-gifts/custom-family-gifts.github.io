@@ -20,7 +20,7 @@
       console.log(urlParams);
       var client_id = urlParams.client_id;
       var redirect_uri = encodeURIComponent('https://smile.customfamilygifts.com/oauth_etsy');
-      var scopes = encodeURIComponent(`address_w,transactions_w,shops_w,feedback_r,billing_r`);
+      var scopes = encodeURIComponent(`transactions_r,transactions_w,shops_w`);
       var state = '11234567890';
       var code_challenge = urlParams.code_challenge;
       var oauth_get_url = `https://www.etsy.com/oauth/connect?response_type=code`;
