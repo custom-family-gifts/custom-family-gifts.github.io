@@ -19,11 +19,11 @@
       var urlParams = API.getUrlParams();
       console.log(urlParams);
       var client_id = urlParams.client_id;
-      var redirect_uri = encodeURIComponent('https://smile.customfamilygifts.com/etsy_oauth');
+      var redirect_uri = encodeURIComponent('https://smile.customfamilygifts.com/oauth_etsy');
       var scopes = encodeURIComponent(`address_w,transactions_w,shops_w,feedback_r,billing_r`);
       var state = '11234567890';
       var code_challenge = urlParams.code_challenge;
-      var oauth_get_url = `https://www.etsy.com/oauth/connect?response_type=code&`;
+      var oauth_get_url = `https://www.etsy.com/oauth/connect?response_type=code`;
       oauth_get_url += `&client_id=${client_id}`;
       oauth_get_url += `&redirect_uri=${redirect_uri}`;
       oauth_get_url += `&scope=${scopes}`;
