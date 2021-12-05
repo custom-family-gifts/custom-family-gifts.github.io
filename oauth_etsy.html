@@ -19,7 +19,7 @@
       var urlParams = API.getUrlParams();
       var client_id = urlParams.client_id;
       var redirect_uri = encodeURIComponent('https://smile.customfamilygifts.com/oauth_etsy');
-      var scopes = encodeURIComponent(`transactions_r,email_r`);
+      var scopes = encodeURIComponent(`transactions_r email_r`);
       var state = '11234567890';
       var code_challenge = urlParams.code_challenge;
       var oauth_get_url = `https://www.etsy.com/oauth/connect?response_type=code`;
@@ -29,6 +29,11 @@
       oauth_get_url += `&state=superstate`;
       oauth_get_url += `&code_challenge_method=S256`;
       oauth_get_url += `&code_challenge=${code_challenge}`;
+
+      var code = urlParams.code;
+      if (code) {
+        $('body').append(`<textarea value="${code}">${code}</textarea>`);
+      }
 
       $('#oauthlink').attr('href', oauth_get_url);
     </script>
