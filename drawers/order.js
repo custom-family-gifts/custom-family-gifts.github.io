@@ -247,7 +247,10 @@ Drawer.init({
         if (data.printed_order && data.printed_order.length) {
           data.printed_order.forEach(printed_order => {
             var html = renderPrintedOrder(printed_order);
-            result += renderTabSection(`📦 Printed Order ${printed_order.printing_service} : ${printed_order.printer_id}`, html);
+            var printed_order_link = `https://airtable.com/appa8QniOsPWSRDEF/tbl3TzRuWGO5qukZx/viwIVoXyK9FjW8bkn/${printed_order._ATID}?blocks=hide`;
+            var poLink = Render.link(printed_order_link, printed_order.printer_id + ' (see AT)');
+            // solve for link to AT
+            result += renderTabSection(`📦 Printed Order ${printed_order.printing_service} : ${poLink}`, html);
           });
         }
         if (data.to_print && data.to_print.length) {
@@ -389,7 +392,7 @@ function renderPrintedOrder(printed_order) {
   html += `status: ${(printed_order.printer_status) ? printed_order.printer_status : 'no status'}`
   if (printed_order.printing_service == 'Gooten') {
     html += `
-      <div><a target="_blank" href="https://www.gooten.com/Admin/#/orders-new/${printed_order.printer_id}/summary">${printed_order.printing_service} link</a></div>
+      <div><a target="_blank" href="https://www.gooten.com/Admin/#/orders-new/${printed_order.gooten_id || printed_order.printer_id}/summary">${printed_order.printing_service} link</a></div>
     `;
   }
   if (printed_order.printed_proof) html += `<div>printed proof: ${printed_order.printed_proof}</div>`;
