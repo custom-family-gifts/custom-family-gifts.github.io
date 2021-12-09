@@ -35,25 +35,52 @@ API.load = (urlParams) => {
     if (urlParams.order && urlParams.order == 1) API.params.s[urlParams.sort] = 1;
   }
 
-  API.params.q = {};
+
+  var filterQueries = []; // push all valid filters queries here. Then decide later if AND is needed to wrap them all
+
   // query defaults
   if (urlParams.search) {
     if (urlParams.search.charAt(0) == '#' && !isNaN(urlParams.search.substring(1,999))) {
-      API.params.q = { $or: [
+      filterQueries.push({ $or: [
         {orderId_raw: +urlParams.search.substring(1, 999)},
-      ]};
+      ]});
     } else if (!isNaN(urlParams.search.replace(/-/g,"").replace(/\(/g,"").replace(/\)/g,''))) {
-      API.params.q = { $or: [
+      filterQueries.push({ $or: [
         {etsy_receipt_id: { $regex: urlParams.search }},
         {orderId_raw: +urlParams.search},
         {custPhoneSanitized: { $regex: urlParams.search.replace(/\D/g, "") }}
-      ]};
+      ]});
     } else {
-      API.params.q = { $or: [
+      filterQueries.push({ $or: [
         {customer: { $regex: urlParams.search, $options: 'i' }},
         {shipAddress: { $regex: urlParams.search, $options: 'i' }}
-      ]};
+      ]});
     }
+  }
+
+  if (urlParams.options) {
+    filterQueries.push({
+      options: { $regex: urlParams.options, $options: 'i' }
+    });
+  }
+
+  if (urlParams.notes) {
+    filterQueries.push({
+      $or: [
+        { 'Internal - newest on top please': { $regex: urlParams.notes, $options: 'i' }},
+        { print_note: { $regex: urlParams.notes, $options: 'i' }}
+      ]
+    });
+  }
+
+  API.params.q = {};
+  if (filterQueries.length == 1) {
+    API.params.q = filterQueries[0];
+  } else if (filterQueries.length > 1) {
+    API.params.q = { $and: [] };
+    filterQueries.forEach(query => {
+      API.params.q.$and.push(query);
+    });
   }
 
   API.call({
@@ -111,6 +138,16 @@ Render.filter = (data) => {
       <div class="card small">
         <strong>search</strong>
         <input param name="search" placeholder="ids,name,email,phone,addy" value="${urlParams.search || ''}">
+      </div>
+
+      <div class="card small">
+        <strong>options</strong>
+        <input param name="options" placeholder="James & Neal" value="${urlParams.options || ''}">
+      </div>
+
+      <div class="card small">
+        <strong>notes</strong>
+        <input param name="notes" placeholder="print or internal" value="${urlParams.notes || ''}">
       </div>
 
       <button class="primary" paramSubmit>Go</button>
