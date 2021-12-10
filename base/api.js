@@ -75,6 +75,8 @@ API.call = function(options) {
     headers: (options.httpMethod == 'GET') ? {} : { "Content-Type": "application/json" }
   };
   if (options.body) ajaxOptions.data = options.body;
+  // attach current href for debugging
+  ajaxOptions.headers.current_href = location.href;
 
   API.currentCall = $.ajax(callURL, ajaxOptions).done(function(data, status, res) {
     if (res.status == 200) {
