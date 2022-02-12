@@ -1,11 +1,4 @@
-Render.try('navigation',[
-  { target: "/service_orders.html", label: 'Orders' },
-  { target: "/freshdesk.html", label: 'Freshdesk' },
-  { target: "/errors.html", label: 'API Errors' },
-  { target: "/api_log.html", label: 'API Log' },
-], true);
-Admin.init();
-
+Navigation.renderAdmin();
 
 /* nothing here so far - i think most of the logic will be with the render functions */
 API.load = (urlParams) => {

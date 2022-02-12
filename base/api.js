@@ -105,6 +105,54 @@ API.call = function(options) {
   });
 };
 
+API.gcf = async function(functionNameAndParams, options = {}) {
+  // 1. check the browser cache
+  var cachedData = null;
+  try {
+    cachedData = API.getCache(options.method, options.cacheMS);
+  } catch (e) {
+    API.errorLog({
+      name: 'API.getCache',
+      message: e.message,
+      stack: e.stack,
+      url: (window && window.location) ? window.location.href : null,
+      type: 'client_js_error'
+    });
+  }
+  if (cachedData) {
+    return options.onSuccess(cachedData);
+  }
+
+  // prep the call
+  var callURL = `https://us-central1-custom-family-gifts.cloudfunctions.net/v2-call?cypherKey=${API.zKey || API.z}&method=${functionNameAndParams}`;
+  if (options.body) options.method = 'POST';
+  if (!options.method) options.method = 'GET';
+  if (!options.headers) options.headers = {};
+
+  if (options.method.toLowerCase() != 'get') options.headers['Content-Type'] = 'application/json';
+
+  var response = await fetch(callURL, options);
+  var responseText = await response.text();
+  try {
+    var responseJSON = JSON.parse(responseText);
+  } catch (e) {
+    var responseJSON = { message: responseText };
+  }
+
+  var status = `${response.status}`;
+  if (status.charAt(0) != '2') {
+    if (responseJSON.message) {
+      Toast.show(responseJSON.message, -1, 5000);
+    } else {
+      Toast.show(`Error: ${responseText}`);
+    }
+    console.warn(responseJSON);
+    throw new Error(`API.gcf failed`);
+  }
+
+  return responseJSON;
+}
+
 /* Caching logic */
 API.cacheExpire = 60000; // 60s
 API.saveCache = function(method, data) {

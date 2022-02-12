@@ -201,7 +201,7 @@ var Toast = {
 var Modal = {
   initted: false,
   currentId: 1000,
-  getUniqueId: () => {
+  getUniqueId: () => { // the uniqueId system is used to allow onclick events (inline html) to invoke with complex parameters
     Modal.currentId++;
     return Modal.currentId;
   },
@@ -543,6 +543,173 @@ var Modal = {
 
     Modal.render(title, html);
   },
+  // renderEdit: (_ATID, title, fieldsArr, currentData = {}, table = 'orders', onsubmit = Modal.updateATFields) => { // unsubmit is uninvoked
+
+  renderEdit2: (options = {}) => { // unsubmit is uninvoked
+    if (!options.id) throw new Error('needs options.id'); // this is a unique identifier
+    if (!options.fields) throw new Error('needs Fields');
+    if (!options.title) title = 'needs title';
+    if (!options.submitFn) throw new Error('Modal.renderEdit2 requires options.onsubmit parameter of uninvoked fn');
+    if (!options.onSuccess) throw new Error('please define onSuccess as uninvoked fn');
+
+    var modalFnId = Modal.getUniqueId();
+    Modal.fns[modalFnId] = async () => {
+      if (Modal.validateEditForm()) {
+        var values = Modal.getEditValues(options.id);
+        var response = await options.submitFn(values);
+        await options.onSuccess(response);
+      }
+    };
+
+    var html = `
+      <style>
+        #modal label {
+          font-size: 14px;
+        }
+        .inputLabel {
+          min-width: 150px;
+          display: inline-block;
+          text-align: right;
+          vertical-align: top;
+        }
+        #modal input, #modal select, #modal textarea {
+          width: 230px;
+          margin: 4px;
+          font-size: 14px;
+          padding: 3px 6px;
+        }
+        #modal textarea {
+          height: 150px;
+          resize: vertical;
+        }
+        #modal input.validationFailed, #modal select.validationFailed, #modal textarea.validationFailed {
+          border: 1px dashed red;
+        }
+        #modal .updated {
+          color: blue;
+        }
+        #modal .input-group {
+          position: relative;
+        }
+        #modal .hasIns {
+          margin-top: -4px;
+        }
+        .ins {
+          line-height: 13px;
+          margin-top: -3px;
+          margin-bottom: 3px;
+          font-size: 12px;
+          opacity: 0.5;
+          text-align: right;
+          width: 142px;
+        }
+      </style>
+      <form id="${options.id}" style="margin:0;padding:0;max-height:calc(100vh - 150px);overflow-y:auto;">
+    `;
+    options.fields.forEach(field => {
+      if (field.value == undefined) field.value = "";
+      var input = '';
+      if (field.type == 'text' || field.type == 'number' || !field.type) {
+        input = `
+          <input
+            ${(field.required)?'required':''}
+            cast="${field.type}"
+            type="${field.type || 'text'}"
+            value="${field.value}"
+            name="${field.name}"
+            placeholder="${(field.required) ? 'required' : ''}"
+            onchange="Modal.validateEditField(this)"
+            onkeyup="Modal.validateEditField(this)"
+            ${(field.maxLength) ? `maxlength="${field.maxLength}"` : ''}
+            onblur="Modal.validateEditField(this)"
+            originalValue_btoa="${btoa(unescape(encodeURIComponent(field.value)))}"
+          />
+        `;
+      }
+      if (field.type == 'hidden') {
+        input = `
+          <input name="${field.name}" type="hidden" value="${field.value}">
+        `;
+      }
+      if (field.type == 'textarea') {
+        input = `
+          <textarea
+            ${(field.required)?'required':''}
+            name="${field.name}"
+            onchange="Modal.validateEditField(this)"
+            onblur="Modal.validateEditField(this)"
+            onkeyup="Modal.validateEditField(this)"
+            ${(field.maxLength) ? `maxlength="${field.maxLength}"` : ''}
+            originalValue_btoa="${btoa(unescape(encodeURIComponent(field.value)))}"
+          >${field.value}</textarea>
+        `;
+      }
+      if (field.type == 'boolean') {
+        input = `
+          <select
+            cast="boolean"
+            ${(field.required)?'required':''}
+            name="${field.name}"
+            onchange="Modal.validateEditField(this)"
+            onblur="Modal.validateEditField(this)"
+            originalValue_btoa="${btoa(unescape(encodeURIComponent(field.value)))}"
+          >
+            <option ${(field.value) ? 'selected':''} value="true">✅ YES</option>
+            <option ${(!field.value) ? 'selected':''} value="false">❌ NO</option>
+          </select>
+        `;
+      }
+      if (field.type == 'select') {
+        if (!field.options || !Array.isArray(field.options)) throw new Error('select requires field.options (array)');
+        input = `
+          <select
+            cast="string"
+            ${(field.required)?'required':''}
+            name="${field.name}"
+            onchange="Modal.validateEditField(this)"
+            onblur="Modal.validateEditField(this)"
+            originalValue_btoa="${btoa(unescape(encodeURIComponent(field.value)))}"
+          >
+        `;
+        // if current value not in options, add it
+        if (!field.options.includes(field.value) && field.value != undefined) field.options.push(field.value);
+        field.options.forEach(option => {
+          var selected = (field.value != undefined)
+          input += `<option value="${option}" ${(field.value == option)?'selected':''}>${option || '--'}</option>`;
+        });
+        input += `</select>`;
+      }
+      var asterisk = (field.required) ? '<b style="color:orangered">*</b> ' : '';
+      html += `
+        <div class="row ${(field.type == 'hidden') ? ' hidden' : ''}">
+          <div class="input-group">
+            <div class="inputLabel">
+              <label class="${(field.instructions) ? 'hasIns':''}" for="${field.name}">${asterisk}${field.label || field.name}</label>
+              ${(field.instructions) ? `<div class="ins">${field.instructions}</div>` : ''}
+            </div>
+            ${input}
+          </div>
+        </div>
+      `;
+    });
+    html += '</form>';
+
+    html += Render.button({
+      class: '',
+      text: 'update',
+      disabled: null,
+      style: "margin-top:12px;float:right",
+      onclick: `Modal.fns[${modalFnId}]()`
+    });
+
+    // attempt to select the first input
+    setTimeout(() => {
+      var $inputs = $('#modal input, #modal textarea');
+      if ($inputs.length && $($inputs[0]).val() == '') $inputs[0].select();
+    },200);
+
+    Modal.render(options.title, html);
+  },
   validateEditField: (element) => {
     var $element = $(element);
     var value = $element.val();
@@ -614,6 +781,23 @@ var Modal = {
       }
     });
   },
+  getEditValues: (formId) => {
+    var $form = $(`form#${formId}`);
+    var $inputs = $form.find('input, select, textarea');
+    var values = {};
+    // TOOD: checkboxes & radios ?
+    for (var i = 0; i < $inputs.length; i++) {
+      var $input = $($inputs[i]);
+      var tagName = $input.prop('tagName').toLowerCase();
+      var cast = $input.attr('cast') || null;
+      var name = $input.attr("name");
+      var val = $input.val();
+      if (tagName == 'select' && cast == 'boolean') val = (val == 'true') ? true : false;
+      if (cast == 'number') val = +val;
+      values[name] = val;
+    }
+    return values;
+  },
   editLoading: () => {
     var $form = $('#modal form');
     var $inputs = $form.find('input, select, textarea');
@@ -636,7 +820,16 @@ var Modal = {
 };
 
 var Navigation = {
-
+  renderAdmin: () => {
+    Render.try('navigation',[
+      { target: "/service_orders.html", label: 'Orders' },
+      { target: "/freshdesk.html", label: 'Freshdesk' },
+      { target: "/errors.html", label: 'API Errors' },
+      { target: "/api_log.html", label: 'API Log' },
+      { target: "/scheduled.html", label: 'Scheduled' },
+    ], true);
+    Admin.init();
+  }
 };
 
 /* The login interface - top right */
@@ -676,7 +869,6 @@ var Admin = {
     return Admin.key;
   },
 };
-
 
 $(() => {
   Modal.init();

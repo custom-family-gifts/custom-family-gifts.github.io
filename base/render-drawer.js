@@ -45,7 +45,6 @@ var Drawer = {
             font-size: 14px;
           }
           .drawerDiv {
-            padding: 6px 11px;
             vertical-align: top;
           }
           #drawerOverlay {
@@ -123,6 +122,7 @@ var Drawer = {
           }
           #drawerOverview {
             height: 200px;
+            padding: 6px 11px;
           }
           .tabCount {
             font-size: 11px !important;

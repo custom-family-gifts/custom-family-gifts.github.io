@@ -1,21 +1,4 @@
-Render.try('navigation',[
-  { target: "/service_orders.html", label: 'Orders' },
-  { target: "/freshdesk.html", label: 'Freshdesk' },
-  { target: "/errors.html", label: 'API Errors' },
-  { target: "/api_log.html", label: 'API Log' },
-], true);
-Admin.init();
-
-
-Render.header = (data) => {
-  var result = `
-    <header id="content_header">
-      <img id="cfgLogo" src="https://cdn.shopify.com/s/files/1/0060/6725/7434/files/heart.png?v=1607199816">
-      <a href="#top" class="button" style="margin-left:60px;">API Errors</a>
-    </header>
-  `;
-  return result;
-};
+Navigation.renderAdmin();
 
 /* nothing here so far - i think most of the logic will be with the render functions */
 API.load = (urlParams) => {
