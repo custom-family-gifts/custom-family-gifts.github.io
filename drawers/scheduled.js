@@ -39,7 +39,7 @@ Drawer.init({
           { name: 'gcf_query_per', label: 'query mdb.per', type: 'number', value: task.gcf_query_per },
           { name: 'gcf_execute', label: 'gcf execute', type: 'text', value: task.gcf_execute, required: true, instructions: 'gcf function to be invoked' },
           { name: 'gcf_params', label: 'gcf params', type: 'text', value: task.gcf_execute_params, instructions: 'start with ? use ||name|| to use value from query p' },
-          { name: 'gcf_body', label: 'gcf body', type: 'textarea', value: task.gcf_execute_body, instructions: 'as json' },
+          { name: 'gcf_execute_body', label: 'gcf body', type: 'textarea', value: task.gcf_execute_body, instructions: 'as json' },
         ],
         submitFn: async (formData) => {
           var _id = formData._id;

@@ -109,7 +109,8 @@ Render.results = (data) => {
     gcf_query_q: { hide: true },
     gcf_query_p: { hide: true },
     gcf_query_per: { hide: true },
-    gcf_execute_body: { hide: true },
+    gcf_execute_body: { hide: false },
+    gcf_body: { hide: true }, // misnamed field, does nothing
     gcf_execute_params: { hide: true },
     delete: { hide: true },
     created: { hide: true },
@@ -140,7 +141,7 @@ function showCreateModal() {
       { name: 'gcf_query_per', label: 'query mdb.per', type: 'number' },
       { name: 'gcf_execute', label: 'gcf execute', type: 'text', required: true, instructions: 'gcf function to be invoked' },
       { name: 'gcf_params', label: 'gcf params', type: 'text', instructions: 'start with ? use ||name|| to use value from query p' },
-      { name: 'gcf_body', label: 'gcf body', type: 'textarea', instructions: 'as json' }
+      { name: 'gcf_execute_body', label: 'gcf body', type: 'textarea', instructions: 'as json' }
     ],
     submitFn: async (formData) => {
       var _id = formData._id;
