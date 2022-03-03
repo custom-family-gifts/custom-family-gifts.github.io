@@ -111,6 +111,7 @@ Render.results = (data) => {
     gcf_query_per: { hide: true },
     gcf_execute_body: { hide: false },
     gcf_body: { hide: true }, // misnamed field, does nothing
+    gcf_execute_body: { hide: true },
     gcf_execute_params: { hide: true },
     delete: { hide: true },
     created: { hide: true },
