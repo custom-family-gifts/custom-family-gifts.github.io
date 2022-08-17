@@ -695,7 +695,10 @@ function renderItems(items, options) {
   var result = ``;
   itemsArray.forEach((itemLine, i) => {
     var itemSplit = itemLine.split('/');
-    if (itemSplit.length != 3) return result += `<div>${itemLine}</div>`;
+    if (itemSplit.length < 3) return result += `<div>${itemLine}</div>`;
+    if (itemSplit.length == 4 && !isNaN(itemSplit[3])) {
+      mapCountValues[i] = itemSplit[3];
+    }
     result += `
       <ul class="items">
         <li title="${itemSplit[0]}">${itemSplit[0].split(' ')[0]}</li>

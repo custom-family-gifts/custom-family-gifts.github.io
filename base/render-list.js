@@ -143,7 +143,9 @@ Render.td = (value, columnDef, record) => {
   if (columnDef.width) style = `max-width:${columnDef.width};`;
   if (columnDef.height) style += `max-height:${columnDef.height};overflow-y:auto;";`
   if (style != '') style = ' style="' + style + '" ';
-  return `<td class="${columnDef.class}" ${style} title="${value}" data-label="${columnDef.displayLabel}">${displayValue}</td>`;
+  formattedValue = sanitizeCodeDisplay(formattedValue);
+  displayValue = sanitizeCodeDisplay(displayValue);
+  return `<td class="${columnDef.class}" ${style} title="${(typeof value == 'string') ?value.replace(/\"/g,"'") : value}" data-label="${columnDef.displayLabel}">${displayValue}</td>`;
 };
 
 Render.paginate = (data) => {

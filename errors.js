@@ -222,12 +222,6 @@ function searchForLink(paramName, value) {
   location.reload();
 }
 
-function sanitizeCodeDisplay(string) {
-  if (string == undefined) return '';
-  if (typeof string == 'object') string = JSON.stringify(string);
-  return string.replace(/<style/g,'<!style').replace(/<script/g,'<!script');
-};
-
 Render.selectedIdsUpdate = (selectedIds) => {
   if (Object.keys(selectedIds).length > 0) {
     $('#resolveSelected').show();
