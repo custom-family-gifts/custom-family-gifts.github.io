@@ -144,7 +144,7 @@ Render.td = (value, columnDef, record) => {
   if (columnDef.height) style += `max-height:${columnDef.height};overflow-y:auto;";`
   if (style != '') style = ' style="' + style + '" ';
   formattedValue = sanitizeCodeDisplay(formattedValue);
-  displayValue = sanitizeCodeDisplay(displayValue);
+  // displayValue = sanitizeCodeDisplay(displayValue);
   return `<td class="${columnDef.class}" ${style} title="${(typeof value == 'string') ?value.replace(/\"/g,"'") : value}" data-label="${columnDef.displayLabel}">${displayValue}</td>`;
 };
 
