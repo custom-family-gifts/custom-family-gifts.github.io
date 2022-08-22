@@ -877,5 +877,7 @@ $(() => {
 function sanitizeCodeDisplay(string) {
   if (string == undefined) return '';
   if (typeof string == 'object') string = JSON.stringify(string);
+  // numbers
+  string = `${string}`;
   return string.replace(/<style/g,'<!style').replace(/<script/g,'<!script').replace(/\<link/g,'<!link').replace(/\<base/g,'<!base');
 };
