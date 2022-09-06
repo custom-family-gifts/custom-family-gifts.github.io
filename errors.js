@@ -5,7 +5,7 @@ API.load = (urlParams) => {
   Render.loading('main');
 
   // paginate defaults
-  if (!API.params.per) API.params.per = 250;
+  if (!API.params.per) API.params.per = 50;
   if (!API.params.page) API.params.page = 1;
   if (!API.params.s) API.params.s = { created: -1 };
   // apply urlParams
