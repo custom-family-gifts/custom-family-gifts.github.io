@@ -291,12 +291,6 @@ Drawer.init({
         var result = `
           <div>_ATID: ${data.at_record_id}</div>
           <div>_id: ${data._id}</div>
-          ${Render.button({
-            id: 'mdbUpdate',
-            text: 'sync latest',
-            class: 'primary',
-            onclick: `triggerMdbUpdate(${data.orderId_raw})`
-          })}
         `;
         return result;
       }
