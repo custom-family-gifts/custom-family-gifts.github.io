@@ -141,7 +141,7 @@ function showCreateModal() {
       { name: 'gcf_query_p', label: 'query mdb.p', type: 'textarea', instructions: 'as json - passed by key to execute' },
       { name: 'gcf_query_per', label: 'query mdb.per', type: 'number' },
       { name: 'gcf_execute', label: 'gcf execute', type: 'text', required: true, instructions: 'gcf function to be invoked' },
-      { name: 'gcf_params', label: 'gcf params', type: 'text', instructions: 'start with ? use ||name|| to use value from query p' },
+      { name: 'gcf_execute_params', label: 'gcf params', type: 'text', instructions: 'start with ? use ||name|| to use value from query p' },
       { name: 'gcf_execute_body', label: 'gcf body', type: 'textarea', instructions: 'as json' }
     ],
     submitFn: async (formData) => {
