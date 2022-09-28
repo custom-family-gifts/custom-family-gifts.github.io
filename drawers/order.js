@@ -306,7 +306,7 @@ function getPipelines() {
     'PRINTED: Check Delivery',
     'APPROVED: Print Me',
     'PROOF SENT: waiting',
-    'PROOF READY: Email Cust',
+    'PROOF RDY: Email Cust',
     'PROOF RDY: Review',
     'ART: Done',
     'ART: Proof Me',
