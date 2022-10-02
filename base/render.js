@@ -874,6 +874,10 @@ $(() => {
   Modal.init();
 });
 
+function codeTD(value) {
+  return `<textarea spellcheck="false" class="code" disabled>${sanitizeCodeDisplay(value)}</textarea>`;
+}
+
 function sanitizeCodeDisplay(string) {
   if (string == undefined) return '';
   if (typeof string == 'object') string = JSON.stringify(string);

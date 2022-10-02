@@ -158,13 +158,11 @@ Render.results = (data) => {
     },
     stack: {
       width: "300px",
-      height: "150px",
       order: 2,
-      style: "max-height:100px; overflow-y: auto;",
+      class: 'code',
+      style: "min-height:100px;",
       display: (value, record) => {
-        return `
-          <code>${sanitizeCodeDisplay(value)}</code>
-        `;
+        return codeTD(value);
       }
     },
     headers: { hide: true },
@@ -197,11 +195,11 @@ Render.results = (data) => {
     body_JSON: { hide: true },
     body_text: { hide: true},
     DEBUG: {
-      height: '150px',
+      class: "code",
       display: (value) => {
         var result = '';
         if (value && Object.keys(value).length > 0) {
-          result += `<div class="code"><code title="debug">${sanitizeCodeDisplay(JSON.stringify(value, null, 2))}</code></div>`;
+          result = codeTD(JSON.stringify(value, null, 2));
         }
         return result;
       }
