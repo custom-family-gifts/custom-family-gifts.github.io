@@ -829,6 +829,12 @@ var Navigation = {
       { target: "/scheduled.html", label: 'Scheduled' },
     ], true);
     Admin.init();
+  },
+  renderArtist: () => {
+    Render.try('navigation',[
+      { target: "/maps.html", label: 'Map database' },
+    ], true);
+    Admin.init();
   }
 };
 

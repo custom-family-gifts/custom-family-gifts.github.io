@@ -203,6 +203,7 @@ div.paginate {
   right: 0;
   padding: 10px 20px;
   font-size: 0.8em;
+  z-index: 999;
 }
 #toast {
   background-color: #1976d2;
