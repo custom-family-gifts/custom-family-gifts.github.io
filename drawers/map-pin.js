@@ -310,28 +310,44 @@ Pin = {
 
     $('#drawerContents').html(result);
   },
+  closeOrder: function(orderId) {
+    var newPins = [];
+    Pin.pins.forEach(pin => {
+      if (pin.orderId != orderId) newPins.push(pin);
+    });
+    if (Pin.orderId == orderId) Pin.orderId = null;
+    Pin.pins = newPins;
+    Pin.save();
+    Pin.reflect();
+  }
 };
 
 // orderLoader
 var OrderLoader = {
   render: async function(orderId) {
-    var order = await OrderLoader.load(orderId);
-    console.log('RENDER', order);
+    $('.orderLoaderError').remove();
+    var html = '';
+    try {
+      var order = await OrderLoader.load(orderId);
+      html = `
+        <div style="display: inline-block; width: 48%; height 100%; vertical-align: top;">
+          ${order.items}
 
-    var html = `
-      <div style="display: inline-block; width: 48%; height 100%; vertical-align: top;">
-        ${order.items}
+          ${(order.notes) ? `
+            <br><br>
+            ${order.notes}
+          ` : ''}
+        </div>
 
-        ${(order.notes) ? `
-          <br><br>
-          ${order.notes}
-        ` : ''}
-      </div>
+        <div style="display: inline-block; width: 48%; height: 100%; vertical-align: top;">
+          <textarea disabled spellcheck="false" style="width:100%; height: 100%; cursor: text; padding: 3px 6px; font-size: 13px;">${order.options}</textarea>
+        </div>
+      `;
+    } catch (e) {
+      html = `<div class="orderLoaderError" style="color:red">Could not load #${orderId}</div>`;
+    }
 
-      <div style="display: inline-block; width: 48%; height: 100%; vertical-align: top;">
-        <textarea disabled spellcheck="false" style="width:100%; height: 100%; cursor: text; padding: 3px 6px; font-size: 13px;">${order.options}</textarea>
-      </div>
-    `;
+    html += `<button onclick="Pin.closeOrder(${orderId})">close order</button>`;
 
     $('#drawerOverview').html(html);
   },
@@ -339,7 +355,6 @@ var OrderLoader = {
     var order = OrderLoader.loadCacheOrder(orderId);
     if (order) return order;
 
-    $('.orderLoaderError').remove();
     try {
       var response = await fetch(`https://us-central1-custom-family-gifts.cloudfunctions.net/v2-call?cypherKey=${API.zKey || API.z}&method=v2-getCustomerOrder&orderId=${orderId}`);
       var data = await response.json();
@@ -351,7 +366,6 @@ var OrderLoader = {
       return order;
     } catch (e) {
       console.warn(e);
-      $('#drawerOverview').append(`<div class="orderLoaderError" style="color:red">Could not load #${orderId}</div>`);
       return null;
     }
   },
