@@ -138,6 +138,7 @@ table td code {
   padding: 0;
   display: inline-block;
   text-overflow: initial;
+  overflow-wrap: break-word;
 }
 table td div.code {
   line-height: 10px;

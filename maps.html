@@ -12,7 +12,9 @@
     <script src="./base/render.js"></script>
     <script src="./base/render-list.js"></script>
     <script src="./base/render-drawer.js"></script>
+    <script src="./base/utils/orderUtil.js"></script>
     <script src="./lib/dmukaZoom/main.js"></script>
+    <script src="./drawers/map-pin.js"></script>
     <script src="maps.js"></script>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta charset="UTF-8">
@@ -34,8 +36,8 @@
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        width: 440px;
-        height: 440px;
+        width: 430px;
+        height: 430px;
         margin-right: 17px;
         margin-bottom: 17px;
         font-size: 0;
@@ -48,11 +50,11 @@
       }
       .result img {
         width: auto;
-        height: 440px;
+        height: 100%;
       }
       .result.map img {
         height: auto;
-        max-height: 440px;
+        max-height: 100%;
       }
       .instructions {
         color: #999;
@@ -60,8 +62,8 @@
       }
       .dmuka-zoom-parent {
         font-size: 0;
-        height: 440px;
-        width: 440px;
+        height: 100%;
+        width: 100%;
         display: flex;
         justify-content: center;
         align-items: center;
@@ -100,6 +102,13 @@
       }
       button.download > a {
         text-decoration: none !important;
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        font-size: 22px !important;
+        line-height: 40px;
       }
       .overlayButton {
         left: 0;
@@ -112,6 +121,7 @@
         border-radius: 25px;
         filter: grayscale(1);
         opacity: 0.7;
+        vertical-align: top;
       }
       .overlayButton > span {
         position: absolute;
@@ -173,7 +183,7 @@
         position: absolute;
         top: 40px;
         right: 0;
-        z-index: 99;
+        z-index: 95;
         background-color: rgba(0, 0, 0, 0.4);
         padding: 2px 6px;
       }
@@ -210,6 +220,93 @@
       }
       #recentSearch span:active {
         filter: grayscale(1);
+      }
+      #pinNavToggle {
+        float: right;
+        margin-right: 140px;
+        border-right: 1px solid #ddd;
+        border-left: 1px solid #ddd;
+        padding-right: 20px;
+        padding-left: 20px;
+        filter: grayscale(1);
+      }
+      #pinNavToggle.hasPins {
+        background-color: #ffd9d9;
+        filter: none;
+      }
+      button.pin.pinned {
+        opacity: 1;
+        filter: none;
+        border: 2px solid red;
+        background-color: #ffd9d9 !important;
+      }
+      button.pin.pinned:hover {
+        filter: grayscale(0.5);
+      }
+      #drawerExtra {
+        opacity: 0;
+      }
+      #drawerContents {
+        padding: 4px 8px 20px;
+        font-size: 0 !important;
+        box-sizing: border-box !important;
+      }
+      .drawerPinned {
+        width: 275px;
+        height: 275px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background-color: #999;
+        position: relative;
+        vertical-align: top;
+        margin-right: 8px;
+        margin-bottom: 8px;
+        box-sizing: border-box;
+        border: 2px solid #bbb;
+      }
+      .drawerPinned img {
+        max-height: 100%;
+        width: auto;
+        max-width: 100%;
+        height: auto;
+      }
+      #drawerTitleBar {
+        width: 100%;
+        white-space: nowrap;
+      }
+      .drawerPinnedTitle {
+        position: absolute;
+        top: 0;
+        left: 0;
+        background-color: white;
+        color: #444;
+        width: 100%;
+        padding: 2px 8px;
+        box-sizing: border-box;
+      }
+      #drawerTitle {
+        width: calc(100% - 40px);
+        font-size: 0 !important;
+      }
+      #drawerTitle li.add {
+        float: right;
+        border-left: 1px solid #ddd;
+      }
+      #drawerTitle li.current {
+        color: black !important;
+        border-bottom: 2px solid #f8886d;
+      }
+      #drawerTitle li.current:hover {
+        background-color: white !important;
+        cursor: default;
+      }
+      .drawerPinned .buttons {
+        transform: scale(0.9);
+        z-index: 99;
+      }
+      .drawerPinned.result {
+        padding-top: 0;
       }
     </style>
 

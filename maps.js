@@ -19,6 +19,7 @@ API.load = (urlParams) => {
         initRecentSearch();
         detectOffScreenResults();
         $('input[name=search]').select();
+        Pin.init();
       }, 100);
     },
     onFailure: (data) => {
@@ -131,7 +132,7 @@ function renderCropResults(crops) {
         </div>
         <div class="buttons right">
           <button id="download_${row.crop_id} "type="button" class="overlayButton download left"><a target="_blank" href="http://image.customfamilygifts.com/S3B/crops/${row.crop_id}.jpg" download="${row.crop_id}.jpg" >💾</a></button>
-          <button id="pin_${row.crop_id} "type="button" class="overlayButton pin left">📌</button>
+          <button crop_id="${row.crop_id}" onclick="Pin.toggleCrop(${row.crop_id});" type="button" class="overlayButton pin left">📌</button>
         </div>
         <span class="image_message_container"><span></span></span>
       </div>
@@ -157,8 +158,8 @@ function renderMapResults(maps, context) {
           <button id="zoom_${row.map_id}" type="button" class="overlayButton zoom right" onclick="toggleZoom('mapImg_${row.map_id}', 30)">🔎</button>
         </div>
         <div class="buttons right">
-          <button id="download_${row.map_id} "type="button" class="overlayButton download left"><a target="_blank" href="http://image.customfamilygifts.com/S3B/${row.map_id}/${row.map_id}.jpg" download="${row.map_id}.jpg" >💾</a></button>
-          <button id="pin_${row.map_id} "type="button" class="overlayButton pin left">📌</button>
+          <button id="download_${row.map_id}" type="button" class="overlayButton download left"><a target="_blank" href="http://image.customfamilygifts.com/S3B/${row.map_id}/${row.map_id}.jpg" download="${row.map_id}.jpg" >💾</a></button>
+          <button map_id="${row.map_id}" type="button" class="overlayButton pin left" onclick="Pin.toggleMap(${row.map_id});">📌</button>
         </div>
         <span class="image_message_container"><span></span></span>
       </div>
@@ -363,7 +364,6 @@ function colorSearchText(text, search, context) {
     var index = textLower.indexOf(term);
     if (textLower.indexOf(term) > -1) {
       var substring = text.substring(index, index + term.length);
-      console.log(substring, '=', term);
       text = text.replace(substring, `<u>${substring}</u>`);
       textLower = textLower.replace(substring.toLowerCase(), `<u>${substring.toLowerCase()}</u>`);
     }
@@ -416,6 +416,7 @@ function showRecentSearch() {
 
   if (recent.order && recent.order.length) {
     recent.order.forEach(searchTerm => {
+      if (searchTerm.toLowerCase() == $input.val().toLowerCase()) return;
       $recentSearch.append(`<span onclick="mapSearch('${searchTerm}')">${searchTerm}</span>`)
     });
   }
@@ -433,4 +434,10 @@ function initRecentSearch() {
       $('#recentSearch').hide();
     }, 150);
   });
+}
+
+
+
+function savePins(data) { // only if logged in
+  // save
 }
