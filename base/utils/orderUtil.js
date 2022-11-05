@@ -1,8 +1,28 @@
 var OrderUtil = {
+  css: () => {
+    $('head').append(`
+      <style>
+        .internalNote {
+          padding: 4px 8px;
+          font-size: 13px;
+          word-break: break-word;
+          color: white;
+          border-radius: 5px;
+          background-color: #f77251;
+        }
+      </style>
+    `);
+  },
   renderInternalNotes: (internalNotes) => {
     var result = ``;
     if (!internalNotes) return '';
     var notes = internalNotes;
+
+    setTimeout(function() {
+      Render.toLocalTime();
+      console.log('heyo');
+    }, 150);
+
     try {
       var formattedNotes = [];
       var oldNote = '';
@@ -24,16 +44,16 @@ var OrderUtil = {
       });
       formattedNotes.forEach(note => {
         result += `
-          <div class="note" style="background-color:#f77251">
-            <div class="noteHeader">${note.admin} @ <span class="datetime">${note.date}</span></div>
+          <div class="internalNote">
+            <div class="internalNoteHeader">${note.admin} @ <span class="datetime">${note.date}</span></div>
             ${note.message}
           </div>
         `;
       });
       if (oldNote) {
         result += `
-          <div class="note" style="background-color:#f77251">
-            <div class="noteHeader">old internal note:</span></div>
+          <div class="internalNote">
+            <div class="internalNoteHeader">old internal note:</span></div>
             ${oldNote}
           </div>
         `;
@@ -42,12 +62,15 @@ var OrderUtil = {
     } catch(e) {
       /* in case formatting gets broken */
     }
-
     return `
-      <div class="note" style="background-color:#f77251">
+      <div class="internalNote">
         <div class="noteHeader">internal notes:</span></div>
         ${notes}
       </div>
     `;
   }
 };
+
+$(() => {
+  OrderUtil.css();
+});

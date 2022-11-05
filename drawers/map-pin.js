@@ -29,10 +29,13 @@ Drawer.init({
 
 
 Pin = {
+  /* data */
   orderId: null,
   locationId: 0,
   pins: [],
+  orderIds: [],
   modified: null,
+  /* logic */
   init: () => {
     Pin.initInterface();
     Pin.load();
@@ -47,6 +50,7 @@ Pin = {
         Pin.locationId = package.locationId;
         Pin.modified = package.modified;
         Pin.pins = package.pins;
+        Pin.orderIds = (package.orderIds) ? package.orderIds : [];
       }
     } catch (e) { /* do nothing*/
       console.warn(e, e.message);
@@ -54,12 +58,17 @@ Pin = {
     }
 
   },
+  addOrderId: (orderId) => {
+    if (orderId && Pin.orderIds.includes(orderId)) return;
+    Pin.orderIds.push(+orderId);
+  },
   save: () => {
     var package = {
       orderId: Pin.orderId,
       locationId: Pin.locationId,
       pins: Pin.pins,
-      modified: new Date().toISOString()
+      orderIds: Pin.orderIds,
+      modified: new Date().toISOString(),
     };
     localStorage.setItem('pinData', JSON.stringify(package));
   },
@@ -70,16 +79,23 @@ Pin = {
   },
   setOrderId: (orderId) => {
     Pin.orderId = orderId;
+    Pin.addOrderId(orderId);
     Pin.save();
     Pin.reflect();
   },
   toggleCrop: (crop_id) => {
+    // find any other zoom and stop it
+    var $zoomOnButtons = $('button.zoom.on');
+    for (var i = 0; i < $zoomOnButtons.length; i++) {
+      $($zoomOnButtons.get(i)).click();
+    }
+
     var isOn = false;
     Pin.pins.forEach((pin, i) => {
       if (Pin.orderId) {
         if (pin.crop_id == crop_id && pin.orderId == Pin.orderId) isOn = true;
       } else {
-        if (pin.crop_id == crop_id) isOn = true;
+        if (pin.crop_id == crop_id && !pin.orderId) isOn = true;
       }
     });
     if (isOn) {
@@ -110,6 +126,12 @@ Pin = {
     Pin.reflect();
   },
   toggleMap: (map_id) => {
+    // find any other zoom and stop it
+    var $zoomOnButtons = $('button.zoom.on');
+    for (var i = 0; i < $zoomOnButtons.length; i++) {
+      $($zoomOnButtons.get(i)).click();
+    }
+
     var isOn = false;
     Pin.pins.forEach((pin, i) => {
       if (Pin.orderId) {
@@ -229,34 +251,26 @@ Pin = {
   },
   renderDrawerTitle: () => {
     var tally = Pin.getPinTally();
+    var tabsHtml = '';
 
-    var currentOrder = '';
-    if (Pin.orderId) {
-      currentOrder = `<li class="current" onclick="Pin.setOrderId(${Pin.orderId})">${(tally[Pin.orderId]) ? tally[Pin.orderId] + ` 📌 ` : ''}#${Pin.orderId}</li>`;
+    if (tally.noorder) {
+      tabsHtml += `<li class="${(!Pin.orderId) ? 'current' : ''}" onclick="Pin.clearOrderId()">${(tally.noorder) ? tally.noorder + ` 📌 ` : ''}No Order</li>`;
     }
 
-    var noOrder = '';
-
-    // solve other orders
-    var otherOrders = [];
-    Object.keys(tally).forEach(key => {
-      if (key == 'noorder') noOrder = `<li class="${(!Pin.orderId) ? 'current' : ''}" onclick="Pin.clearOrderId()">${(tally.noorder) ? tally.noorder + ` 📌 ` : ''}No Order</li>`;
-      if (key == Pin.orderId && key != 'noorder') return; // ignore
-      otherOrders.push(key);
-    });
-
-    var otherHtml = ``;
-    otherOrders.forEach(pin => {
-      if (pin != 'noorder') {
-        otherHtml += `<li onclick="Pin.setOrderId(${pin})">${(tally[pin]) ? tally[pin] + ` 📌 ` : ''}#${pin}</li>`;
-      }
+    Pin.orderIds.forEach((orderId) => {
+      var pins = '';
+      if (tally[orderId]) pins = `${(tally[orderId]) ? ` 📌 ` + tally[orderId] : ''}`;
+      tabsHtml += `<li class="${(Pin.orderId == orderId) ? 'current' : ''}" onclick="Pin.setOrderId(${orderId})">#${orderId}${pins}</li>`;
     });
 
     var addOrder = '<li class="add" onclick="Pin.clearOrderId()">Add Order</li>';
+    if (Pin.orderIds.length > 4) {
+      // only allow add up to 4 orders
+      addOrder = '';
+    }
+
     $('#drawerTitle').html(`
-      ${noOrder}
-      ${currentOrder}
-      ${otherHtml}
+      ${tabsHtml}
       ${addOrder}
     `);
   },
@@ -278,10 +292,10 @@ Pin = {
             </div>
 
             <div class="buttons right">
-              <button id="download_${pin.crop_id} "type="button" class="overlayButton download left"><a target="_blank" href="http://image.customfamilygifts.com/S3B/crops/${pin.crop_id}.jpg" download="${pin.crop_id}.jpg" >💾</a></button>
+              <button id="download_${pin.crop_id} "type="button" class="overlayButton download left"><a target="_blank" href="https://custom-family-gifts.s3.us-east-2.amazonaws.com/S3B/crops/${pin.crop_id}.jpg" download="${pin.crop_id}.jpg" >💾</a></button>
               <button crop_id="${pin.crop_id}" onclick="Pin.toggleCrop(${pin.crop_id});" type="button" class="overlayButton pin left pinned">📌</button>
             </div>
-            <img id="drawerCrop_${pin.crop_id}" src="https://custom-family-gifts.s3.us-east-2.amazonaws.com/S3B/crops/${pin.crop_id}_m.jpg" />
+            <img crop_id="${pin.crop_id}" id="drawerCrop_${pin.crop_id}" src="https://custom-family-gifts.s3.us-east-2.amazonaws.com/S3B/crops/${pin.crop_id}_m.jpg" />
           </div>
         `;
       }
@@ -297,32 +311,33 @@ Pin = {
             </div>
 
             <div class="buttons right">
-              <button id="download_${pin.map_id}" type="button" class="overlayButton download left"><a target="_blank" href="http://image.customfamilygifts.com/S3B/${pin.map_id}/${pin.map_id}.jpg" download="${pin.map_id}.jpg" >💾</a></button>
+              <button id="download_${pin.map_id}" type="button" class="overlayButton download left"><a target="_blank" href="custom-family-gifts.s3.us-east-2.amazonaws.com/S3B/${pin.map_id}/${pin.map_id}.jpg" download="${pin.map_id}.jpg" >💾</a></button>
               <button map_id="${pin.map_id}" type="button" class="overlayButton pin left pinned" onclick="Pin.toggleMap(${pin.map_id});">📌</button>
             </div>
-            <img id="drawerPin_${pin.map_id}" src="https://custom-family-gifts.s3.us-east-2.amazonaws.com/S3B/${pin.map_id}/${pin.map_id}_m.jpg" />
+            <img map_id="${pin.map_id}" id="drawerPin_${pin.map_id}" src="https://custom-family-gifts.s3.us-east-2.amazonaws.com/S3B/${pin.map_id}/${pin.map_id}_m.jpg" />
           </div>
         `;
       }
     });
 
-    if (pinnedCount == 0) result = `<span>Nothing Pinned ${(Pin.orderId) ? ` for #${Pin.orderId}` : ''}</span>`
+    if (pinnedCount == 0) result = `<span>Close this drawer and pin some maps. ${(Pin.orderId) ? ` for #${Pin.orderId}` : ''}</span>`
 
     $('#drawerContents').html(result);
   },
   closeOrder: function(orderId) {
-    var newPins = [];
-    Pin.pins.forEach(pin => {
-      if (pin.orderId != orderId) newPins.push(pin);
+    Pin.orderIds = Pin.orderIds.filter(id => {
+      return id != orderId;
     });
-    if (Pin.orderId == orderId) Pin.orderId = null;
-    Pin.pins = newPins;
+    if (Pin.orderId == orderId) {
+      Pin.orderId = null;
+    }
+    if (Pin.orderIds.length) Pin.orderId = Pin.orderIds[Pin.orderIds.length-1];
     Pin.save();
     Pin.reflect();
   }
 };
 
-// orderLoader
+// orderLoader - fetches order data from gcf
 var OrderLoader = {
   render: async function(orderId) {
     $('.orderLoaderError').remove();
@@ -333,21 +348,23 @@ var OrderLoader = {
         <div style="display: inline-block; width: 48%; height 100%; vertical-align: top;">
           ${order.items}
 
-          ${(order.notes) ? `
-            <br><br>
-            ${order.notes}
-          ` : ''}
+          ${(OrderUtil.renderInternalNotes(order.notes))}
+
+          <button onclick="Pin.closeOrder(${orderId})">close order</button>
         </div>
 
         <div style="display: inline-block; width: 48%; height: 100%; vertical-align: top;">
           <textarea disabled spellcheck="false" style="width:100%; height: 100%; cursor: text; padding: 3px 6px; font-size: 13px;">${order.options}</textarea>
         </div>
       `;
-    } catch (e) {
-      html = `<div class="orderLoaderError" style="color:red">Could not load #${orderId}</div>`;
-    }
 
-    html += `<button onclick="Pin.closeOrder(${orderId})">close order</button>`;
+    } catch (e) {
+      html = `<div class="orderLoaderError" style="color:red">
+          Could not load #${orderId}
+          <button onclick="Pin.closeOrder(${orderId})">close order</button>
+        </div>
+      `;
+    }
 
     $('#drawerOverview').html(html);
   },

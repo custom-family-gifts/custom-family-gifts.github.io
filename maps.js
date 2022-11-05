@@ -122,16 +122,16 @@ function renderCropResults(crops) {
 
   crops.records.forEach(row => {
     result += `
-      <div class="result">
+      <div class="result" style="border-style: dashed; border-color:#f0f0f0">
         ${(row.source_map_id) ? `<div onclick="mapSearch('#${row.source_map_id}')" onclick="mapSearch('#${row.source_map_id}')" class="source">source #${row.source_map_id}</div>` : ''}
         <div class="resolution">${row.width} x ${row.height}</div>
         <div class="title">${colorSearchText(row.search, urlParams.search, '')}</div>
-        <img id="cropImg_${row.crop_id}" loading="lazy" src="https://custom-family-gifts.s3.us-east-2.amazonaws.com/S3B/crops/${row.crop_id}_m.jpg" />
+        <img crop_id="${row.crop_id}" id="cropImg_${row.crop_id}" loading="lazy" src="https://custom-family-gifts.s3.us-east-2.amazonaws.com/S3B/crops/${row.crop_id}_m.jpg" />
         <div class="buttons left">
           <button id="zoom_${row.crop_id}" type="button" class="overlayButton zoom right" onclick="toggleZoom('cropImg_${row.crop_id}')">🔎</button>
         </div>
         <div class="buttons right">
-          <button id="download_${row.crop_id} "type="button" class="overlayButton download left"><a target="_blank" href="http://image.customfamilygifts.com/S3B/crops/${row.crop_id}.jpg" download="${row.crop_id}.jpg" >💾</a></button>
+          <button id="download_${row.crop_id} "type="button" class="overlayButton download left"><a target="_blank" href="https://custom-family-gifts.s3.us-east-2.amazonaws.com/S3B/crops/${row.crop_id}.jpg" download="${row.crop_id}.jpg" >💾</a></button>
           <button crop_id="${row.crop_id}" onclick="Pin.toggleCrop(${row.crop_id});" type="button" class="overlayButton pin left">📌</button>
         </div>
         <span class="image_message_container"><span></span></span>
@@ -153,12 +153,12 @@ function renderMapResults(maps, context) {
       <div class="result map">
         <div class="resolution">${row.width} x ${row.height}</div>
         <div class="title">${colorSearchText(boldMapIdSearch, urlParams.search, context)}</div>
-        <img id="mapImg_${row.map_id}" loading="lazy" src="https://custom-family-gifts.s3.us-east-2.amazonaws.com/S3B/${row.map_id}/${row.map_id}_m.jpg" />
+        <img map_id="${row.map_id}" id="mapImg_${row.map_id}" loading="lazy" src="https://custom-family-gifts.s3.us-east-2.amazonaws.com/S3B/${row.map_id}/${row.map_id}_m.jpg" />
         <div class="buttons left">
           <button id="zoom_${row.map_id}" type="button" class="overlayButton zoom right" onclick="toggleZoom('mapImg_${row.map_id}', 30)">🔎</button>
         </div>
         <div class="buttons right">
-          <button id="download_${row.map_id}" type="button" class="overlayButton download left"><a target="_blank" href="http://image.customfamilygifts.com/S3B/${row.map_id}/${row.map_id}.jpg" download="${row.map_id}.jpg" >💾</a></button>
+          <button id="download_${row.map_id}" type="button" class="overlayButton download left"><a target="_blank" href="https://custom-family-gifts.s3.us-east-2.amazonaws.com/S3B/${row.map_id}/${row.map_id}.jpg" download="${row.map_id}.jpg" >💾</a></button>
           <button map_id="${row.map_id}" type="button" class="overlayButton pin left" onclick="Pin.toggleMap(${row.map_id});">📌</button>
         </div>
         <span class="image_message_container"><span></span></span>
@@ -187,12 +187,20 @@ function toggleZoom(id, maxZoom = 8) {
   // loadFullCrop(id);
   var $img = $('#'+id);
   if ($img.closest('.result').find('button.zoom').hasClass('on')) {
+    $img.removeClass('zoom');
     stopZoom(id);
   } else {
+    $img.addClass('zoom');
     startZoom(id, maxZoom);
   }
 }
 function startZoom(id, maxZoom = 8) {
+  // find any other zoom and stop it
+  var $zoomOnButtons = $('button.zoom.on');
+  for (var i = 0; i < $zoomOnButtons.length; i++) {
+    $($zoomOnButtons.get(i)).click();
+  }
+
   var isMap = Boolean(id.substring(0,3) == 'map');
 
   zooms[id] = new dmuka.Zoom({
@@ -207,7 +215,7 @@ function startZoom(id, maxZoom = 8) {
       var style = $img.attr('style');
       var zoom = +style.split('matrix(')[1].split(',')[0];
       console.log($img, $img.length, zoom);
-      if (zoom > 11 && !$img.hasClass('full')) {
+      if (zoom > (maxZoom-1) && !$img.hasClass('full')) {
         loadFullCrop(id);
       }
     }
