@@ -835,6 +835,23 @@ var Navigation = {
       { target: "/maps.html", label: 'Map database' },
     ], true);
     Admin.init();
+
+    var urlParams = API.getUrlParams();
+
+    var search = `
+      <div style="display: inline-block">
+        <input style="vertical-align:top;" param name="search" placeholder="Search" value="${urlParams.search || ''}">
+
+        <input style="vertical-align:top;" param name="exclude" placeholder="Exclude" value="${urlParams.exclude || ''}">
+
+        <button style="display: inline-block; background-color: #1976d2; color: white; border: 5px solid white; box-sizing: border-box; line-height: 20px;" class="primary" paramSubmit>Go</button>
+        <button style="display: inline-block; background-color: #ddd; border: 5px solid white; box-sizing: border-box; line-height: 20px;"  class="" paramClear>Clear</button>
+      </div>
+    `;
+
+    setTimeout(function() {
+      $('header#content_header > a').after(search);
+    }, 250);
   }
 };
 

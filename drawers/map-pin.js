@@ -83,7 +83,7 @@ Pin = {
     Pin.save();
     Pin.reflect();
   },
-  toggleCrop: (crop_id) => {
+  toggleCrop: (crop_id, dl_full_path) => {
     // find any other zoom and stop it
     var $zoomOnButtons = $('button.zoom.on');
     for (var i = 0; i < $zoomOnButtons.length; i++) {
@@ -101,7 +101,7 @@ Pin = {
     if (isOn) {
       Pin.removeCrop(crop_id);
     } else {
-      Pin.addCrop(crop_id);
+      Pin.addCrop(crop_id, dl_full_path);
     }
   },
   removeCrop: (crop_id) => {
@@ -117,8 +117,10 @@ Pin = {
     Pin.save();
     Pin.reflect();
   },
-  addCrop: (crop_id) => {
+  addCrop: (crop_id, dl_full_path) => {
     var newPin = { crop_id: crop_id };
+    if (dl_full_path) newPin.dl_full_path = dl_full_path;
+
     if (Pin.orderId) newPin.orderId = Pin.orderId;
     if (Pin.locationId) newPin.locationId = Pin.locationId;
     Pin.pins.push(newPin);
@@ -282,6 +284,14 @@ Pin = {
       if (Pin.orderId && pin.orderId != Pin.orderId) return;
 
       if (pin.crop_id) {
+        var dl_full_path = '';
+        var crop_dl_path = `https://custom-family-gifts.s3.us-east-2.amazonaws.com/S3B/crops/${pin.crop_id}.jpg`;
+
+        if (pin.dl_full_path) {
+          dl_full_path = pin.dl_full_path;
+          crop_dl_path = pin.dl_full_path;
+        }
+
         pinnedCount++;
         result += `
           <div class="drawerPinned result">
@@ -292,10 +302,10 @@ Pin = {
             </div>
 
             <div class="buttons right">
-              <button id="download_${pin.crop_id} "type="button" class="overlayButton download left"><a target="_blank" href="https://custom-family-gifts.s3.us-east-2.amazonaws.com/S3B/crops/${pin.crop_id}.jpg" download="${pin.crop_id}.jpg" >💾</a></button>
+              <button id="download_${pin.crop_id} "type="button" class="overlayButton download left"><a target="_blank" href="${crop_dl_path}">💾</a></button>
               <button crop_id="${pin.crop_id}" onclick="Pin.toggleCrop(${pin.crop_id});" type="button" class="overlayButton pin left pinned">📌</button>
             </div>
-            <img crop_id="${pin.crop_id}" id="drawerCrop_${pin.crop_id}" src="https://custom-family-gifts.s3.us-east-2.amazonaws.com/S3B/crops/${pin.crop_id}_m.jpg" />
+            <img crop_id="${pin.crop_id}" id="drawerCrop_${pin.crop_id}" src="https://custom-family-gifts.s3.us-east-2.amazonaws.com/S3B/crops/${pin.crop_id}_m.jpg" ${(dl_full_path) ? 'dl_full_path="'+dl_full_path+'"':''} />
           </div>
         `;
       }

@@ -45,23 +45,8 @@ Render.main = (data) => {
 
 Render.filter = (data) => {
   var urlParams = API.getUrlParams();
+  var result = '';
 
-  var result = `
-    <div class="row">
-      <div class="card small">
-        <strong>search</strong>
-        <input param name="search" placeholder="ex: Richmond, VA" value="${urlParams.search || ''}">
-      </div>
-
-      <div class="card small">
-        <strong>Exclude (comma separate)</strong>
-        <input param name="exclude" placeholder="UK to see London, Ontario" value="${urlParams.exclude || ''}">
-      </div>
-
-      <button class="primary" paramSubmit>Go</button>
-      <button class="" paramClear>Clear</button>
-    </div>
-  `;
   return result;
 };
 
@@ -121,18 +106,22 @@ function renderCropResults(crops) {
   if (crops.recordcount == 0) return `No results`;
 
   crops.records.forEach(row => {
+    var dl_full_path = '';
+    if (row.dl_name) dl_full_path = `https://custom-family-gifts.s3.us-east-2.amazonaws.com/S3B/crops_dl/${row.dl_name}`;
+    var crop_path = `https://custom-family-gifts.s3.us-east-2.amazonaws.com/S3B/crops/${row.crop_id}.jpg`;
+
     result += `
       <div class="result" style="border-style: dashed; border-color:#f0f0f0">
         ${(row.source_map_id) ? `<div onclick="mapSearch('#${row.source_map_id}')" onclick="mapSearch('#${row.source_map_id}')" class="source">source #${row.source_map_id}</div>` : ''}
         <div class="resolution">${row.width} x ${row.height}</div>
         <div class="title">${colorSearchText(row.search, urlParams.search, '')}</div>
-        <img crop_id="${row.crop_id}" id="cropImg_${row.crop_id}" loading="lazy" src="https://custom-family-gifts.s3.us-east-2.amazonaws.com/S3B/crops/${row.crop_id}_m.jpg" />
+        <img crop_id="${row.crop_id}" id="cropImg_${row.crop_id}" loading="lazy" src="https://custom-family-gifts.s3.us-east-2.amazonaws.com/S3B/crops/${row.crop_id}_m.jpg" ${(dl_full_path) ? 'dl_full_path="'+dl_full_path+'"' : ''} />
         <div class="buttons left">
           <button id="zoom_${row.crop_id}" type="button" class="overlayButton zoom right" onclick="toggleZoom('cropImg_${row.crop_id}')">🔎</button>
         </div>
         <div class="buttons right">
-          <button id="download_${row.crop_id} "type="button" class="overlayButton download left"><a target="_blank" href="https://custom-family-gifts.s3.us-east-2.amazonaws.com/S3B/crops/${row.crop_id}.jpg" download="${row.crop_id}.jpg" >💾</a></button>
-          <button crop_id="${row.crop_id}" onclick="Pin.toggleCrop(${row.crop_id});" type="button" class="overlayButton pin left">📌</button>
+          <button id="download_${row.crop_id} "type="button" class="overlayButton download left"><a target="_blank" href="${(dl_full_path) ? dl_full_path : crop_path}">💾</a></button>
+          <button crop_id="${row.crop_id}" onclick="Pin.toggleCrop(${row.crop_id}, '${dl_full_path}');" type="button" class="overlayButton pin left">📌</button>
         </div>
         <span class="image_message_container"><span></span></span>
       </div>
@@ -214,7 +203,7 @@ function startZoom(id, maxZoom = 8) {
       var $img = $('#'+id);
       var style = $img.attr('style');
       var zoom = +style.split('matrix(')[1].split(',')[0];
-      console.log($img, $img.length, zoom);
+      // console.log($img, $img.length, zoom);
       if (zoom > (maxZoom-1) && !$img.hasClass('full')) {
         loadFullCrop(id);
       }
@@ -244,6 +233,7 @@ function loadFullCrop(id) {
   $img.closest('.result').find('.image_message_container span').show().text('loading FULL image...');
 
   var fullSrc = $img.attr('src').replace('_m', '').replace('_l','');
+  if ($img.attr('dl_full_path')) fullSrc = $img.attr('dl_full_path');
   var $newImg = $(`<img style="display:none;" id="full_${id}" src="${fullSrc}" onload="swapFullCrop('${id}')" />`);
   $img.after($newImg);
 }
