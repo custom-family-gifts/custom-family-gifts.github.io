@@ -540,12 +540,17 @@ function renderProofs(order) {
       var isSent = false;
       if (order.sent_proofs_record && order.sent_proofs_record.toUpperCase().includes(letter)) isSent = true;
       if (order.chosen_proof && order.chosen_proof.toUpperCase().includes(letter)) isChosenProof = true;
-      var thumbUrl = proof.url;
+      // var thumbUrl = proof.url;
+
       var final = finalsByLetter[letter] || null;
 
       if (proof.thumbnails && proof.thumbnails.large) thumbUrl = proof.thumbnails.large.url;
+      var orderNumString = `${order.orderId_raw}`;
+      var orderFolderRoot = orderNumString.substring(0, orderNumString.length-2);
+      var thumbUrl = `https://custom-family-gifts.s3.us-east-2.amazonaws.com/${orderFolderRoot}00-${orderFolderRoot}99/${orderNumString}/_proofs/${orderNumString}_${letter.toLowerCase()}_proof.jpg`;
+
       result += `
-        <li onclick="proofModal('${url}', '${(final) ? final.url : ''}', '${letter}', '${(final) ? final.width : ''}', '${(final) ? final.height : ''}')" class="${(isChosenProof) ? 'chosen' : ''}">
+        <li onclick="proofModal('${thumbUrl}', '${(final) ? final.url : ''}', '${letter}', '${(final) ? final.width : ''}', '${(final) ? final.height : ''}')" class="${(isChosenProof) ? 'chosen' : ''}">
           <span class="letter">${letter}</span>
           <img src="${thumbUrl}" />
         </li>
