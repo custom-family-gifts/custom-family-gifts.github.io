@@ -321,7 +321,7 @@ Pin = {
             </div>
 
             <div class="buttons right">
-              <button id="download_${pin.map_id}" type="button" class="overlayButton download left"><a target="_blank" href="custom-family-gifts.s3.us-east-2.amazonaws.com/S3B/${pin.map_id}/${pin.map_id}.jpg" download="${pin.map_id}.jpg" >💾</a></button>
+              <button id="download_${pin.map_id}" type="button" class="overlayButton download left"><a target="_blank" href="https://custom-family-gifts.s3.us-east-2.amazonaws.com/S3B/${pin.map_id}/${pin.map_id}.jpg" download="${pin.map_id}.jpg" >💾</a></button>
               <button map_id="${pin.map_id}" type="button" class="overlayButton pin left pinned" onclick="Pin.toggleMap(${pin.map_id});">📌</button>
             </div>
             <img map_id="${pin.map_id}" id="drawerPin_${pin.map_id}" src="https://custom-family-gifts.s3.us-east-2.amazonaws.com/S3B/${pin.map_id}/${pin.map_id}_m.jpg" />
