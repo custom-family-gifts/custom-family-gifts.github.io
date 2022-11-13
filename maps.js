@@ -200,7 +200,8 @@ function startZoom(id, maxZoom = 8) {
     $($zoomOnButtons.get(i)).click();
   }
 
-  var isMap = Boolean(id.substring(0,3) == 'map');
+  var isMap = Boolean($('#'+id).attr('map_id')) ? true : false;
+  console.log('ISMAP', id, isMap);
 
   zooms[id] = new dmuka.Zoom({
     element: document.getElementById(id),
@@ -214,6 +215,7 @@ function startZoom(id, maxZoom = 8) {
       var style = $img.attr('style');
       var zoom = +style.split('matrix(')[1].split(',')[0];
       // console.log($img, $img.length, zoom);
+      console.log(zoom,'is greater than', maxZoom-1);
       if (zoom > (maxZoom-1) && !$img.hasClass('full')) {
         loadFullCrop(id);
       }
@@ -237,6 +239,7 @@ function stopZoom(id) {
   $img.parent().replaceWith(contents);
 }
 function loadFullCrop(id) {
+  console.log('loading full crop');
   var $img = $('#'+id);
   if ($img.hasClass('full')) return;
   $img.addClass('full');
