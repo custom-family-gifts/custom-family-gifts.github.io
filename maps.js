@@ -113,7 +113,7 @@ function renderCropResults(crops) {
     result += `
       <div class="result" style="border-style: dashed; border-color:#f0f0f0">
         ${(row.source_map_id) ? `<div onclick="mapSearch('#${row.source_map_id}')" onclick="mapSearch('#${row.source_map_id}')" class="source">source #${row.source_map_id}</div>` : ''}
-        <div class="resolution">${row.width} x ${row.height}</div>
+        <div class="resolution">${renderStars(row.style_rating)}${row.width} x ${row.height}</div>
         <div class="title">${colorSearchText(row.search, urlParams.search, '')}</div>
         <img crop_id="${row.crop_id}" id="cropImg_${row.crop_id}" loading="lazy" src="https://custom-family-gifts.s3.us-east-2.amazonaws.com/S3B/crops/${row.crop_id}_m.jpg" ${(dl_full_path) ? 'dl_full_path="'+dl_full_path+'"' : ''} />
         <div class="buttons left">
@@ -131,6 +131,16 @@ function renderCropResults(crops) {
   return result;
 }
 
+function renderStars(rating) {
+  if (!rating) return '';
+  var string = '<span style="letter-spacing:-3px;font-size:11px;">';
+  for (var i = 0; i < rating; i++) {
+    string += '⭐';
+  }
+  string += '</span> ';
+  return string;
+}
+
 function renderMapResults(maps, context) {
   var urlParams = API.getUrlParams();
   var result = '';
@@ -140,7 +150,7 @@ function renderMapResults(maps, context) {
     var boldMapIdSearch = row.search.replace(`#${row.map_id}`, `<b>#${row.map_id}</b>`)
     result += `
       <div class="result map">
-        <div class="resolution">${row.width} x ${row.height}</div>
+        <div class="resolution">${renderStars(row.style_rating)}${row.width} x ${row.height}</div>
         <div class="title">${colorSearchText(boldMapIdSearch, urlParams.search, context)}</div>
         <img map_id="${row.map_id}" id="mapImg_${row.map_id}" loading="lazy" src="https://custom-family-gifts.s3.us-east-2.amazonaws.com/S3B/${row.map_id}/${row.map_id}_m.jpg" />
         <div class="buttons left">
@@ -161,7 +171,7 @@ function renderMapResults(maps, context) {
 
 function renderMaps(maps) {
   return `
-    <thead id="mapsHead" style="margin-top: 45px;">
+    <thead id="mapsHead" style="margin-top: 45px; vertical-align:top; margin-right:3px;">
       <th>Found ${maps.recordcount} Full Maps <button type="button" onclick="toggleTable(this)">hide</button></th>
     </thead>
 
