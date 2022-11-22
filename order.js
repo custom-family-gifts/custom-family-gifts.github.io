@@ -433,6 +433,7 @@ Render.proofs = (data) => {
   });
 
   // look for proof_data to augment this - S3 link & timestamps
+  console.log(data);
   if (data.proof_data) {
     var proofsData = {};
     data.proof_data.split(',').forEach((proofString) => {
@@ -501,17 +502,19 @@ Render.proofs = (data) => {
   result += `</div>`;
   return result;
 };
-
 Render.proof = (proof) => {
   var letter = proof.filename.split('_')[1].toLowerCase();
   var text = (proof.approved) ? `✔ ${letter.toUpperCase()}` : `${letter.toUpperCase()}`;
+  var orderNum = +proof.filename.split('_')[0];
+  var orderPrefix = Math.floor(orderNum / 100);
+
   if (proof.date) text += ` • <span class="datetime">${proof.date}</span>`;
   return `
     <div class="section" proof="${letter}">
       <div class="row imageRow row_${letter}">
         <figure>
           <a href="${proof.url}">
-            <img src="${proof.url}" alt="Proof ${letter.toUpperCase()}"/>
+            <img src="${proof.url}" alt="Proof ${letter.toUpperCase()}"  onerror="$(this).attr('src', 'https://custom-family-gifts.s3.us-east-2.amazonaws.com/${orderPrefix}00-${orderPrefix}99/${orderNum}/_proofs/${orderNum}_${letter.toLowerCase()}_proof.jpg')"/>
           </a>
 
           <div class="proof_overlay top ${(proof.approved) ? 'approved' : ''}" id="proof_${letter}">
@@ -638,11 +641,13 @@ Render.proofThumbs = (data) => {
 
   var htmlProofs = ``;
   sortedProofs.forEach(proof => {
+    var orderNum = +proof.filename.split('_')[0];
+    var orderPrefix = Math.floor(orderNum / 100);
     var letter = proof.filename.split('_')[1].toLowerCase();
     htmlProofs += `
       <a class="proofThumb ${(proof.approved)?'approved':''} thumb_${letter}" letter="${letter}" href="javascript:selectThumb('${letter}');">
         <div class="proofSelectedCaret"></div>
-        <img src="${proof.url}" alt="Proof ${letter.toUpperCase()}"/>
+        <img src="${proof.url}" alt="Proof ${letter.toUpperCase()}" onerror="$(this).attr('src', 'https://custom-family-gifts.s3.us-east-2.amazonaws.com/${orderPrefix}00-${orderPrefix}99/${orderNum}/_proofs/${orderNum}_${letter.toLowerCase()}_proof.jpg')" />
         <label>${(!proof.approved)?'Proof ':''}${letter.toUpperCase()}${(proof.approved) ? `&nbsp;&nbsp;✔&nbsp;&nbsp;approved`:''}</label>
       </a>
     `;
