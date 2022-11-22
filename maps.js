@@ -1,4 +1,5 @@
 Navigation.renderArtist();
+Drawer.submitAnyways = true; // this allows enter to submit form even if drawer or modal is up
 
 /* nothing here so far - i think most of the logic will be with the render functions */
 API.load = (urlParams) => {

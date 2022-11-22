@@ -274,7 +274,7 @@ $(document).on('change blur', "*[param]", function (event) {
 $(document).on('keydown', 'input[param]', function (event) {
   if (event.type == 'keydown' && event.keyCode != 13) return;
   try{
-    if (Drawer.shown || Render.modalShown) return;
+    if ((Drawer.shown || Render.modalShown) && !Drawer.submitAnyways) return;
   } catch(e) {/* try catch because maybe Render doesn't exist */}
 
   setTimeout(() => {
