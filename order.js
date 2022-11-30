@@ -47,6 +47,8 @@ Render.main = (data) => {
       ${Render.try('shipping', data)}
     </div>
 
+    ${Render.try('shippingEstimate', data)}
+
     <span id="proofs">&nbsp;</span><!-- this span for anchor otherwise can't see h3-->
     <h3>Proofs</h3>
     ${Render.try('proofs', data)}
@@ -282,6 +284,42 @@ Render.responseForm = (data) => {
       <button id="submitMessageButton" onclick="sendMessage(${data.orderId_raw})" class="primary">Send Message</button>
     </div>
   `;
+}
+
+function formatShortDate(date) {
+  if (typeof date == 'string') date = date += 'T12:00:00Z';
+  var dateObj = new Date(date);
+  return `${dateObj.toString().split(' ')[1]} ${dateObj.toString().split(' ')[2]}`;
+}
+
+Render.shippingEstimate = (data) => {
+  if (!data.delivery_est_max || data.pipeline != 'ART: Proof Me') return '';
+
+  // is it december?
+  var xmasMessage = '';
+  var today = new Date();
+  if (today.getMonth() == 11) {
+    if (new Date(data.delivery_est_max + 'T12:00:00Z') < new Date(`${today.getFullYear()}-12-25T12:00:00Z`)) {
+      xmasMessage = '<span style="letter-spacing:-5px;margin-left:8px;"> 🎄👌</span>';
+    } else {
+      xmasMessage = '<span style="letter-spacing:-5px;margin-left:8px;"> 🎄❌</span>';
+    }
+  }
+  var result = `
+    <h3>Delivery Estimate</h3>
+    <div class="row">
+      <div class="card">
+        <div class="section">
+          <h5>between:</h5>
+          <p><span class="">${formatShortDate(data.delivery_est_min)}</span> - <span class="">${formatShortDate(data.delivery_est_max)}</span>${xmasMessage}</p>
+          <p class="small">If you need your package by a specific date, please contact us ASAP.</p>
+          <p class="small">*This estimate is based on other recent orders to your location including one revision. Actual delivery may vary.</p>
+        </div>
+      </div>
+    </div>
+  `;
+  console.log(data.de)
+  return result;
 }
 
 Render.orderStatus = (data) => {

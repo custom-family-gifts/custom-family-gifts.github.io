@@ -40,6 +40,9 @@ strong.right {
   font-size: 0.8em !important;
   opacity: 0.7;
 }
+.card.small {
+  opacity: 1;
+}
 #cfgLogo {
   height: 55px;
   float: left;
@@ -85,6 +88,7 @@ h5 {
 }
 .card {
   align-self: stretch; /* in full screen mode, cards in same row share height */
+  background-color: white;
 }
 .card .section {
   background-color: white;
