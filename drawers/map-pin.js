@@ -341,6 +341,11 @@ Pin = {
     if (Pin.orderId == orderId) {
       Pin.orderId = null;
     }
+    var pinsWithoutOrder = [];
+    Pin.pins.forEach(pin => {
+      if (pin.orderId != orderId) pinsWithoutOrder.push(pin);
+    });
+    Pin.pins = pinsWithoutOrder;
     if (Pin.orderIds.length) Pin.orderId = Pin.orderIds[Pin.orderIds.length-1];
     Pin.save();
     Pin.reflect();
