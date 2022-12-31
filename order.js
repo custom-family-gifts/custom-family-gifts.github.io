@@ -551,8 +551,8 @@ Render.proof = (proof) => {
     <div class="section" proof="${letter}">
       <div class="row imageRow row_${letter}">
         <figure>
-          <a href="${proof.url}">
-            <img src="${proof.url}" alt="Proof ${letter.toUpperCase()}"  onerror="$(this).attr('src', 'https://custom-family-gifts.s3.us-east-2.amazonaws.com/${orderPrefix}00-${orderPrefix}99/${orderNum}/_proofs/${orderNum}_${letter.toLowerCase()}_proof.jpg')"/>
+          <a href="https://custom-family-gifts.s3.us-east-2.amazonaws.com/${orderPrefix}00-${orderPrefix}99/${orderNum}/_proofs/${orderNum}_${letter.toLowerCase()}_proof.jpg">
+            <img src="https://custom-family-gifts.s3.us-east-2.amazonaws.com/${orderPrefix}00-${orderPrefix}99/${orderNum}/_proofs/${orderNum}_${letter.toLowerCase()}_proof.jpg"/>
           </a>
 
           <div class="proof_overlay top ${(proof.approved) ? 'approved' : ''}" id="proof_${letter}">
