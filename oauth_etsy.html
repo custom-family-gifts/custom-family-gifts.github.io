@@ -11,7 +11,7 @@
   </head>
   <body>
     <h3>Etsy OAUTH</h3>
-    <a target="_blank" id="oauthlink" href="https://www.yahoo.com">
+    <a target="_blank" id="oauthlink" href="https://www.getsreplacedinscript.com">
       <button>auth</button>
     </a>
 
@@ -19,7 +19,7 @@
       var urlParams = API.getUrlParams();
       var client_id = urlParams.client_id;
       var redirect_uri = encodeURIComponent('https://smile.customfamilygifts.com/oauth_etsy');
-      var scopes = encodeURIComponent(`transactions_r email_r`);
+      var scopes = encodeURIComponent(`transactions_w email_r listings_w profile_r shops_w`);
       var state = '11234567890';
       var code_challenge = urlParams.code_challenge;
       var oauth_get_url = `https://www.etsy.com/oauth/connect?response_type=code`;
@@ -36,6 +36,10 @@
       }
 
       $('#oauthlink').attr('href', oauth_get_url);
+
+      if (!client_id) {
+        $('#oauthlink').after(`<span style="color:red">needs client id as param</span>`);
+      }
     </script>
 
   </body>
