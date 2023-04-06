@@ -19,13 +19,19 @@
       var urlParams = API.getUrlParams();
       var client_id = urlParams.client_id;
       var redirect_uri = encodeURIComponent('https://smile.customfamilygifts.com/oauth_etsy');
-      var scopes = encodeURIComponent(`transactions_w email_r listings_w profile_r shops_w`);
+      var scopes = encodeURIComponent(`transactions_w transactions_r email_r listings_w listings_r profile_r shops_w shops_r`);
       var state = '11234567890';
       var code_challenge = urlParams.code_challenge; // 
       /* 
-        PKCE Proof Key for Code Exchange
-        veri
-        code challenge = base64(SHA256('vvkdljkejllufrvbhgeiegrnvufrhvrffnkvcknjvcfg')) = 'NjJENzRDQUQ1REYxNkY3OEJDMTAzOTlBMzFFRThGM0ZFQjkwNUM0MkE0OUQ5RDZDQjgxRjEyMEQ3MzZBOUJCOA==' // that's the code challenge
+        PKCE Proof Key for Code Exchange 
+        https://tonyxu-io.github.io/pkce-generator/
+        verifier (43 chars) = vvkdljkejllufrvbhgeiegrnvufrhvrffnkvcknjvcfg
+
+        1. generate the code challenge by going to https://tonyxu-io.github.io/pkce-generator/
+        2. enter client_id & code_challenge into url params and reload the page.
+        3. click auth
+        4. take the resulting "code" and verifier above to postman to get a refresh token
+          - record the refresh_token
       */
       var oauth_get_url = `https://www.etsy.com/oauth/connect?response_type=code`;
       oauth_get_url += `&redirect_uri=${redirect_uri}`;
