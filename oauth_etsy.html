@@ -21,7 +21,12 @@
       var redirect_uri = encodeURIComponent('https://smile.customfamilygifts.com/oauth_etsy');
       var scopes = encodeURIComponent(`transactions_w email_r listings_w profile_r shops_w`);
       var state = '11234567890';
-      var code_challenge = urlParams.code_challenge;
+      var code_challenge = urlParams.code_challenge; // 
+      /* 
+        PKCE Proof Key for Code Exchange
+        veri
+        code challenge = base64(SHA256('vvkdljkejllufrvbhgeiegrnvufrhvrffnkvcknjvcfg')) = 'NjJENzRDQUQ1REYxNkY3OEJDMTAzOTlBMzFFRThGM0ZFQjkwNUM0MkE0OUQ5RDZDQjgxRjEyMEQ3MzZBOUJCOA==' // that's the code challenge
+      */
       var oauth_get_url = `https://www.etsy.com/oauth/connect?response_type=code`;
       oauth_get_url += `&redirect_uri=${redirect_uri}`;
       oauth_get_url += `&scope=${scopes}`;
@@ -38,7 +43,10 @@
       $('#oauthlink').attr('href', oauth_get_url);
 
       if (!client_id) {
-        $('#oauthlink').after(`<span style="color:red">needs client id as param</span>`);
+        $('#oauthlink').after(`<br><span style="color:red">needs client id as param</span>`);
+      }
+      if (!code_challenge) {
+        $('#oauthlink').after(`<br><span style="color:red">needs code_challenge as param</span>`);
       }
     </script>
 
