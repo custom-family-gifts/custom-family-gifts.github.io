@@ -83,7 +83,8 @@ API.load = (urlParams) => {
         artist: 1, pipeline: 1, chosen_proof: 1,
         created: 1, isPriority: 1, shopifyOrderId: 1, etsy_receipt_id: 1,
         customer: 1, shipAddress: 1, created_shopify_order: 1, 'Internal - newest on top please': 1,
-        print_note: 1, etsy_link: 1, 'order link': 1, customer_order_link: 1, at_record_id: 1
+        print_note: 1, etsy_link: 1, 'order link': 1, customer_order_link: 1, at_record_id: 1,
+        etsy_receipt_id_saved: 1
       },
       per: API.params.per,
       page: API.params.page
@@ -172,8 +173,8 @@ Render.results = (data) => {
       display: (value, record) => {
         var result = `${(record.isPriority) ? '⭐ ' : ''}
         <span>#${record.orderId_raw}</span>`;
-        if (record.etsy_receipt_id) {
-          result += `<span style="color:#e56111;margin-left:5px;">🍊 ${record.etsy_receipt_id}</span>`;
+        if (record.etsy_receipt_id || record.etsy_receipt_id_saved) {
+          result += `<span style="color:#e56111;margin-left:5px;">🍊 ${record.etsy_receipt_id || record.etsy_receipt_id_saved}</span>`;
         }
         result += `<span class="datetime small" style="margin-left:5px;">${record.created_shopify_order}</span>`;
         if (record.items) result += `${renderItems(record.items, record.options)}<br style="clear:both">`;
