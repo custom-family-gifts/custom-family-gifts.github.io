@@ -770,7 +770,11 @@ function renderLinks(order) {
   // service view
   var atLinkUrl = `https://airtable.com/appa8QniOsPWSRDEF/tblBu8Y9Hvjwiz2Mm/viwEtrRRKxWAhjgLM/${order.at_record_id}?blocks=hide`;
   if (order.etsy_link && order.etsy_link.length) atLinkUrl = `https://airtable.com/appa8QniOsPWSRDEF/tblBu8Y9Hvjwiz2Mm/viwdXoP1FZhFXT0q0/${order.at_record_id}?blocks=hide`;
-  if (order.pipeline.toLowerCase() == 'delivered') atLinkUrl = `https://airtable.com/appa8QniOsPWSRDEF/tblBu8Y9Hvjwiz2Mm/viwaLSolT6dAYWC7f/${order.at_record_id}?blocks=hide`
+  if (order.pipeline.toLowerCase() == 'delivered') atLinkUrl = `https://airtable.com/appa8QniOsPWSRDEF/tblBu8Y9Hvjwiz2Mm/viwaLSolT6dAYWC7f/${order.at_record_id}?blocks=hide`;
+
+  if (order.etsy_receipt_id_saved) {
+    order.etsy_link = [`https://www.etsy.com/your/orders/sold?ref=seller-platform-mcnav&order_id=${order.etsy_receipt_id_saved}`];
+  }
 
   var result = `
     <style>

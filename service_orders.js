@@ -165,6 +165,7 @@ Render.results = (data) => {
     etsy_link: { hide: true },
     print_note: { hide: true },
     options: { hide: true },
+    etsy_receipt_id_saved: { hide: true },
     'Internal - newest on top please': { hide: true },
     orderId_raw: {
       label: 'order',
