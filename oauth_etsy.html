@@ -27,7 +27,7 @@
         https://tonyxu-io.github.io/pkce-generator/
         verifier (43 chars) = vvkdljkejllufrvbhgeiegrnvufrhvrffnkvcknjvcfg
 
-        1. generate the code challenge by going to https://tonyxu-io.github.io/pkce-generator/
+        1. generate the code challenge by going to https://tonyxu-io.github.io/pkce-generator/ YtdMrV3xb3i8EDmaMe6PP-uQXEKknZ1suB8SDXNqm7g
         2. enter client_id & code_challenge into url params and reload the page.
         3. click auth
         4. take the resulting "code" and verifier above to postman to get a refresh token
@@ -43,7 +43,7 @@
 
       var code = urlParams.code;
       if (code) {
-        $('body').append(`<textarea value="${code}">${code}</textarea>`);
+        $('body').append(`code: <textarea value="${code}">${code}</textarea>take this code and plug into POSTMAN get refresh token`);
       }
 
       $('#oauthlink').attr('href', oauth_get_url);
