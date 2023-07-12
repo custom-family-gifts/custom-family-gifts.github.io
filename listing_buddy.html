@@ -19,6 +19,7 @@
       textarea {
         margin-left: 3px;
         margin-top: 2px;
+        width: 550px;
       }
       .item {
         display: inline-block;
@@ -73,34 +74,34 @@
     <br />
 
     <div style="display:inline-block; width: 66%;">
-      <h5>💖 desired terms<p>comma separated - ignore lines with **</p></h5>
+      <h5>💖 Desired Terms<p>comma separated - ignore lines with **</p></h5>
       <textarea id="desired" style="height:200px;">
         gift for him, gift for husband, anniversary gift for husband,
         wall art, wedding gift, gift for couple,
       </textarea>
 
-      <h5>☝ Title<p id="titleInfo"></p></h5>
+      <h5>☝ Title <p>1st 40 letters readable under search result thumbnail</p><p id="titleInfo"></p></h5>
       <textarea id="title" placeholder="" maxlength="140"></textarea>
 
-      <h5>⚾ Category, Occasion, Holiday, etc</h5>
+      <h5>⚾ Category, Occasion, Holiday, etc <p>copy paste from listing after category is chosen</p></h5>
       <textarea id="category" placeholder="comma separated" maxlength="140"></textarea>
       <div id="categoryTags">
       </div>
 
       <h5>🏅 Tags</h5>
-      <input class="tag" id="tag1" placeholder="tag 1" maxlength="20" size="20" />
-      <input class="tag" id="tag2" placeholder="tag 2" maxlength="20" size="20"  />
-      <input class="tag" id="tag3" placeholder="tag 3" maxlength="20" size="20"  />
-      <input class="tag" id="tag4" placeholder="tag 4" maxlength="20" size="20"  />
-      <input class="tag" id="tag5" placeholder="tag 5" maxlength="20" size="20"  />
-      <input class="tag" id="tag6" placeholder="tag 6" maxlength="20" size="20"  />
-      <input class="tag" id="tag7" placeholder="tag 7" maxlength="20" size="20"  />
-      <input class="tag" id="tag8" placeholder="tag 8" maxlength="20" size="20"  />
-      <input class="tag" id="tag9" placeholder="tag 9" maxlength="20" size="20"  />
-      <input class="tag" id="tag10" placeholder="tag 10" maxlength="20" size="20"  />
-      <input class="tag" id="tag11" placeholder="tag 11" maxlength="20" size="20"  />
-      <input class="tag" id="tag12" placeholder="tag 12" maxlength="20" size="20"  />
-      <input class="tag" id="tag13" placeholder="tag 13" maxlength="20" size="20"  />
+      <input class="tag" id="tag1" placeholder="tag 1 DUPE FROM TITLE" maxlength="20" size="20" />
+      <input class="tag" id="tag2" placeholder="tag 2 DUPE FROM TITLE" maxlength="20" size="20"  />
+      <input class="tag" id="tag3" placeholder="tag 3 OCCASION" maxlength="20" size="20"  />
+      <input class="tag" id="tag4" placeholder="tag 4 WHO FOR" maxlength="20" size="20"  />
+      <input class="tag" id="tag5" placeholder="tag 5 WHO FOR" maxlength="20" size="20"  />
+      <input class="tag" id="tag6" placeholder="tag 6 NUMBERS" maxlength="20" size="20"  />
+      <input class="tag" id="tag7" placeholder="tag 7 NUMBERS" maxlength="20" size="20"  />
+      <input class="tag" id="tag8" placeholder="tag 8 MISC" maxlength="20" size="20"  />
+      <input class="tag" id="tag9" placeholder="tag 9 MISC" maxlength="20" size="20"  />
+      <input class="tag" id="tag10" placeholder="tag 10 MISC" maxlength="20" size="20"  />
+      <input class="tag" id="tag11" placeholder="tag 11 B TIER" maxlength="20" size="20"  />
+      <input class="tag" id="tag12" placeholder="tag 12 B TIER" maxlength="20" size="20"  />
+      <input class="tag" id="tag13" placeholder="tag 13 B TIER" maxlength="20" size="20"  />
     </div>
 
     <div style="display:inline-block;width: 33%;vertical-align:top;">
@@ -138,9 +139,9 @@
       */
 
       var commonWords = {
-        a: true, an: true, the: true, be: true, we: true, is: true, are: true,
+        a: true, an: true, the: true, be: true, is: true, are: true,
         at: true, to: true , or: true,
-        them: true, us: true, you: true, me: true, i: true,
+        them: true, us: true, me: true,
         of: true, have: true, in: true, that: true,
         on: true, as: true, by: true
         // for: true, from: true,
@@ -155,7 +156,8 @@
       };
 
       // sets the default savespace
-      var default_save = '{"title":"Personalized Photo wedding gift couple for 3rd , 4-8 locations personalised travel Admiration Map Print idea for boyfriend or parents 6th 10","desired":"wall art, wedding gift\\ngift for couple, mountain wall art,\\nmap print,\\nanniversary gift for him \\n**gift for who?**\\nhim, her, husband, hubby, mom, dad, parents, gay\\n**single words**\\ntravel, personalized, personalised\\n**years**\\n1st, 2nd, 3rd, 4th, 5th, 6th, 7th, 8th, 9th, 10th, 15th, 20th, 30th, 40th, 50th,\\n1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 20, \\ncotton, paper, iron, bronze, wooden\\nyear, yr\\n**common search terms based on data**\\ngift, anniversary, for, year, him, her, husband, map, wedding, boyfriend, art, wall, couple, mountain,\\nfirst, 10, print,\\none, cotton","category":"Art & Collectibles, Prints, Giclée, Home & Living, Home Decor, Wall Decor, Wall Hangings","tags":["1st anniversary mom","wedding gift couple","personalized photo","first milestone dad","custom mountain map","travel poster 10th 5","2nd 3rd 5th 8th 15th","20th 30th 40th 50th","wooden iron one year","paper cotton bronze","husband wife her gay","for him 4th 1 2 3 yr","personalised silver"],"categories":["art & collectibles","prints","giclée","home & living","home decor","wall decor","wall hangings"]}';
+      // var default_save = '{"title":"Personalized Photo wedding gift couple for 3rd , 4-8 locations personalised travel Admiration Map Print idea for boyfriend or parents 6th 10","desired":"wall art, wedding gift\\ngift for couple, mountain wall art,\\nmap print,\\nanniversary gift for him \\n**gift for who?**\\nhim, her, husband, hubby, mom, dad, parents, gay\\n**single words**\\ntravel, personalized, personalised\\n**years**\\n1st, 2nd, 3rd, 4th, 5th, 6th, 7th, 8th, 9th, 10th, 15th, 20th, 30th, 40th, 50th,\\n1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 20, \\ncotton, paper, iron, bronze, wooden\\nyear, yr\\n**common search terms based on data**\\ngift, anniversary, for, year, him, her, husband, map, wedding, boyfriend, art, wall, couple, mountain,\\nfirst, 10, print,\\none, cotton","category":"Art & Collectibles, Prints, Giclée, Home & Living, Home Decor, Wall Decor, Wall Hangings","tags":["1st anniversary mom","wedding gift couple","personalized photo","first milestone dad","custom mountain map","travel poster 10th 5","2nd 3rd 5th 8th 15th","20th 30th 40th 50th","wooden iron one year","paper cotton bronze","husband wife her gay","for him 4th 1 2 3 yr","personalised silver"],"categories":["art & collectibles","prints","giclée","home & living","home decor","wall decor","wall hangings"]}';
+      var default_save = `{"title":"Personalize travel map gift for husband, birthday, housewarming. Parent, anniversary, boyfriend, mom weve lived together. 10th 15th 25th two","desired":"**instructions**\\n**1. use \\"must have\\", \\"custom\\", \\"occasion\\" words to build title. fill with other words\\n**2. have a good mix of \\"who\\", \\"years\\", & \\"misc\\"\\n**3. have a good mix of a tier (high competition, high value) & b tier (low competition, mid value)\\n**4. can insert a few of own words\\n**5. try to avoid overlap with alt keyword listing (except for must have)\\n\\n**👍must have every listing**\\ntravel, map, gift, art, frame, print, gift, for\\n\\n**👍custom: must have 1-3**\\n**a tier**\\npersonalize, personalise, custom\\n**b tier**\\ncustomizable\\n\\n**👍occasion: must have 1-2**\\nanniversary, wedding, birthday, day, lived\\nb tier**\\nhousewarming\\n\\n**👍gift for who?**\\n**a tier**\\nparent, family, husband, boyfriend, friend, mom, dad, weve, together, father, with, military, we, i\\n**b tier**\\nwife\\n\\n**👍numbers & years**\\n**a tier\\none, two, four, first, year\\n1st, 2nd, 3rd, 4th, 8th, 9th, 10th, 15th, 20th, 25th, 30th\\n1, 2, 3, 4, 5, 10, 20, 25, 30, 40\\n** b tier\\nsecond, third, three, yr\\n5th, 6th, 7th\\n6, 8, 11, 12, 13, 15, 50\\n\\n**👍misc\\n**a tier**\\nheart, journey, milestone, wanderlust, picture, artwork,\\ncotton, paper\\nnew, where, met, been, away, state, unique, special, ship, canada, welcome\\n**b tier has potential**\\nhochzeitstag, geschenk, jahrestag\\nsister, neighbor,\\nquote, lake, idea, sign, download, dorm\\nphoto, road, destination, began, story","category":"Art & Collectibles, Prints, Giclée, Home & Living, Home Decor, Wall Decor, Wall Hangings","tags":["personalize travel","map gift for husband","housewarming day 9th","parent wife military","personalise custom","1st 2nd 3rd 1 2 3","second third first","ship canada welcome","where met been new","cotton paper heart","sister neighbor year","idea destination we","quote began story"],"categories":["art & collectibles","prints","giclée","home & living","home decor","wall decor","wall hangings"]}`;
       localStorage.setItem('default_save', default_save);
 
       function importListingData() {
