@@ -106,23 +106,13 @@ const Render = {
     var isLocal = !location.host.includes('smile.customfamilygifts.com');
     var buttons = '';
     navDef.forEach(nav => {
-      var current = '';
+      var currentBar = '';
+      if (isLocal) nav.target.replace('.html','');
+
       if (nav.target.includes('/')) {
-        var pathSplit = location.pathname.split('/');
-        if (nav.target.split('/')[1].includes(pathSplit[pathSplit.length-1])) {
-          current = '<div class="currentBar"></div>';
-        }
-        // if (pathSplit[pathSplit.length-1].includes(nav.target.split('/')[1])) {
-        //   current = '<div class="currentBar"></div>';
-        // }
-        var target = nav.target;
-        if (pathSplit.length > 2) { // local development, the paths have full filepath, vs onlien it'll be simply /error
-          pathSplit.pop();
-          target = pathSplit.join('/') + nav.target;
-          if (!isLocal) target.replace('.html','');
-        }
+        if (location.href.includes(nav.target)) currentBar = '<div class="currentBar"></div>';
       }
-      buttons += `<a href="${target}" class="button">${current}${nav.label}</a>`;
+      buttons += `<a href="..${nav.target}" class="button">${currentBar}${nav.label}</a>`;
     });
     var result = `
       <div id="navBG"></div>
