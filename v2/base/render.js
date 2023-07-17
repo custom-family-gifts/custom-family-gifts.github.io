@@ -107,7 +107,7 @@ const Render = {
     var buttons = '';
     navDef.forEach(nav => {
       var currentBar = '';
-      if (isLocal) nav.target.replace('.html','');
+      if (!isLocal) nav.target.replace('.html','');
 
       if (nav.target.includes('/')) {
         if (location.href.includes(nav.target)) currentBar = '<div class="currentBar"></div>';
