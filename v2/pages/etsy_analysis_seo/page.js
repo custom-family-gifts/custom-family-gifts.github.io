@@ -62,7 +62,6 @@ Render.main = async () => {
 };
 
 Render.filter = (data) => {
-
   var result = `
     <div class="row">
       <div class="card small">
@@ -120,7 +119,7 @@ Render.filter = (data) => {
       </div>
 
       <div class="card small" style="width:100px">
-      <strong>ignore</strong>
+        <strong>ignore</strong>
         <select param name="ignore">
           <option value="">--</option>
           <option value="1" ${(data.params.ignore == '1') ? 'selected' : '' }>YES</option>

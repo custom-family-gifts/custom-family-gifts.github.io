@@ -30,8 +30,8 @@ Render.thead = (mdbData, definition = {}, data) => { // default to hiding those 
     columnDefs.order.forEach((column) => {
       var columnDef = columnDefs.columns[column];
       if (!columnDef.hide) {
-        var style = '';
-        if (columnDef.width) style = ` style="max-width:${columnDef.width}" `;
+        var style = columnDef.style || '';
+        if (columnDef.width) style += `;max-width:${columnDef.width};`;
 
         var currentSort = (mdbData.sort[column] != undefined) ? true : false;
         var changeToOrder = -1;
@@ -52,7 +52,7 @@ Render.thead = (mdbData, definition = {}, data) => { // default to hiding those 
           }
         } else {
           headers += `
-            <th${style} class="${columnDef.thClass || ''}">
+            <th style="${style}" class="${columnDef.thClass || ''}">
               <a href="javascript:void(0)" onclick="API.setSort('${column}', ${changeToOrder});">
                 ${columnDef.label || column}${sortIcon}
               </a>
@@ -139,13 +139,19 @@ Render.td = (value, columnDef, record) => {
     formattedValue = value;
     displayValue = value;
   }
-  var style = '';
+  var style = columnDef.style || '';
   if (columnDef.width) style = `max-width:${columnDef.width};`;
   if (columnDef.height) style += `max-height:${columnDef.height};overflow-y:auto;";`
   if (style != '') style = ' style="' + style + '" ';
   formattedValue = sanitizeCodeDisplay(formattedValue);
-  // displayValue = sanitizeCodeDisplay(displayValue);
-  return `<td class="${columnDef.class}" ${style} title="${(typeof value == 'string') ?value.replace(/\"/g,"'") : value}" data-label="${columnDef.displayLabel}">${displayValue}</td>`;
+  
+  var title = (typeof value == 'string') ?value.replace(/\"/g,"'") : value;
+  if (columnDef.title) {
+    if (typeof columnDef.title == 'string' || typeof columnDef.title == 'number') title = columnDef.title;
+    if (typeof columnDef.title == 'function') title = columnDef.title(value, record);
+  }
+
+  return `<td class="${columnDef.class}" ${style} title="${title}" data-label="${columnDef.displayLabel}">${displayValue}</td>`;
 };
 
 Render.paginate = (data) => {

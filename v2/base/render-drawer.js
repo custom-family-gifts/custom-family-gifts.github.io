@@ -143,14 +143,14 @@ var Drawer = {
           #drawerContents > *:last-child {
             margin-bottom: 60px;
           }
-          #drawerContents .card {
+          #drawerContents .card, #drawerOverview .card {
             padding: 4px 8px;
             width: 90%;
             display: inline-block;
             margin: 7px 0px 0px 7px;
             vertical-align: top;
           }
-          #drawerContents .card-title {
+          #drawerContents .card-title, #drawerOverview .card-title {
             font-weight: 600;
             color: #666;
             text-transform: uppercase;

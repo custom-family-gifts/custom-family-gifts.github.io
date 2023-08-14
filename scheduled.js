@@ -115,7 +115,23 @@ Render.results = (data) => {
     gcf_execute_params: { hide: true },
     delete: { hide: true },
     created: { hide: true },
-    modified: { hide: true }
+    modified: { hide: true },
+    last_attempt: { hide: true },
+    last_success2: { hide: true },
+    last_success3: { hide: true },
+    last_success4: { hide: true },
+    last_success5: { hide: true },
+    last_success: {
+      display: (value, record) => {
+        var html = '';
+        if (record.last_success) html += `<span class="datetime" style="padding: 0px 4px;">${record.last_success}</span>`;
+        if (record.last_success2) html += `<span class="datetime" style="padding: 0px 4px;">${record.last_success2}</span>`;
+        if (record.last_success3) html += `<span class="datetime" style="padding: 0px 4px;">${record.last_success3}</span>`;
+        if (record.last_success4) html += `<span class="datetime" style="padding: 0px 4px;">${record.last_success4}</span>`;
+        if (record.last_success5) html += `<span class="datetime" style="padding: 0px 4px;">${record.last_success5}</span>`;
+        return html;
+      }
+    }
   };
 
   var result = Render.table(data, columnDefs);
