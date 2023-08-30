@@ -107,7 +107,7 @@ Drawer.init({
               { name: 'shipAddStreet1', label: 'Street 1', required: true },
               { name: 'shipAddStreet2', label: 'Street 2' },
               { name: 'shipAddCity', label: 'City', required: true },
-              { name: 'shipAddState', label: 'State'},
+              { name: 'shipAddState', label: 'State', instructions: '2 Letter Abbrev' },
               { name: 'shipAddZip', label: 'Postal Code' },
               { name: 'shipAddCountry', label: 'Country', reqiored: true, options: ['United States','Canada','Australia','United Kingdom','Germany','France','Ireland','Philippines'] }
             ], data);

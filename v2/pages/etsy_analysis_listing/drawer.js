@@ -260,11 +260,11 @@ function renderWeeklyRow(weeksArr, maxes) {
 
         <div style="height: ${((week.revenue/maxes.max_revenue)*80)}%;; left:50%; background-color:#48b848" class="rowWeekBar">
         </div>
-        <div class="rowWeekText" style="left:50%">${shortNumber(week.visits)}</div>
+        <div class="rowWeekText" style="left:50%">${shortNumber(week.revenue)}</div>
 
         <div style="height: ${((week.clickthru/maxes.max_clickthru)*60)}%;; left:75%; background-color:#ed9900" class="rowWeekBar">
         </div>
-        <div class="rowWeekText" style="left:75%">${shortNumber(week.visits)}</div>
+        <div class="rowWeekText" style="left:75%">${(week.clickthru*100).toFixed(2)}%</div>
 
         <div class="rowWeekLabel">${week.week.substring(4,6)}-${week.week.substring(6,8)}</div>
       </div>
