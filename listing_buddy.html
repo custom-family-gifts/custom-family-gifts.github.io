@@ -93,7 +93,7 @@
       </textarea>
 
       <h5>❌ Exclude Terms<p>comma or space separated</p></h5>
-      <textarea id="undesired" style="height:70px;">terms from, competing, listing</textarea>
+      <textarea id="undesired" style="height:70px;">terms from, competing, listing, lake</textarea>
 
       <h5>☝ Title <p>1st 40 letters readable under search result thumbnail</p><p id="titleInfo"></p></h5>
       <textarea id="title" placeholder="" maxlength="140"></textarea>
@@ -277,10 +277,12 @@ var r={search_terms:{}},p=1;function sc(){r.listingId=window.location.pathname.s
       $(function() {
         data = {};
         var $desired = $('#desired');
+        var $undesired = $('#undesired');
         var $title = $('#title');
         var $category = $('#category');
         var $tags = $('.tag');
         $desired.keyup(function() { refresh(); });
+        $undesired.keyup(function() { refresh(); });
         $title.keyup(function() { refresh(); });
         $tags.keyup(function(el) { refresh(); });
         $category.keyup(function(el) { refresh(); });
@@ -454,11 +456,23 @@ var r={search_terms:{}},p=1;function sc(){r.listingId=window.location.pathname.s
           $('#titleInfo').text(`${data.title.length}/140`);
         }
 
-        function displayDesired(desired, desiredObj, seo, seoObj) {
+        function displayDesired(desired, desiredObj, seo, seoObj, excluded) {
+          // sort excluded into unique words
+          var excludedWords = {};
+          excluded.forEach(word => {
+            word.split(' ').forEach(wordb => {
+              excludedWords[wordb.trim().toLowerCase()] = true;
+            });
+          });
+          console.log('excludedWords', excludedWords);
+
           var $desired = $('#desiredResult');
           var matchCount = 0;
           $desired.html('');
           desired.forEach(desire => {
+            // don't show excluded words
+            if (excludedWords[desire]) return;
+
             var $desire = $(`<p class="item"></p>`);
             if (desiredObj[desire].full_match) {
               matchCount++;
@@ -736,10 +750,10 @@ var r={search_terms:{}},p=1;function sc(){r.listingId=window.location.pathname.s
             }
           }
 
-
-          displayDesired(desired, desiredObj, seo, seoObj);
-
           var excluded = parseExcluded();
+
+          displayDesired(desired, desiredObj, seo, seoObj, excluded);
+
           console.log('seo', seo);
           console.log('seoObj', seoObj);
           console.log('excluded', excluded);
