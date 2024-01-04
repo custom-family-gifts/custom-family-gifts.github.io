@@ -50,6 +50,18 @@
         font-weight: bold;
         background-color: #e4ffe4;
       }
+      .item.full_mismatch {
+        color: #e23131;
+        border-color: #710000;
+        font-weight: bold;
+        background-color: #ff8080;
+      }
+      .item.partial_mismatch {
+        color: #ff8217;
+        border-color: #b15200;
+        font-weight: bold;
+        background-color: #ffc7a1;
+      }
       .item.partial_match {
         border-color: #4ca24c;
         background-color: #d3e8d3;
@@ -79,6 +91,9 @@
         gift for him, gift for husband, anniversary gift for husband,
         wall art, wedding gift, gift for couple,
       </textarea>
+
+      <h5>❌ Exclude Terms<p>comma or space separated</p></h5>
+      <textarea id="undesired" style="height:70px;">terms from, competing, listing</textarea>
 
       <h5>☝ Title <p>1st 40 letters readable under search result thumbnail</p><p id="titleInfo"></p></h5>
       <textarea id="title" placeholder="" maxlength="140"></textarea>
@@ -111,6 +126,9 @@
 
       <h5>💗 Desired Terms<p id="desiredTermsDetail"></p></h5>
       <div id="desiredResult"></div>
+
+      <h5>❌ Excluded Terms<p id="undesiredTermsDetail"></p></h5>
+      <div id="undesiredResult"></div>
     </div>
 
     <br />
@@ -411,6 +429,26 @@ var r={search_terms:{}},p=1;function sc(){r.listingId=window.location.pathname.s
           return search_terms;
         }
 
+        function parseExcluded() {
+          var str = $('#undesired').val();
+          var strings = str.split('\n');
+          // filter out ** lines
+          strings = strings.filter(item => {
+            return !item.includes('*');
+          });
+          var search_terms = [];
+          strings.forEach((string) => {
+            string.split(',').forEach(word => {
+              search_terms.push(word.trim())
+            });
+          });
+          search_terms = search_terms.filter((term) => {
+            return term != '';
+          });
+
+          return search_terms;
+        }
+
         function displayTitleInfo() {
           var data = getData();
           $('#titleInfo').text(`${data.title.length}/140`);
@@ -475,7 +513,7 @@ var r={search_terms:{}},p=1;function sc(){r.listingId=window.location.pathname.s
             }
           });
 
-          $desired.append('<h5>Desired?<p>found in SEO but not above</p></h5>');
+          $desired.append('<h5>❓Desired?<p>found in SEO but not in Desired (above)</p></h5>');
           undesired.forEach(u => {
             $desired.append(`<p class="item">${u}</p>`);
           });
@@ -633,7 +671,7 @@ var r={search_terms:{}},p=1;function sc(){r.listingId=window.location.pathname.s
           var title45 = getTitle45(data.title).replace(/-/g,' ').replace(/™/g,'').replace(/\./g,'').replace(/\,/g,'');
           var title45Partials = getPartials(title45);
           var titlePartials = getPartials(data.title.replace(/\-/g,' ').replace(/™/g,'').replace(/\./g,'').replace(/\,/g,''));
-          console.log(titlePartials);
+          // console.log(titlePartials);
           title45Partials.forEach(partial => {
             if (!seoObj[partial]) {
               seoObj[partial] = { term: partial, order: seo.length, isTitle: true, isTitle45: true };
@@ -697,7 +735,15 @@ var r={search_terms:{}},p=1;function sc(){r.listingId=window.location.pathname.s
               }
             }
           }
+
+
           displayDesired(desired, desiredObj, seo, seoObj);
+
+          var excluded = parseExcluded();
+          console.log('seo', seo);
+          console.log('seoObj', seoObj);
+          console.log('excluded', excluded);
+          displayExcluded(seoObj, excluded);
 
           // sort seo by power rankings
           seo = seo.map((s) => {
@@ -714,10 +760,59 @@ var r={search_terms:{}},p=1;function sc(){r.listingId=window.location.pathname.s
             return seoObj[b].score - seoObj[a].score;
           });
           displaySEO(seo, seoObj);
-          seo.forEach(s => {
-          });
         }
       });
+
+      function displayExcluded(seoObj, excluded) {
+        var $undesiredResult = $('#undesiredResult');
+        $undesiredResult.html('');
+        var $undesiredDetail = $('#undesiredTermsDetail');
+        $undesiredDetail.html('');
+        var excludedCount = 0;
+        var partialExcludedCount = 0;
+        for (var i = 0; i < excluded.length; i++) {
+          var excludeSplit = excluded[i].split(' ');
+          excludeSplit.forEach(word => {
+            word = word.toLowerCase();
+            var score = testExcludedWord(word, seoObj);
+            var $item = $(`<p class="item undesired">${word}</p>`);
+            if (score > 0 && score < 1000) {
+              partialExcludedCount++;
+              $item.addClass('partial_mismatch').attr('title', 'partial excluded term detected');
+            }
+            if (score >= 1000) {
+              $item.addClass('full_mismatch').attr('title', 'excluded term found');
+              excludedCount++;
+            }
+            $undesiredResult.append($item);
+          });
+        }
+        var message = '';
+        if (excludedCount) message += `${excludedCount} excluded term(s) detected. `;
+        if (partialExcludedCount) {
+          message += `${partialExcludedCount} excluded term(s) partially present.`;
+        }
+        if (message) {
+          $undesiredDetail.text(message);
+        }
+      }
+
+      function testExcludedWord(word, seoObj) {
+        // > 0 = partial > 1000 = full match
+        var score = 0;
+        for (var key in seoObj) {
+          var keyLC = key.toLowerCase();
+          if (keyLC == word) {
+            score = 1000;
+          } else if (keyLC.length > 2 && word.length > 2) {
+            // only respect partials if both words are 3 letter or longer
+            if (keyLC.indexOf(word) > -1 || word.indexOf(keyLC) > -1) {
+              score += 1;
+            }
+          }
+        }
+        return score;
+      }
 
       function displaySEO(seo, seoObj) {
         var $seoResult = $('#seoResult');
