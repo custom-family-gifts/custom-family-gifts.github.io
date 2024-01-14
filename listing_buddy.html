@@ -78,6 +78,16 @@
         font-size: 0.6em;
         margin: 2px;
       }
+      a.a-special {
+        font-size: 25px !important;
+        margin: 5px;
+        opacity: 0.6;
+        cursor: pointer;
+      }
+      a.a-special:hover {
+        opacity: 1;
+        text-decoration: none;
+      }
     </style>
   </head>
   <body>
@@ -86,13 +96,13 @@
     <br />
 
     <div style="display:inline-block; width: 66%;">
-      <h5>💖 Desired Terms<p>comma separated - ignore lines with **</p></h5>
+      <h5>💖 Desired Terms<p>space separated - ignore lines with **</p></h5>
       <textarea id="desired" style="height:200px;">
         gift for him, gift for husband, anniversary gift for husband,
         wall art, wedding gift, gift for couple,
       </textarea>
 
-      <h5>❌ Exclude Terms<p>comma or space separated</p></h5>
+      <h5>❌ Exclude Terms<p>space separated</p></h5>
       <textarea id="undesired" style="height:70px;">terms from, competing, listing, lake</textarea>
 
       <h5>☝ Title <p>1st 40 letters readable under search result thumbnail</p><p id="titleInfo"></p></h5>
@@ -103,7 +113,10 @@
       <div id="categoryTags">
       </div>
 
-      <h5>🏅 Tags</h5>
+      <h5>🏅 Tags
+        <a id="tagsExport" class="a-special" title="export to clipboard">📤</a>
+        <a id="tagsImport" class="a-special" title="import">📥</a>
+      </h5> 
       <input class="tag" id="tag1" placeholder="tag 1 DUPE FROM TITLE" maxlength="20" size="20" />
       <input class="tag" id="tag2" placeholder="tag 2 DUPE FROM TITLE" maxlength="20" size="20"  />
       <input class="tag" id="tag3" placeholder="tag 3 OCCASION" maxlength="20" size="20"  />
@@ -174,6 +187,7 @@
       };
 
       // sets the default savespace
+      // newlyweds met meaningful sentimental law bestie bff inlaw law
       // var default_save = '{"title":"Personalized Photo wedding gift couple for 3rd , 4-8 locations personalised travel Admiration Map Print idea for boyfriend or parents 6th 10","desired":"wall art, wedding gift\\ngift for couple, mountain wall art,\\nmap print,\\nanniversary gift for him \\n**gift for who?**\\nhim, her, husband, hubby, mom, dad, parents, gay\\n**single words**\\ntravel, personalized, personalised\\n**years**\\n1st, 2nd, 3rd, 4th, 5th, 6th, 7th, 8th, 9th, 10th, 15th, 20th, 30th, 40th, 50th,\\n1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 20, \\ncotton, paper, iron, bronze, wooden\\nyear, yr\\n**common search terms based on data**\\ngift, anniversary, for, year, him, her, husband, map, wedding, boyfriend, art, wall, couple, mountain,\\nfirst, 10, print,\\none, cotton","category":"Art & Collectibles, Prints, Giclée, Home & Living, Home Decor, Wall Decor, Wall Hangings","tags":["1st anniversary mom","wedding gift couple","personalized photo","first milestone dad","custom mountain map","travel poster 10th 5","2nd 3rd 5th 8th 15th","20th 30th 40th 50th","wooden iron one year","paper cotton bronze","husband wife her gay","for him 4th 1 2 3 yr","personalised silver"],"categories":["art & collectibles","prints","giclée","home & living","home decor","wall decor","wall hangings"]}';
       var default_save = `{"title":"Personalize travel map gift for husband, birthday, housewarming. Parent, anniversary, boyfriend, mom weve lived together. 10th 15th 25th two","desired":"**instructions**\\n**1. use \\"must have\\", \\"custom\\", \\"occasion\\" words to build title. fill with other words\\n**2. have a good mix of \\"who\\", \\"years\\", & \\"misc\\"\\n**3. have a good mix of a tier (high competition, high value) & b tier (low competition, mid value)\\n**4. can insert a few of own words\\n**5. try to avoid overlap with alt keyword listing (except for must have)\\n\\n**👍must have every listing**\\ntravel, map, gift, art, frame, print, gift, for\\n\\n**👍custom: must have 1-3**\\n**a tier**\\npersonalize, personalise, custom\\n**b tier**\\ncustomizable\\n\\n**👍occasion: must have 1-2**\\nanniversary, wedding, birthday, day, lived\\nb tier**\\nhousewarming\\n\\n**👍gift for who?**\\n**a tier**\\nparent, family, husband, boyfriend, friend, mom, dad, weve, together, father, with, military, we, i\\n**b tier**\\nwife\\n\\n**👍numbers & years**\\n**a tier\\none, two, four, first, year\\n1st, 2nd, 3rd, 4th, 8th, 9th, 10th, 15th, 20th, 25th, 30th\\n1, 2, 3, 4, 5, 10, 20, 25, 30, 40\\n** b tier\\nsecond, third, three, yr\\n5th, 6th, 7th\\n6, 8, 11, 12, 13, 15, 50\\n\\n**👍misc\\n**a tier**\\nheart, journey, milestone, wanderlust, picture, artwork,\\ncotton, paper\\nnew, where, met, been, away, state, unique, special, ship, canada, welcome\\n**b tier has potential**\\nhochzeitstag, geschenk, jahrestag\\nsister, neighbor,\\nquote, lake, idea, sign, download, dorm\\nphoto, road, destination, began, story","category":"Art & Collectibles, Prints, Giclée, Home & Living, Home Decor, Wall Decor, Wall Hangings","tags":["personalize travel","map gift for husband","housewarming day 9th","parent wife military","personalise custom","1st 2nd 3rd 1 2 3","second third first","ship canada welcome","where met been new","cotton paper heart","sister neighbor year","idea destination we","quote began story"],"categories":["art & collectibles","prints","giclée","home & living","home decor","wall decor","wall hangings"]}`;
       localStorage.setItem('default_save', default_save);
@@ -301,6 +315,13 @@ var r={search_terms:{}},p=1;function sc(){r.listingId=window.location.pathname.s
         refresh = _.throttle(_refresh, 1500);
 
         $('#clearData').on('click',function() {
+          var savespace = getSaveSpace();
+          console.log(savespace);
+          if (savespace != 'default') {
+            var conf = confirm(`This will clear out saved [${savespace}] space. Proceed?`);
+            if (!conf) return false;
+          }
+          $undesired.val('');
           $desired.val('');
           $title.val('');
           $category.val('');
@@ -310,8 +331,19 @@ var r={search_terms:{}},p=1;function sc(){r.listingId=window.location.pathname.s
           refresh();
         });
 
+        $('#tagsExport').on('click', function() {
+          exportTags();
+        });
+        $('#tagsImport').on('click', function() {
+          importTags();
+        });
+
         loadData();
         loadSaveSpaces();
+
+        function getSaveSpace() {
+          return localStorage.getItem('save_space') || 'default';
+        }
 
         function loadData() {
           // load page
@@ -322,6 +354,7 @@ var r={search_terms:{}},p=1;function sc(){r.listingId=window.location.pathname.s
           saved = JSON.parse(saved);
           if (Object.keys(saved).length > 0) {
             $desired.val(saved.desired);
+            $undesired.val(saved.undesired);
             $title.val(saved.title);
             $category.val(saved.category);
             for (var i = 0; i < 13; i++) {
@@ -329,6 +362,41 @@ var r={search_terms:{}},p=1;function sc(){r.listingId=window.location.pathname.s
             }
           }
           refresh();
+        }
+
+        async function exportTags() {
+          var tagText = '';
+          for (var i = 0; i < 13; i++) {
+            if (tagText.length > 0) tagText += '\n';
+            var tagValue = $(`#tag${i+1}`).val();
+            if (!tagValue) tagValue = '??';
+            tagText += tagValue;
+          }
+          console.log(tagText);
+          await navigator.clipboard.writeText(tagText);
+          alert('COPIED TO CLIPBOARD CTRL V to PASTE:\n'+tagText);
+        }
+
+        function importTags() {
+          var values = prompt('Enter Tags, 13 separate lines');
+          var split = values.split('\n');
+          console.log(split.length, values);
+          if (split.length != 13) {
+            alert('💥Did not get 13 tags, got '+split.length);
+            throw new Error('wrong count of tags');
+          }
+          var tags = [];
+          for (var i = 0; i < split.length; i++){
+            var tag = split[i].replace('\r','').replace('\n','');
+            if (tag.length > 20) {
+              alert(`💥tag ${i+1} "${tag}" is over 20 chars in length (${tag.length})`);
+              throw new Error('tag too long');
+            }
+            tags.push(tag);
+          }
+          for (var i = 0; i < tags.length; i++) {
+            $(`#tag${i+1}`).val(tags[i]);
+          }
         }
 
         function loadSaveSpaces() {
@@ -385,6 +453,7 @@ var r={search_terms:{}},p=1;function sc(){r.listingId=window.location.pathname.s
           data = {
             title: $title.val().trim(),
             desired: $desired.val().toLowerCase().trim(),
+            undesired: $undesired.val().toLowerCase().trim(),
             category: $category.val().trim(),
             tags: []
           };
@@ -420,8 +489,8 @@ var r={search_terms:{}},p=1;function sc(){r.listingId=window.location.pathname.s
           });
           var search_terms = [];
           strings.forEach((string) => {
-            string.split(',').forEach(word => {
-              search_terms.push(word.trim())
+            string.replace(/,/g, ' ').split(' ').forEach(word => {
+              search_terms.push(word.toLowerCase().trim())
             });
           });
           search_terms = search_terms.filter((term) => {
