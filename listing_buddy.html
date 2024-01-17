@@ -379,6 +379,7 @@ var r={search_terms:{}},p=1;function sc(){r.listingId=window.location.pathname.s
 
         function importTags() {
           var values = prompt('Enter Tags, 13 separate lines');
+          values = values.replace(/\"/g, '').trim();
           var split = values.split('\n');
           console.log(split.length, values);
           if (split.length != 13) {
@@ -387,7 +388,7 @@ var r={search_terms:{}},p=1;function sc(){r.listingId=window.location.pathname.s
           }
           var tags = [];
           for (var i = 0; i < split.length; i++){
-            var tag = split[i].replace('\r','').replace('\n','');
+            var tag = split[i].replace('\r','').replace('\n','').trim();
             if (tag.length > 20) {
               alert(`💥tag ${i+1} "${tag}" is over 20 chars in length (${tag.length})`);
               throw new Error('tag too long');
