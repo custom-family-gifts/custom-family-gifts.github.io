@@ -454,10 +454,22 @@ Render.shipping = (data) => {
 };
 
 Render.proofs = (data) => {
-  if (!data.auto_proof_files) return `
-    <div class="row"><p>Nothing to show yet.</p></div>
-  `;
-
+  console.log(data);
+  if (!data.auto_proof_files) {
+    if (data.sent_proofs_record) {
+      data.auto_proof_files = [];
+      data.sent_proofs_record.split(',').forEach(letter => {
+        data.auto_proof_files.push({
+          filename: `${data.orderId_raw}_${letter}_proof.jpg`
+        })
+      });
+    } else {
+      return `
+        <div class="row"><p>Nothing to show yet.</p></div>
+      `;
+    }
+  } 
+  
   // also, check to see if approved
   var chosen_proofs = (!data.chosen_proof) ? [] : data.chosen_proof.split(',').map((item) => {
     return item.trim().toLowerCase();
