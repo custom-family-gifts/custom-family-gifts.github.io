@@ -94,10 +94,11 @@ API.call = function(options) {
     }
   }).fail(function(err) {
     if (options.onFailure) options.onFailure(err, err.status);
+    var responseText = err.responseText || '';
     console.log(err);
     API.errorLog({
       name: options.method,
-      message: `${err.status} ${err.responseText.substring(0,250)}`,
+      message: `${err.status} ${responseText.substring(0,250)}`,
       stack: err.responseJSON,
       url: callURL,
       type: 'client_api_error'
