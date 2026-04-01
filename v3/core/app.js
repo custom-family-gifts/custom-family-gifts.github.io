@@ -1,7 +1,10 @@
-import { Router } from './router.js';
-import { Nav } from './components/nav.js';
+import { Auth }           from './auth.js';
+import { Router }         from './router.js';
+import { Nav }            from './components/nav.js';
 import { PageController } from './components/page-controller.js';
-import { routes } from '../routes.js';
+import { routes }         from '../routes.js';
+
+await Auth.init();
 
 const router = new Router(routes);
 const nav = new Nav(routes, router);

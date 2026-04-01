@@ -1,9 +1,13 @@
+const PER_OPTIONS = [25, 50, 100, 200];
+
 export class Pagination {
-  #onChange;
+  #onPageChange;
+  #onPerChange;
   #el;
 
-  constructor(onChange) {
-    this.#onChange = onChange;
+  constructor(onPageChange, onPerChange) {
+    this.#onPageChange = onPageChange;
+    this.#onPerChange  = onPerChange;
   }
 
   mount(el) {
@@ -15,10 +19,20 @@ export class Pagination {
     const start = (page - 1) * per + 1;
     const end = Math.min(page * per, total);
 
+    const perSelect = `
+      <select class="select select-sm" data-per>
+        ${PER_OPTIONS.map(n => `<option value="${n}" ${n === per ? 'selected' : ''}>${n} per</option>`).join('')}
+      </select>
+    `;
+
     if (totalPages <= 1) {
       this.#el.innerHTML = total > 0
-        ? `<div class="text-sm text-base-content/50 text-right">${total} records</div>`
+        ? `<div class="flex justify-between items-center">
+             <span class="text-sm text-base-content/50">${total} records</span>
+             ${perSelect}
+           </div>`
         : '';
+      this.#bindPerSelect();
       return;
     }
 
@@ -27,19 +41,28 @@ export class Pagination {
         <span class="text-sm text-base-content/50">
           ${start}–${end} of ${total.toLocaleString()}
         </span>
-        <div class="join">
-          ${this.#pages(page, totalPages).map(p =>
-            p === '...'
-              ? `<button class="join-item btn btn-sm btn-disabled opacity-40">…</button>`
-              : `<button class="join-item btn btn-sm ${p === page ? 'btn-primary' : ''}" data-page="${p}">${p}</button>`
-          ).join('')}
+        <div class="flex items-center gap-3">
+          ${perSelect}
+          <div class="join">
+            ${this.#pages(page, totalPages).map(p =>
+              p === '...'
+                ? `<button class="join-item btn btn-sm btn-disabled opacity-40">…</button>`
+                : `<button class="join-item btn btn-sm ${p === page ? 'btn-primary' : ''}" data-page="${p}">${p}</button>`
+            ).join('')}
+          </div>
         </div>
       </div>
     `;
 
     this.#el.querySelectorAll('[data-page]').forEach(btn => {
-      btn.addEventListener('click', () => this.#onChange(Number(btn.dataset.page)));
+      btn.addEventListener('click', () => this.#onPageChange(Number(btn.dataset.page)));
     });
+    this.#bindPerSelect();
+  }
+
+  #bindPerSelect() {
+    const sel = this.#el.querySelector('[data-per]');
+    if (sel) sel.addEventListener('change', () => this.#onPerChange(Number(sel.value)));
   }
 
   #pages(current, total) {

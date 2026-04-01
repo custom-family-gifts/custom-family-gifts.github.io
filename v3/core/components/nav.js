@@ -1,3 +1,5 @@
+import { Auth } from '../auth.js';
+
 export class Nav {
   constructor(routes, router) {
     this.routes = routes;
@@ -12,6 +14,10 @@ export class Nav {
         e.preventDefault();
         this.router.navigate(a.dataset.route);
       });
+    });
+
+    el.querySelector('#nav-key-btn')?.addEventListener('click', () => {
+      Auth.updateKey();
     });
 
     window.addEventListener('hashchange', () => this.#updateActive(el));
@@ -43,7 +49,11 @@ export class Nav {
             `).join('')}
           </ul>
         </div>
-        <div class="navbar-end"></div>
+        <div class="navbar-end">
+          <button id="nav-key-btn" class="btn btn-ghost btn-sm text-xs opacity-60 hover:opacity-100">
+            welcome <span id="nav-key-label" class="font-mono ml-1">—</span>
+          </button>
+        </div>
       </div>
     `;
   }

@@ -1,17 +1,17 @@
 export class Drawer {
   #template;
-  #el;
+  #fetchOne;
   #panel;
   #backdrop;
   #body;
   #title;
 
-  constructor(template) {
+  constructor(template, fetchOne = null) {
     this.#template = template;
+    this.#fetchOne = fetchOne;
   }
 
   mount(el) {
-    this.#el = el;
     el.innerHTML = `
       <!-- Backdrop -->
       <div id="drawer-backdrop"
@@ -20,9 +20,9 @@ export class Drawer {
 
       <!-- Panel -->
       <div id="drawer-panel"
-        class="fixed top-0 right-0 h-full w-full max-w-lg bg-base-100 shadow-2xl
+        class="fixed top-0 right-0 h-full w-screen max-w-lg bg-base-100 shadow-2xl
                translate-x-full transition-transform duration-300 ease-in-out
-               z-50 flex flex-col">
+               z-50 flex flex-col overflow-hidden">
 
         <!-- Header -->
         <div class="flex items-center justify-between px-5 py-4 border-b border-base-200 shrink-0">
@@ -49,22 +49,37 @@ export class Drawer {
     });
   }
 
-  open(record) {
+  async open(record) {
     this.#title.textContent = record.name ?? record.title ?? record._id ?? 'Detail';
-    this.#body.innerHTML = this.#template
-      ? this.#template(record)
-      : this.#defaultTemplate(record);
+    this.#render(record);
 
+    document.body.classList.add('overflow-hidden');
     this.#backdrop.classList.remove('hidden');
     // rAF ensures the translate-x-full class is removed after paint, triggering the transition
     requestAnimationFrame(() => {
       this.#panel.classList.remove('translate-x-full');
     });
+
+    if (this.#fetchOne) {
+      try {
+        const enriched = await this.#fetchOne(record);
+        this.#render(enriched);
+      } catch (e) {
+        console.warn('[Drawer] fetchOne failed:', e);
+      }
+    }
+  }
+
+  #render(record) {
+    this.#body.innerHTML = this.#template
+      ? this.#template(record)
+      : this.#defaultTemplate(record);
   }
 
   close() {
     this.#panel.classList.add('translate-x-full');
     this.#backdrop.classList.add('hidden');
+    document.body.classList.remove('overflow-hidden');
   }
 
   // Fallback: renders every key/value as a labeled row

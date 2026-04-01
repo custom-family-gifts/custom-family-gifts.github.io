@@ -15,8 +15,8 @@ export class PageController {
     this.#state = {
       page:    1,
       per:     config.defaultPer  ?? 25,
-      sort:    config.defaultSort ?? null,
-      order:   1,
+      sort:    config.defaultSort  ?? null,
+      order:   config.defaultOrder ?? 1,
       filters: {},
     };
     this.#render();
@@ -58,11 +58,18 @@ export class PageController {
       (page) => {
         this.#state.page = page;
         this.#load();
+      },
+      (per) => {
+        this.#state = { ...this.#state, per, page: 1 };
+        this.#load();
       }
     );
     this.#components.pagination.mount(q('#pc-pagination'));
 
-    this.#components.drawer = new Drawer(this.#config.drawer ?? null);
+    this.#components.drawer = new Drawer(
+      this.#config.drawer ?? null,
+      this.#config.fetchOne ?? null,
+    );
     this.#components.drawer.mount(q('#pc-drawer'));
   }
 

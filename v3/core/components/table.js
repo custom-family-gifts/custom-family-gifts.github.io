@@ -37,7 +37,7 @@ export class Table {
           <thead class="bg-base-200">
             <tr>
               ${this.#columns.map(col => `
-                <th class="${col.sortable ? 'cursor-pointer select-none hover:bg-base-300 transition-colors' : ''}"
+                <th class="${col.sortable ? 'cursor-pointer select-none hover:bg-base-300 transition-colors' : ''} ${col.hideOnMobile ? 'hidden sm:table-cell' : ''}"
                     data-sort="${col.sortable ? col.key : ''}">
                   <div class="flex items-center gap-1">
                     ${col.label}
@@ -51,9 +51,16 @@ export class Table {
             ${records.length
               ? records.map(r => `
                   <tr class="hover cursor-pointer" data-id="${r._id ?? r.id}">
-                    ${this.#columns.map(col => `
-                      <td>${col.render ? col.render(r[col.key], r) : (r[col.key] ?? '—')}</td>
-                    `).join('')}
+                    ${this.#columns.map(col => {
+                      let cell;
+                      try {
+                        cell = col.render ? col.render(r[col.key], r) : (r[col.key] ?? '—');
+                      } catch (e) {
+                        console.warn(`[Table] render error — col "${col.key}":`, e);
+                        cell = '⚠';
+                      }
+                      return `<td class="${col.hideOnMobile ? 'hidden sm:table-cell' : ''}">${cell}</td>`;
+                    }).join('')}
                   </tr>
                 `).join('')
               : `<tr>
