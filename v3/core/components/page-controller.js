@@ -2,6 +2,7 @@ import { Filters }    from './filters.js';
 import { Table }      from './table.js';
 import { Pagination } from './pagination.js';
 import { Drawer }     from './drawer.js';
+import { Router }     from '../router.js';
 
 export class PageController {
   #config;
@@ -50,7 +51,11 @@ export class PageController {
         this.#state = { ...this.#state, sort, order };
         this.#load();
       },
-      (record) => this.#components.drawer.open(record)
+      (record) => {
+        const key   = this.#config.drawerKey ?? '_id';
+        const param = String(record[key] ?? record._id);
+        this.#components.drawer.open(record, null, param);
+      }
     );
     this.#components.table.mount(q('#pc-table'));
 
@@ -67,8 +72,10 @@ export class PageController {
     this.#components.pagination.mount(q('#pc-pagination'));
 
     this.#components.drawer = new Drawer(
-      this.#config.drawer ?? null,
-      this.#config.fetchOne ?? null,
+      this.#config.drawerTabs    ?? this.#config.drawer ?? null,
+      this.#config.fetchOne      ?? null,
+      this.#config.drawerTitle   ?? null,
+      this.#config.drawerOverview ?? null,
     );
     this.#components.drawer.mount(q('#pc-drawer'));
   }
@@ -83,6 +90,14 @@ export class PageController {
         per:   result.per,
         total: result.totalcount,
       });
+
+      // Restore drawer from URL params (e.g. shared link or back-navigation)
+      const params = Router.getParams();
+      if (params.drawer) {
+        const key    = this.#config.drawerKey ?? '_id';
+        const record = result.records.find(r => String(r[key] ?? r._id) === params.drawer);
+        if (record) this.#components.drawer.open(record, params.tab ?? null, params.drawer);
+      }
     } catch (err) {
       this.#el.querySelector('#pc-table').innerHTML = `
         <div class="alert alert-error">

@@ -1,5 +1,8 @@
+import { API }        from '../core/api.js';
+import { formatDate } from '../core/helpers.js';
+
 // ---------------------------------------------------------------------------
-// Column renderers
+// Shared helpers
 // ---------------------------------------------------------------------------
 const PIPELINE_COLORS = {
   'Proof Me':  'badge-warning',
@@ -15,9 +18,6 @@ const pipelineBadge = (val) => {
   const key = Object.keys(PIPELINE_COLORS).find(k => val.toLowerCase().includes(k.toLowerCase()));
   return `<span class="badge badge-sm ${key ? PIPELINE_COLORS[key] : 'badge-ghost'}">${val}</span>`;
 };
-
-import { API } from '../core/api.js';
-import { formatDate } from '../core/helpers.js';
 
 const COL = 'cfg.orders';
 
@@ -47,7 +47,7 @@ const PROJECTION = {
 };
 
 // ---------------------------------------------------------------------------
-// Fetch — list, via api.find → v2-mdb cfg/orders
+// Fetch — list
 // ---------------------------------------------------------------------------
 async function fetch(state) {
   const { search, options, notes } = state.filters;
@@ -92,7 +92,7 @@ async function fetch(state) {
 }
 
 // ---------------------------------------------------------------------------
-// Fetch one — drawer level, via v2-getCustomerOrder (enriched, no pagination)
+// Fetch one — enriched record for the drawer
 // ---------------------------------------------------------------------------
 async function fetchOne(record) {
   const result = await API.gcf(`v2-getCustomerOrder?orderId=${record.orderId_raw}`);
@@ -101,17 +101,17 @@ async function fetchOne(record) {
 }
 
 // ---------------------------------------------------------------------------
-// Drawer template — receives the full record
+// Tab: Main — order details
 // ---------------------------------------------------------------------------
-const drawer = (r) => {
+const mainTab = (r) => {
   const itemsHtml = (r.items ? r.items.split('\n').filter(Boolean) : [])
     .map(line => `<div class="text-sm">${line}</div>`)
     .join('');
 
   const links = [
-    r['order link']          && `<a class="link link-primary text-sm" href="${r['order link']}" target="_blank">Admin Order</a>`,
-    r.customer_order_link    && `<a class="link link-secondary text-sm" href="${r.customer_order_link}" target="_blank">Customer Portal</a>`,
-    r.etsy_link              && `<a class="link text-sm" href="${r.etsy_link}" target="_blank">Etsy Listing</a>`,
+    r['order link']       && `<a class="link link-primary text-sm" href="${r['order link']}" target="_blank">Admin Order</a>`,
+    r.customer_order_link && `<a class="link link-secondary text-sm" href="${r.customer_order_link}" target="_blank">Customer Portal</a>`,
+    r.etsy_link           && `<a class="link text-sm" href="${r.etsy_link}" target="_blank">Etsy Listing</a>`,
   ].filter(Boolean).join('<br>');
 
   return `
@@ -126,7 +126,7 @@ const drawer = (r) => {
             <span class="text-base-content/50">Customer</span>
             <span>${r.custFirst || ''} ${r.custLast || ''}</span>
             <span class="text-base-content/50">Email</span>
-            <span>${r.email || '—'}</span>
+            <span class="break-all">${r.email || '—'}</span>
             <span class="text-base-content/50">Phone</span>
             <span>${r.custPhone || '—'}</span>
             <span class="text-base-content/50">Created</span>
@@ -165,12 +165,6 @@ const drawer = (r) => {
         </div>
       ` : ''}
 
-      ${r.print_note ? `
-        <div class="alert alert-info text-sm py-2">
-          <span><strong>Print Note:</strong> ${r.print_note}</span>
-        </div>
-      ` : ''}
-
       ${links ? `
         <div class="card bg-base-200">
           <div class="card-body py-4 gap-2">
@@ -185,12 +179,194 @@ const drawer = (r) => {
 };
 
 // ---------------------------------------------------------------------------
+// Tab: Messages
+// ---------------------------------------------------------------------------
+const messagesTab = (r) => {
+  if (!r.messages?.length) {
+    return `<p class="text-sm text-base-content/40 text-center py-12">No messages</p>`;
+  }
+
+  const sorted = [...r.messages].sort((a, b) => new Date(b.created) - new Date(a.created));
+
+  const via = (m) => {
+    if (m.to === 'CFG Etsy'  || m.from === 'CFG Etsy')  return 'Etsy';
+    if (m.to === 'CFG SMS'   || m.from === 'CFG SMS')   return 'SMS';
+    if (m.source_name === 'Portal') return 'Form';
+    return 'Email';
+  };
+
+  return `
+    <div class="space-y-3">
+      ${sorted.map(m => {
+        const isUs = m.from_2 === 'us';
+        return `
+          <div class="card ${isUs ? 'bg-primary/10 border border-primary/20' : 'bg-base-200'}">
+            <div class="card-body py-3 px-4 gap-1.5">
+              <div class="flex items-center justify-between gap-2 flex-wrap">
+                <div class="flex items-center gap-2">
+                  <span class="text-xs font-semibold ${isUs ? 'text-primary' : 'text-base-content/70'}">
+                    ${isUs ? 'CFG' : (m.from || 'Customer')}
+                  </span>
+                  <span class="badge badge-xs badge-ghost">${via(m)}</span>
+                </div>
+                <span class="text-xs text-base-content/40">${m.created ? formatDate(m.created) : ''}</span>
+              </div>
+              ${m.subject ? `<div class="text-xs font-medium text-base-content/70">${m.subject}</div>` : ''}
+              <div class="text-sm leading-relaxed">${m.html || m.text || '(no content)'}</div>
+              ${m.attachments?.length ? `
+                <div class="text-xs text-base-content/40 mt-1">
+                  📎 ${m.attachments.map(a => a.name).join(', ')}
+                </div>
+              ` : ''}
+            </div>
+          </div>
+        `;
+      }).join('')}
+    </div>
+  `;
+};
+
+// ---------------------------------------------------------------------------
+// Tab: Prints — print note, internal notes, proofs
+// ---------------------------------------------------------------------------
+const printsTab = (r) => {
+  const parts = [];
+
+  if (r.print_note) {
+    parts.push(`
+      <div class="alert alert-info text-sm py-2">
+        <span><strong>Print Note:</strong> ${r.print_note}</span>
+      </div>
+    `);
+  }
+
+  if (r['Internal - newest on top please']) {
+    parts.push(`
+      <div class="card bg-warning/10 border border-warning/30">
+        <div class="card-body py-3 px-4 gap-1">
+          <h4 class="text-xs uppercase tracking-wide opacity-60">Internal Notes</h4>
+          <div class="text-sm whitespace-pre-wrap">${r['Internal - newest on top please']}</div>
+        </div>
+      </div>
+    `);
+  }
+
+  if (r.auto_proof_files?.length) {
+    const chosen = (r.chosen_proof || '')
+      .split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
+
+    const proofRows = r.auto_proof_files
+      .slice().sort((a, b) => (a.filename > b.filename ? 1 : -1))
+      .map(f => {
+        const letter    = f.filename?.split('_')[1]?.toLowerCase() ?? '?';
+        const num       = +f.filename?.split('_')[0];
+        const prefix    = Math.floor(num / 100);
+        const approved  = chosen.includes(letter);
+        const url       = f.url
+          ?? `https://custom-family-gifts.s3.us-east-2.amazonaws.com/${prefix}00-${prefix}99/${num}/_proofs/${num}_${letter}_proof.jpg`;
+        return `
+          <div class="flex items-center gap-3 text-sm py-1">
+            <a href="${url}" target="_blank" class="link link-primary font-mono">
+              Proof ${letter.toUpperCase()}
+            </a>
+            ${f.date ? `<span class="text-xs text-base-content/40">${formatDate(f.date)}</span>` : ''}
+            ${approved ? `<span class="badge badge-success badge-sm ml-auto">✔ approved</span>` : ''}
+          </div>
+        `;
+      }).join('');
+
+    parts.push(`
+      <div class="card bg-base-200">
+        <div class="card-body py-4 gap-1">
+          <h3 class="card-title text-sm uppercase tracking-wide opacity-60">Proofs</h3>
+          ${proofRows}
+        </div>
+      </div>
+    `);
+  }
+
+  if (!parts.length) {
+    return `<p class="text-sm text-base-content/40 text-center py-12">No print info</p>`;
+  }
+
+  return `<div class="space-y-4">${parts.join('')}</div>`;
+};
+
+// ---------------------------------------------------------------------------
 // Page config
 // ---------------------------------------------------------------------------
 export const orders = {
   defaultSort:  'orderId_raw',
   defaultOrder: -1,
   defaultPer:   25,
+
+  drawerKey:   'orderId_raw',
+  drawerTitle: (r) => `#${r.orderId_raw}${r.isPriority ? ' ⭐' : ''}`,
+
+  drawerOverview: (r) => {
+    const name  = [r.custFirst, r.custLast].filter(Boolean).join(' ') || r.customer || '—';
+    const items = r.items ? r.items.split('\n').filter(Boolean) : [];
+
+    // Pick chosen proof thumbnail, or first available
+    let proofHtml = '';
+    if (r.auto_proof_files?.length) {
+      const chosen = (r.chosen_proof || '').split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
+      const file   = r.auto_proof_files.find(f => {
+        const letter = f.filename?.split('_')[1]?.toLowerCase();
+        return chosen.includes(letter);
+      }) ?? r.auto_proof_files[0];
+
+      if (file) {
+        const letter = file.filename?.split('_')[1]?.toLowerCase() ?? '?';
+        const num    = +file.filename?.split('_')[0];
+        const prefix = Math.floor(num / 100);
+        const url    = file.url
+          ?? `https://custom-family-gifts.s3.us-east-2.amazonaws.com/${prefix}00-${prefix}99/${num}/_proofs/${num}_${letter}_proof.jpg`;
+        proofHtml = `
+          <a href="${url}" target="_blank" class="shrink-0">
+            <img src="${url}" alt="Proof ${letter.toUpperCase()}"
+              class="w-16 h-16 object-cover rounded shadow-sm" />
+          </a>
+        `;
+      }
+    }
+
+    return `
+      <div class="flex gap-3 items-start">
+        ${proofHtml}
+        <div class="min-w-0 flex-1">
+          <div class="font-medium text-sm">${name}</div>
+          ${r.email ? `<div class="text-xs text-base-content/50 truncate">${r.email}</div>` : ''}
+          ${items.length ? `
+            <div class="mt-1.5 space-y-0.5">
+              ${items.map(line => `<div class="text-xs text-base-content/70">${line}</div>`).join('')}
+            </div>
+          ` : ''}
+          ${r.options ? `<div class="text-xs text-base-content/40 mt-0.5">${r.options}</div>` : ''}
+        </div>
+      </div>
+    `;
+  },
+
+  drawerTabs: [
+    {
+      id:     'main',
+      label:  'Main',
+      render: mainTab,
+    },
+    {
+      id:     'messages',
+      label:  'Messages',
+      count:  (r) => r.messages?.length ?? 0,
+      render: messagesTab,
+    },
+    {
+      id:     'prints',
+      label:  'Prints',
+      count:  (r) => r.auto_proof_files?.length ?? 0,
+      render: printsTab,
+    },
+  ],
 
   filters: [
     { name: 'search',  type: 'text', label: 'Search',  placeholder: '#id, name, phone, email…' },
@@ -247,7 +423,6 @@ export const orders = {
     },
   ],
 
-  drawer,
   fetch,
   fetchOne,
 };
