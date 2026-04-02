@@ -58,7 +58,7 @@ export class Drawer {
         <div id="drawer-tabbar"></div>
 
         <!-- Body -->
-        <div id="drawer-body" class="flex-1 overflow-y-auto p-5"></div>
+        <div id="drawer-body" class="flex-1 overflow-y-auto p-3"></div>
       </div>
     `;
 
@@ -151,7 +151,7 @@ export class Drawer {
     }
 
     this.#tabBar.innerHTML = `
-      <div class="flex border-b border-base-200 shrink-0 overflow-x-auto">
+      <div class="flex border-b border-base-200 shrink-0 overflow-x-auto overflow-y-hidden">
         ${this.#tabs.map(tab => {
           const count  = tab.count ? tab.count(this.#currentRecord) : 0;
           const active = tab.id === this.#activeTab;

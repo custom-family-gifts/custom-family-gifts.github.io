@@ -1,5 +1,5 @@
 import { API }        from '../core/api.js';
-import { formatDate } from '../core/helpers.js';
+import { formatDate, formatPhone } from '../core/helpers.js';
 
 // ---------------------------------------------------------------------------
 // Shared helpers
@@ -44,6 +44,7 @@ const PROJECTION = {
   at_record_id:                      1,
   print_note:                        1,
   'Internal - newest on top please': 1,
+  sent_proofs_record: 1
 };
 
 // ---------------------------------------------------------------------------
@@ -118,7 +119,7 @@ const mainTab = (r) => {
     <div class="space-y-4">
 
       <div class="card bg-base-200">
-        <div class="card-body py-4 gap-2">
+        <div class="card-body py-3 gap-2">
           <h3 class="card-title text-sm uppercase tracking-wide opacity-60">Order</h3>
           <div class="grid grid-cols-2 gap-y-2 text-sm">
             <span class="text-base-content/50">Order #</span>
@@ -140,7 +141,7 @@ const mainTab = (r) => {
       </div>
 
       <div class="card bg-base-200">
-        <div class="card-body py-4 gap-2">
+        <div class="card-body py-3 gap-2">
           <h3 class="card-title text-sm uppercase tracking-wide opacity-60">Pipeline</h3>
           <div class="grid grid-cols-2 gap-y-2 text-sm">
             <span class="text-base-content/50">Stage</span>
@@ -157,7 +158,7 @@ const mainTab = (r) => {
 
       ${itemsHtml ? `
         <div class="card bg-base-200">
-          <div class="card-body py-4 gap-2">
+          <div class="card-body py-3 gap-2">
             <h3 class="card-title text-sm uppercase tracking-wide opacity-60">Items</h3>
             ${itemsHtml}
             ${r.options ? `<div class="text-xs text-base-content/60 mt-1">${r.options}</div>` : ''}
@@ -167,7 +168,7 @@ const mainTab = (r) => {
 
       ${links ? `
         <div class="card bg-base-200">
-          <div class="card-body py-4 gap-2">
+          <div class="card-body py-3 gap-2">
             <h3 class="card-title text-sm uppercase tracking-wide opacity-60">Links</h3>
             ${links}
           </div>
@@ -391,13 +392,27 @@ export const orders = {
       },
     },
     {
+      key:    'sent_proofs_record',
+      label:  'Art',
+      render: (val, r) => {
+        if (!val || !r.orderId_raw) return '';
+        const letter  = val.split(',').map(s => s.trim()).filter(Boolean).at(-1);
+        if (!letter) return '';
+        const id      = r.orderId_raw;
+        const prefix  = Math.floor(id / 100);
+        const url     = `https://custom-family-gifts.s3.us-east-2.amazonaws.com/${prefix * 100}-${prefix * 100 + 99}/${id}/_proofs/${id}_${letter}_proof.jpg`;
+        return `<a href="${url}" target="_blank"><img src="${url}" alt="Proof ${letter.toUpperCase()}" class="w-12 h-12 object-cover rounded shadow-sm" /></a>`;
+      },
+    },
+    {
       key:    'customer',
       label:  'Customer',
       render: (val, r) => {
         const name = (r.custFirst || r.custLast)
           ? `${r.custFirst || ''} ${r.custLast || ''}`.trim()
           : val || '—';
-        return `<div>${name}</div>${r.email ? `<div class="text-xs opacity-50">${r.email}</div>` : ''}`;
+        const phone = formatPhone(r.custPhone);
+        return `<div>${name}</div>${r.email ? `<div class="text-xs opacity-50">${r.email}</div>` : ''}${phone ? `<div class="text-xs opacity-50">${phone}</div>` : ''}`;
       },
     },
     {
