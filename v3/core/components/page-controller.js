@@ -2,6 +2,8 @@ import { Filters }    from './filters.js';
 import { Table }      from './table.js';
 import { Pagination } from './pagination.js';
 import { Drawer }     from './drawer.js';
+import { Modal }      from './modal.js';
+import { CrudForm }   from '../crud-form.js';
 import { Router }     from '../router.js';
 
 export class PageController {
@@ -32,6 +34,7 @@ export class PageController {
         <div id="pc-pagination"></div>
       </div>
       <div id="pc-drawer"></div>
+      <div id="pc-modal"></div>
     `;
 
     const q = (id) => this.#el.querySelector(id);
@@ -78,6 +81,11 @@ export class PageController {
       this.#config.drawerOverview ?? null,
     );
     this.#components.drawer.mount(q('#pc-drawer'));
+
+    this.#components.modal = new Modal();
+    this.#components.modal.mount(q('#pc-modal'));
+    window._Modal    = this.#components.modal;
+    window._CrudForm = CrudForm;
   }
 
   async #load() {

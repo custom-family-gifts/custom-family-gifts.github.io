@@ -72,6 +72,7 @@ export class Drawer {
     el.querySelector('#drawer-close').addEventListener('click', () => this.close());
     this.#backdrop.addEventListener('click', () => this.close());
 
+
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') this.close();
     });
@@ -138,7 +139,7 @@ export class Drawer {
       return;
     }
     this.#overview.innerHTML = `
-      <div class="px-5 py-3 bg-base-200/60 border-b border-base-200 shrink-0">
+      <div class="px-5 py-3 bg-base-200/60 border-b border-base-200 shrink-0 max-h-[200px] overflow-y-auto">
         ${this.#overviewFn(this.#currentRecord)}
       </div>
     `;

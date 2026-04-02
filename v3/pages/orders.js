@@ -21,6 +21,29 @@ const pipelineBadge = (val) => {
 
 const COL = 'cfg.orders';
 
+const _schema = (title, fields) => ({ title, collection: COL, idField: 'orderId_raw', fields });
+
+const ORDER_SCHEMAS = {
+  pipeline: _schema('Edit Pipeline', [
+    { key: 'pipeline',     label: 'Pipeline',     type: 'select', nullable: true,
+      options: ['Proof Me', 'Proof Sent', 'Approved', 'Print', 'Ship', 'Complete'] },
+    { key: 'artist',       label: 'Artist',       type: 'text' },
+    { key: 'chosen_proof', label: 'Chosen Proof', type: 'text' },
+  ]),
+  addons: _schema('Edit Addons', [
+    { key: 'isPriority',       label: 'Priority',         type: 'toggle' },
+    { key: 'Needs Digital Art', label: 'Needs Digital Art', type: 'toggle' },
+  ]),
+  shipping: _schema('Edit Shipping', [
+    { key: 'shipAddress', label: 'Ship Address', type: 'textarea', rows: 4 },
+  ]),
+  options: _schema('Edit Options', [
+    { key: 'options', label: 'Options', type: 'textarea', rows: 6 },
+  ]),
+};
+
+const GEAR_SVG = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-3.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.325.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 0 1 1.37.49l1.296 2.247a1.125 1.125 0 0 1-.26 1.431l-1.003.827c-.293.241-.438.613-.43.992a7.723 7.723 0 0 1 0 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.955.26 1.43l-1.298 2.247a1.125 1.125 0 0 1-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.47 6.47 0 0 1-.22.128c-.331.183-.581.495-.644.869l-.213 1.281c-.09.543-.56.94-1.11.94h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.869a6.52 6.52 0 0 1-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 0 1-1.369-.49l-1.297-2.247a1.125 1.125 0 0 1 .26-1.431l1.004-.827c.292-.24.437-.613.43-.991a6.932 6.932 0 0 1 0-.255c.007-.38-.138-.751-.43-.992l-1.004-.827a1.125 1.125 0 0 1-.26-1.43l1.297-2.247a1.125 1.125 0 0 1 1.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.086.22-.128.332-.183.582-.495.644-.869l.214-1.28Z" /><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" /></svg>`;
+
 const PROJECTION = {
   orderId_raw:                       1,
   customer:                          1,
@@ -44,7 +67,9 @@ const PROJECTION = {
   at_record_id:                      1,
   print_note:                        1,
   'Internal - newest on top please': 1,
-  sent_proofs_record: 1
+  sent_proofs_record: 1,
+  'Needs Digital Art': 1,
+  shipAddress: 1,
 };
 
 // ---------------------------------------------------------------------------
@@ -104,80 +129,68 @@ async function fetchOne(record) {
 // ---------------------------------------------------------------------------
 // Tab: Main — order details
 // ---------------------------------------------------------------------------
+const _cardHead = (label, schemaKey) => `
+  <div class="flex items-center justify-between gap-1">
+    <h3 class="text-xs uppercase tracking-wide opacity-60">${label}</h3>
+    <button onclick="window._orderEdit('${schemaKey}')" class="btn btn-xs btn-ghost btn-circle -mr-1" title="Edit">${GEAR_SVG}</button>
+  </div>`;
+
 const mainTab = (r) => {
-  const itemsHtml = (r.items ? r.items.split('\n').filter(Boolean) : [])
-    .map(line => `<div class="text-sm">${line}</div>`)
-    .join('');
-
-  const links = [
-    r['order link']       && `<a class="link link-primary text-sm" href="${r['order link']}" target="_blank">Admin Order</a>`,
-    r.customer_order_link && `<a class="link link-secondary text-sm" href="${r.customer_order_link}" target="_blank">Customer Portal</a>`,
-    r.etsy_link           && `<a class="link text-sm" href="${r.etsy_link}" target="_blank">Etsy Listing</a>`,
-  ].filter(Boolean).join('<br>');
-
+  window._currentOrderRecord = r;
   return `
-    <div class="space-y-4">
+  <div class="grid grid-cols-2 gap-2">
+
+    <!-- Left column -->
+    <div class="space-y-2">
 
       <div class="card bg-base-200">
-        <div class="card-body py-3 gap-2">
-          <h3 class="card-title text-sm uppercase tracking-wide opacity-60">Order</h3>
-          <div class="grid grid-cols-2 gap-y-2 text-sm">
-            <span class="text-base-content/50">Order #</span>
-            <span class="font-mono">${r.orderId_raw}${r.isPriority ? ' ⭐' : ''}</span>
-            <span class="text-base-content/50">Customer</span>
-            <span>${r.custFirst || ''} ${r.custLast || ''}</span>
-            <span class="text-base-content/50">Email</span>
-            <span class="break-all">${r.email || '—'}</span>
-            <span class="text-base-content/50">Phone</span>
-            <span>${r.custPhone || '—'}</span>
-            <span class="text-base-content/50">Created</span>
-            <span>${r.created_shopify_order ? formatDate(r.created_shopify_order) : '—'}</span>
-            ${r.etsy_receipt_id || r.etsy_receipt_id_saved ? `
-              <span class="text-base-content/50">Etsy Receipt</span>
-              <span class="text-orange-500">🍊 ${r.etsy_receipt_id || r.etsy_receipt_id_saved}</span>
-            ` : ''}
+        <div class="flex flex-col px-3 py-2 gap-1">
+          ${_cardHead('Pipeline', 'pipeline')}
+          <div class="space-y-1 text-sm">
+            <div>${pipelineBadge(r.pipeline)}</div>
+            ${r.artist       ? `<div class="text-xs opacity-60">${r.artist}</div>` : ''}
+            ${r.chosen_proof ? `<div class="text-xs">✔ ${r.chosen_proof}</div>` : ''}
           </div>
         </div>
       </div>
 
       <div class="card bg-base-200">
-        <div class="card-body py-3 gap-2">
-          <h3 class="card-title text-sm uppercase tracking-wide opacity-60">Pipeline</h3>
-          <div class="grid grid-cols-2 gap-y-2 text-sm">
-            <span class="text-base-content/50">Stage</span>
-            <span>${pipelineBadge(r.pipeline)}</span>
-            <span class="text-base-content/50">Artist</span>
-            <span>${r.artist || '—'}</span>
-            ${r.chosen_proof ? `
-              <span class="text-base-content/50">Chosen Proof</span>
-              <span>✔ ${r.chosen_proof}</span>
-            ` : ''}
+        <div class="flex flex-col px-3 py-2 gap-1">
+          ${_cardHead('Addons', 'addons')}
+          <div class="space-y-1 text-sm">
+            ${r.isPriority           ? `<div>⭐ Priority</div>`          : `<div class="opacity-30">No priority</div>`}
+            ${r['Needs Digital Art'] ? `<div>🎨 Needs Digital Art</div>` : ''}
           </div>
         </div>
       </div>
 
-      ${itemsHtml ? `
-        <div class="card bg-base-200">
-          <div class="card-body py-3 gap-2">
-            <h3 class="card-title text-sm uppercase tracking-wide opacity-60">Items</h3>
-            ${itemsHtml}
-            ${r.options ? `<div class="text-xs text-base-content/60 mt-1">${r.options}</div>` : ''}
-          </div>
+      <div class="card bg-base-200">
+        <div class="flex flex-col px-3 py-2 gap-1">
+          ${_cardHead('Shipping', 'shipping')}
+          ${r.shipAddress
+            ? `<div class="text-sm whitespace-pre-wrap">${r.shipAddress}</div>`
+            : `<div class="text-sm opacity-30">—</div>`}
         </div>
-      ` : ''}
-
-      ${links ? `
-        <div class="card bg-base-200">
-          <div class="card-body py-3 gap-2">
-            <h3 class="card-title text-sm uppercase tracking-wide opacity-60">Links</h3>
-            ${links}
-          </div>
-        </div>
-      ` : ''}
+      </div>
 
     </div>
-  `;
-};
+
+    <!-- Right column -->
+    <div class="space-y-2">
+
+      <div class="card bg-base-200">
+        <div class="flex flex-col px-3 py-2 gap-1">
+          ${_cardHead('Options', 'options')}
+          ${r.options
+            ? `<div class="text-sm leading-relaxed">${r.options.replace(/\n/g, '<br>')}</div>`
+            : `<div class="text-sm opacity-30">—</div>`}
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+`;};
 
 // ---------------------------------------------------------------------------
 // Tab: Messages
@@ -396,12 +409,15 @@ export const orders = {
       label:  'Art',
       render: (val, r) => {
         if (!val || !r.orderId_raw) return '';
-        const letter  = val.split(',').map(s => s.trim()).filter(Boolean).at(-1);
-        if (!letter) return '';
-        const id      = r.orderId_raw;
-        const prefix  = Math.floor(id / 100);
-        const url     = `https://custom-family-gifts.s3.us-east-2.amazonaws.com/${prefix * 100}-${prefix * 100 + 99}/${id}/_proofs/${id}_${letter}_proof.jpg`;
-        return `<a href="${url}" target="_blank"><img src="${url}" alt="Proof ${letter.toUpperCase()}" class="w-12 h-12 object-cover rounded shadow-sm" /></a>`;
+        const letters = val.split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
+        if (!letters.length) return '';
+        const letter = letters.at(-1);
+        const id     = r.orderId_raw;
+        const prefix = Math.floor(id / 100);
+        const thumb  = `https://custom-family-gifts.s3.us-east-2.amazonaws.com/${prefix * 100}-${prefix * 100 + 99}/${id}/_proofs/${id}_${letter}_proof.jpg`;
+        return `<button onclick="event.stopPropagation();window._ArtBrowser.open(${id},${prefix},'${val}','${letter}')">
+          <img src="${thumb}" alt="Proof ${letter.toUpperCase()}" class="w-12 h-12 object-cover rounded shadow-sm hover:opacity-80 transition-opacity" />
+        </button>`;
       },
     },
     {
@@ -441,3 +457,140 @@ export const orders = {
   fetch,
   fetchOne,
 };
+
+window._orderEdit = (schemaKey) => {
+  window._CrudForm.open(ORDER_SCHEMAS[schemaKey], window._currentOrderRecord);
+};
+
+// ---------------------------------------------------------------------------
+// Art Browser — proof/final image viewer with pan/zoom
+// ---------------------------------------------------------------------------
+const ArtBrowser = (() => {
+  let _id, _prefix, _letters, _idx, _mode;
+  let _scale, _tx, _ty, _dragStart;
+
+  const S3 = 'https://custom-family-gifts.s3.us-east-2.amazonaws.com';
+
+  function _range()      { return `${_prefix * 100}-${_prefix * 100 + 99}`; }
+  function _proofUrl(l)  { return `${S3}/${_range()}/${_id}/_proofs/${_id}_${l}_proof.jpg`; }
+  function _finalUrl(l)  { return `${S3}/${_range()}/${_id}/${_id}_${l}_final.jpg`; }
+  function _activeUrl(l) { return _mode === 'proof' ? _proofUrl(l) : _finalUrl(l); }
+
+  function _applyTransform() {
+    document.getElementById('pm-img').style.transform =
+      `translate(${_tx}px, ${_ty}px) scale(${_scale})`;
+  }
+
+  function _resetTransform() {
+    _scale = 1; _tx = 0; _ty = 0;
+    _applyTransform();
+  }
+
+  function _bindPanZoom() {
+    const wrap = document.getElementById('pm-img-wrap');
+
+    wrap.addEventListener('wheel', (e) => {
+      e.preventDefault();
+      const delta  = e.deltaY < 0 ? 1.1 : 0.9;
+      const newScale = Math.min(10, Math.max(1, _scale * delta));
+      // Zoom toward cursor position
+      const rect  = wrap.getBoundingClientRect();
+      const mx    = e.clientX - rect.left - rect.width  / 2;
+      const my    = e.clientY - rect.top  - rect.height / 2;
+      _tx = mx + (_tx - mx) * (newScale / _scale);
+      _ty = my + (_ty - my) * (newScale / _scale);
+      _scale = newScale;
+      if (_scale === 1) { _tx = 0; _ty = 0; }
+      _applyTransform();
+    }, { passive: false });
+
+    wrap.addEventListener('mousedown', (e) => {
+      e.preventDefault();
+      if (_scale === 1) return;
+      _dragStart = { x: e.clientX - _tx, y: e.clientY - _ty };
+      wrap.style.cursor = 'grabbing';
+
+      function onMove(e) {
+        _tx = e.clientX - _dragStart.x;
+        _ty = e.clientY - _dragStart.y;
+        _applyTransform();
+      }
+      function onUp() {
+        wrap.style.cursor = 'grab';
+        window.removeEventListener('mousemove', onMove);
+        window.removeEventListener('mouseup', onUp);
+      }
+      window.addEventListener('mousemove', onMove);
+      window.addEventListener('mouseup', onUp);
+    });
+  }
+
+  function _html() {
+    return `
+      <div id="pm-img-wrap"
+           class="overflow-hidden bg-base-200 flex items-center justify-center"
+           style="height:70vh; cursor:grab; user-select:none">
+        <img id="pm-img" src="" alt="Proof"
+             style="max-width:100%; max-height:70vh; display:block;
+                    transform-origin:center center;
+                    transition:opacity 0.15s ease" />
+      </div>
+      <div class="flex items-center justify-between gap-3 px-3 py-2 border-t border-base-300">
+        <div id="pm-letters" class="flex gap-1 flex-wrap"></div>
+        <div class="flex gap-2 shrink-0 items-center">
+          <div class="join">
+            <button id="pm-mode-proof" class="join-item btn btn-xs btn-primary"
+              onclick="window._ArtBrowser.setMode('proof')">Proof</button>
+            <button id="pm-mode-final" class="join-item btn btn-xs btn-ghost"
+              onclick="window._ArtBrowser.setMode('final')">Final</button>
+          </div>
+          <a id="pm-dl" class="btn btn-xs btn-ghost" target="_blank">↓ Download</a>
+        </div>
+      </div>
+    `;
+  }
+
+  function _update() {
+    const l     = _letters[_idx];
+    const imgEl = document.getElementById('pm-img');
+
+    imgEl.style.opacity = '0.15';
+    imgEl.onload  = () => { imgEl.style.opacity = '1'; _resetTransform(); };
+    imgEl.onerror = () => { imgEl.style.opacity = '1'; };
+    imgEl.src = _activeUrl(l);
+
+    document.getElementById('pm-letters').innerHTML = _letters.map((letter, i) =>
+      `<button class="btn btn-xs ${i === _idx ? 'btn-primary' : 'btn-ghost'}"
+         onclick="window._ArtBrowser.go(${i})">${letter.toUpperCase()}</button>`
+    ).join('');
+
+    document.getElementById('pm-mode-proof').className =
+      `join-item btn btn-xs ${_mode === 'proof' ? 'btn-primary' : 'btn-ghost'}`;
+    document.getElementById('pm-mode-final').className =
+      `join-item btn btn-xs ${_mode === 'final'  ? 'btn-primary' : 'btn-ghost'}`;
+
+    const dl    = document.getElementById('pm-dl');
+    dl.href     = _activeUrl(l);
+    dl.download = `${_id}_${l}_${_mode}.jpg`;
+  }
+
+  function open(orderId, orderPrefix, lettersStr, clickedLetter) {
+    _id      = orderId;
+    _prefix  = orderPrefix;
+    _letters = lettersStr.split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
+    _idx     = Math.max(0, _letters.indexOf(clickedLetter));
+    _mode    = 'proof';
+
+    window._Modal.open(_html(), `#${_id} Art`, { boxClass: 'max-w-4xl', bodyClass: 'p-0' });
+    _resetTransform();
+    _update();
+    _bindPanZoom();
+  }
+
+  function go(i)      { _idx = i; _resetTransform(); _update(); }
+  function setMode(m) { _mode = m; _resetTransform(); _update(); }
+
+  return { open, go, setMode };
+})();
+
+window._ArtBrowser = ArtBrowser;
