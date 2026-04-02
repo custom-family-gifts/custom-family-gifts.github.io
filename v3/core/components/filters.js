@@ -1,3 +1,5 @@
+import { Router } from '../router.js';
+
 export class Filters {
   #config;
   #onChange;
@@ -27,24 +29,41 @@ export class Filters {
     el.querySelector('#filter-submit').addEventListener('click', () => this.#emit());
     el.querySelector('#filter-clear').addEventListener('click', () => this.#clear());
 
-    // Submit on Enter
     el.querySelectorAll('input').forEach(input => {
       input.addEventListener('keydown', (e) => { if (e.key === 'Enter') this.#emit(); });
     });
+
+    // Pre-populate inputs from URL silently (no emit — caller reads URL for initial state)
+    const params = Router.getParams();
+    this.#config.forEach(f => {
+      if (params[f.name]) {
+        const input = this.#el.querySelector(`[name="${f.name}"]`);
+        if (input) input.value = params[f.name];
+      }
+    });
   }
 
-  #emit() {
+  #emit({ syncUrl = true } = {}) {
     const values = {};
     this.#config.forEach(f => {
       const input = this.#el.querySelector(`[name="${f.name}"]`);
       if (input?.value) values[f.name] = input.value;
     });
+    if (syncUrl) this.#syncUrl(values);
     this.#onChange(values);
   }
 
   #clear() {
     this.#el.querySelectorAll('input, select').forEach(i => i.value = '');
+    this.#syncUrl({});
     this.#onChange({});
+  }
+
+  #syncUrl(filterValues) {
+    const params = Router.getParams();
+    // Remove all filter keys from current params, then add active ones
+    this.#config.forEach(f => delete params[f.name]);
+    Router.setParams({ ...params, ...filterValues });
   }
 
   #renderField(f) {

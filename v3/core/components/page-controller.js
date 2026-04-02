@@ -6,6 +6,13 @@ import { Modal }      from './modal.js';
 import { CrudForm }   from '../crud-form.js';
 import { Router }     from '../router.js';
 
+function readFilterParams(filterConfigs) {
+  const params = Router.getParams();
+  const filters = {};
+  filterConfigs.forEach(f => { if (params[f.name]) filters[f.name] = params[f.name]; });
+  return filters;
+}
+
 export class PageController {
   #config;
   #el;
@@ -20,7 +27,7 @@ export class PageController {
       per:     config.defaultPer  ?? 25,
       sort:    config.defaultSort  ?? null,
       order:   config.defaultOrder ?? 1,
-      filters: {},
+      filters: readFilterParams(config.filters ?? []),
     };
     this.#render();
     this.#load();
@@ -99,12 +106,13 @@ export class PageController {
         total: result.totalcount,
       });
 
-      // Restore drawer from URL params (e.g. shared link or back-navigation)
+      // Restore drawer from URL params — fall back to stub if record isn't on this page
       const params = Router.getParams();
       if (params.drawer) {
         const key    = this.#config.drawerKey ?? '_id';
-        const record = result.records.find(r => String(r[key] ?? r._id) === params.drawer);
-        if (record) this.#components.drawer.open(record, params.tab ?? null, params.drawer);
+        const record = result.records.find(r => String(r[key] ?? r._id) === params.drawer)
+          ?? { [key]: isNaN(params.drawer) ? params.drawer : +params.drawer };
+        this.#components.drawer.open(record, params.tab ?? null, params.drawer);
       }
     } catch (err) {
       this.#el.querySelector('#pc-table').innerHTML = `

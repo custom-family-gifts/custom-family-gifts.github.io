@@ -4,19 +4,45 @@ import { formatDate, formatPhone } from '../core/helpers.js';
 // ---------------------------------------------------------------------------
 // Shared helpers
 // ---------------------------------------------------------------------------
+
+// Exact Airtable single-select values → [bg, text]
 const PIPELINE_COLORS = {
-  'Proof Me':  'badge-warning',
-  'Proof Sent':'badge-info',
-  'Approved':  'badge-success',
-  'Print':     'badge-primary',
-  'Ship':      'badge-neutral',
-  'Complete':  'badge-ghost',
+  'HOLD':                    ['#616670', '#ffffff'],
+  'ART: Re-Proof':           ['#7C37EF', '#ffffff'],
+  'ART: Proof Me':           ['#FFBA05', '#000000'],
+  'ART: Done':               ['#048A0E', '#ffffff'],
+  'PROOF RDY: Review':       ['#9AE095', '#000000'],
+  'PROOF RDY: Email Cust':   ['#048A0E', '#ffffff'],
+  'PROOF SENT: waiting':     ['#C4ECFF', '#000000'],
+  'APPROVED: Print Me':      ['#39CAFF', '#000000'],
+  'PRINTED: Check Delivery': ['#A0C6FF', '#000000'],
+  'Delivered':               ['#C4C7CD', '#000000'],
+  'Cancelled':               ['#E5E9F0', '#000000'],
+};
+
+const ARTIST_COLORS = {
+  'Glecy':   ['#56d2ff', '#000000'],
+  'Enzo':    ['#e12958', '#ffffff'],
+  'Shirley': ['#316cb8', '#ffffff'],
+  'Peter':   ['#ffb68e', '#000000'],
+  'Lili':    ['#ffdc81', '#000000'],
+  'Celina':  ['#7c37ef', '#ffffff'],
+  'Ira':     ['#5d6167', '#ffffff'],
+  'Janine':  ['#a9e5a5', '#000000'],
+};
+
+const artistBadge = (val) => {
+  if (!val) return '';
+  const colors = ARTIST_COLORS[val];
+  const [bg, color] = colors ?? ['#ef4444', '#ffffff'];
+  return `<span class="badge" style="background:${bg};color:${color};border-color:${bg}">${val}</span>`;
 };
 
 const pipelineBadge = (val) => {
   if (!val) return '—';
-  const key = Object.keys(PIPELINE_COLORS).find(k => val.toLowerCase().includes(k.toLowerCase()));
-  return `<span class="badge badge-sm ${key ? PIPELINE_COLORS[key] : 'badge-ghost'}">${val}</span>`;
+  const colors = PIPELINE_COLORS[val];
+  const [bg, color] = colors ?? ['#ef4444', '#ffffff']; // bright red for unknown values
+  return `<span class="badge" style="background:${bg};color:${color};border-color:${bg}">${val}</span>`;
 };
 
 const COL = 'cfg.orders';
@@ -25,10 +51,9 @@ const _schema = (title, fields) => ({ title, collection: COL, idField: 'orderId_
 
 const ORDER_SCHEMAS = {
   pipeline: _schema('Edit Pipeline', [
-    { key: 'pipeline',     label: 'Pipeline',     type: 'select', nullable: true,
-      options: ['Proof Me', 'Proof Sent', 'Approved', 'Print', 'Ship', 'Complete'] },
-    { key: 'artist',       label: 'Artist',       type: 'text' },
-    { key: 'chosen_proof', label: 'Chosen Proof', type: 'text' },
+    { key: 'pipeline',     label: 'Pipeline',     type: 'select', nullable: false,
+      options: ['HOLD', 'ART: Re-Proof', 'ART: Proof Me', 'ART: Done', 'PROOF RDY: Review', 'PROOF RDY: Email Cust', 'PROOF SENT: waiting', 'APPROVED: Print Me', 'PRINTED: Check Delivery', 'Delivered', 'Cancelled'] },
+    { key: 'chosen_proof', label: 'Chosen Proof', type: 'text', validate: 'proof' },
   ]),
   addons: _schema('Edit Addons', [
     { key: 'isPriority',       label: 'Priority',         type: 'toggle' },
@@ -145,11 +170,12 @@ const mainTab = (r) => {
 
       <div class="card bg-base-200">
         <div class="flex flex-col px-3 py-2 gap-1">
-          ${_cardHead('Pipeline', 'pipeline')}
+          ${_cardHead('Pipeline / Chosen Proof', 'pipeline')}
           <div class="space-y-1 text-sm">
             <div>${pipelineBadge(r.pipeline)}</div>
-            ${r.artist       ? `<div class="text-xs opacity-60">${r.artist}</div>` : ''}
-            ${r.chosen_proof ? `<div class="text-xs">✔ ${r.chosen_proof}</div>` : ''}
+            ${r.chosen_proof ? `<div class="flex gap-1 flex-wrap">
+              ${r.chosen_proof.split(',').map(s => `<span class="badge" style="background:#22c55e;color:#fff;border-color:#22c55e">${s.trim().toUpperCase()}</span>`).join('')}
+            </div>` : ''}
           </div>
         </div>
       </div>
@@ -315,34 +341,31 @@ export const orders = {
   defaultPer:   25,
 
   drawerKey:   'orderId_raw',
-  drawerTitle: (r) => `#${r.orderId_raw}${r.isPriority ? ' ⭐' : ''}`,
+  drawerTitle: (r) => {
+    const priority = r.isPriority ? ' ⭐' : '';
+    const artist   = r.artist ? `&nbsp;&nbsp;${artistBadge(r.artist)}` : '';
+    return `#${r.orderId_raw}${priority}${artist}`;
+  },
 
   drawerOverview: (r) => {
     const name  = [r.custFirst, r.custLast].filter(Boolean).join(' ') || r.customer || '—';
     const items = r.items ? r.items.split('\n').filter(Boolean) : [];
 
-    // Pick chosen proof thumbnail, or first available
+    // Pick chosen proof thumbnail, or first available — launches ArtBrowser on click
     let proofHtml = '';
-    if (r.auto_proof_files?.length) {
-      const chosen = (r.chosen_proof || '').split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
-      const file   = r.auto_proof_files.find(f => {
-        const letter = f.filename?.split('_')[1]?.toLowerCase();
-        return chosen.includes(letter);
-      }) ?? r.auto_proof_files[0];
-
-      if (file) {
-        const letter = file.filename?.split('_')[1]?.toLowerCase() ?? '?';
-        const num    = +file.filename?.split('_')[0];
-        const prefix = Math.floor(num / 100);
-        const url    = file.url
-          ?? `https://custom-family-gifts.s3.us-east-2.amazonaws.com/${prefix}00-${prefix}99/${num}/_proofs/${num}_${letter}_proof.jpg`;
-        proofHtml = `
-          <a href="${url}" target="_blank" class="shrink-0">
-            <img src="${url}" alt="Proof ${letter.toUpperCase()}"
-              class="w-16 h-16 object-cover rounded shadow-sm" />
-          </a>
-        `;
-      }
+    if (r.sent_proofs_record && r.orderId_raw) {
+      const letters = r.sent_proofs_record.split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
+      const chosen  = (r.chosen_proof || '').split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
+      const letter  = letters.find(l => chosen.includes(l)) ?? letters.at(-1);
+      const id      = r.orderId_raw;
+      const prefix  = Math.floor(id / 100);
+      const thumb   = `https://custom-family-gifts.s3.us-east-2.amazonaws.com/${prefix * 100}-${prefix * 100 + 99}/${id}/_proofs/${id}_${letter}_proof.jpg`;
+      proofHtml = `
+        <button class="shrink-0" onclick="window._ArtBrowser.open(${id},${prefix},'${r.sent_proofs_record}','${letter}')">
+          <img src="${thumb}" alt="Proof ${letter.toUpperCase()}"
+            class="w-16 h-16 object-cover rounded shadow-sm hover:opacity-80 transition-opacity" />
+        </button>
+      `;
     }
 
     return `
@@ -421,6 +444,17 @@ export const orders = {
       },
     },
     {
+      key:    'chosen_proof',
+      label:  '✔️',
+      render: (val) => {
+        if (!val) return '';
+        const badges = val.split(',').map(s => s.trim().toUpperCase()).filter(Boolean);
+        return `<div class="flex flex-col gap-1">
+          ${badges.map(b => `<span class="badge" style="background:#22c55e;color:#fff;border-color:#22c55e">${b}</span>`).join('')}
+        </div>`;
+      },
+    },
+    {
       key:    'customer',
       label:  'Customer',
       render: (val, r) => {
@@ -428,18 +462,21 @@ export const orders = {
           ? `${r.custFirst || ''} ${r.custLast || ''}`.trim()
           : val || '—';
         const phone = formatPhone(r.custPhone);
-        return `<div>${name}</div>${r.email ? `<div class="text-xs opacity-50">${r.email}</div>` : ''}${phone ? `<div class="text-xs opacity-50">${phone}</div>` : ''}`;
+        const emailDisplay = r.email?.startsWith('customfamilygifts4+')
+          ? `<div class="text-xs opacity-30">no email</div>`
+          : r.email ? `<div class="text-xs opacity-50">${r.email}</div>` : '';
+        return `<div>${name}</div>${emailDisplay}${phone ? `<div class="text-xs opacity-50">${phone}</div>` : ''}`;
       },
     },
     {
       key:    'pipeline',
-      label:  'Pipeline / Artist',
-      render: (val, r) => {
-        let out = pipelineBadge(val);
-        if (r.artist)       out += `<div class="text-xs opacity-60 mt-1">${r.artist}</div>`;
-        if (r.chosen_proof) out += `<div class="text-xs opacity-40">✔ ${r.chosen_proof}</div>`;
-        return out;
-      },
+      label:  'Pipeline',
+      render: (val) => pipelineBadge(val),
+    },
+    {
+      key:    'artist',
+      label:  'Artist',
+      render: (val) => artistBadge(val),
     },
     {
       key:          'items',

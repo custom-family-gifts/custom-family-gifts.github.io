@@ -128,7 +128,7 @@ export class Drawer {
   // ---------------------------------------------------------------------------
 
   #updateTitle() {
-    this.#title.textContent = this.#titleFn
+    this.#title.innerHTML = this.#titleFn
       ? this.#titleFn(this.#currentRecord)
       : (this.#currentRecord.name ?? this.#currentRecord.title ?? this.#currentRecord._id ?? 'Detail');
   }
@@ -197,10 +197,13 @@ export class Drawer {
   }
 
   #syncParams() {
-    const p = {};
-    if (this.#drawerParam != null) p.drawer = this.#drawerParam;
-    if (this.#tabs && this.#activeTab)  p.tab    = this.#activeTab;
-    Router.setParams(p);
+    const current = Router.getParams();
+    // Preserve all non-drawer/tab params (e.g. filter values)
+    delete current.drawer;
+    delete current.tab;
+    if (this.#drawerParam != null) current.drawer = this.#drawerParam;
+    if (this.#tabs && this.#activeTab)  current.tab    = this.#activeTab;
+    Router.setParams(current);
   }
 
   // Fallback: renders every key/value as a labeled row
