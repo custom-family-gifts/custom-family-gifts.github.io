@@ -92,6 +92,7 @@ export class PageController {
     this.#components.modal = new Modal();
     this.#components.modal.mount(q('#pc-modal'));
     window._Modal    = this.#components.modal;
+    window._Drawer   = this.#components.drawer;
     window._CrudForm = CrudForm;
   }
 

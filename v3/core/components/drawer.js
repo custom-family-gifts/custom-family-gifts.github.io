@@ -116,6 +116,15 @@ export class Drawer {
     }
   }
 
+  refresh(patch) {
+    if (!this.#currentRecord) return;
+    this.#currentRecord = { ...this.#currentRecord, ...patch };
+    this.#updateTitle();
+    this.#renderOverview();
+    this.#renderTabBar();
+    this.#renderBody();
+  }
+
   close() {
     this.#panel.classList.add('translate-x-full');
     this.#backdrop.classList.add('hidden');

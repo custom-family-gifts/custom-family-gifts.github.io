@@ -25,9 +25,12 @@ export class Nav {
   }
 
   #updateActive(el) {
-    const current = window.location.hash.slice(2);
+    const current = window.location.hash.slice(2).split('?')[0];
     el.querySelectorAll('[data-route]').forEach(a => {
-      a.classList.toggle('active', a.dataset.route === current);
+      const isActive = a.dataset.route === current;
+      a.style.borderBottomColor = isActive ? 'var(--color-primary, #f8886d)' : 'transparent';
+      a.style.color = isActive ? 'oklch(var(--bc))' : '';
+      a.classList.toggle('is-active', isActive);
     });
   }
 
@@ -41,7 +44,9 @@ export class Nav {
           <ul class="menu menu-horizontal gap-1 p-0">
             ${this.routes.map(r => `
               <li>
-                <a data-route="${r.path}" class="gap-2 text-sm font-medium">
+                <a data-route="${r.path}"
+                   style="border-bottom: 2px solid transparent; transition: border-color 0.15s, opacity 0.15s;"
+                   class="gap-2 text-sm rounded-none text-base-content/60 hover:text-base-content hover:bg-base-200 active:!bg-base-200">
                   ${r.icon ? `<span>${r.icon}</span>` : ''}
                   ${r.label}
                 </a>

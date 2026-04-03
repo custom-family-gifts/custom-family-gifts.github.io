@@ -33,8 +33,7 @@ const ARTIST_COLORS = {
 
 const artistBadge = (val) => {
   if (!val) return '';
-  const colors = ARTIST_COLORS[val];
-  const [bg, color] = colors ?? ['#ef4444', '#ffffff'];
+  const [bg, color] = ARTIST_COLORS[val] ?? ['#E5E9F0', '#000000'];
   return `<span class="badge" style="background:${bg};color:${color};border-color:${bg}">${val}</span>`;
 };
 
@@ -47,7 +46,7 @@ const pipelineBadge = (val) => {
 
 const COL = 'cfg.orders';
 
-const _schema = (title, fields) => ({ title, collection: COL, idField: 'orderId_raw', fields });
+const _schema = (title, fields) => ({ title, collection: COL, idField: 'orderId_raw', endpoint: 'v2-atmdb', fields });
 
 const ORDER_SCHEMAS = {
   pipeline: _schema('Edit Pipeline', [
