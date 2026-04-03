@@ -1,4 +1,5 @@
 import { API }        from '../core/api.js';
+import { Auth }       from '../core/auth.js';
 import { formatDate, formatPhone } from '../core/helpers.js';
 
 // ---------------------------------------------------------------------------
@@ -60,7 +61,14 @@ const ORDER_SCHEMAS = {
     { key: 'email_digital_art_sent', label: 'Digital Art Sent', type: 'datetime', hint: 'Clear this date to trigger a resend of the digital art email.' },
   ]),
   shipping: _schema('Edit Shipping', [
-    { key: 'shipAddress', label: 'Ship Address', type: 'textarea', rows: 4 },
+    { key: 'shipAddFname',   label: 'First Name', type: 'text', validate: 'required' },
+    { key: 'shipAddLname',   label: 'Last Name',  type: 'text', validate: 'required' },
+    { key: 'shipAddStreet1', label: 'Street 1',   type: 'text', validate: 'required' },
+    { key: 'shipAddStreet2', label: 'Street 2',   type: 'text' },
+    { key: 'shipAddCity',    label: 'City',       type: 'text', validate: 'required' },
+    { key: 'shipAddState',   label: 'State',      type: 'text', maxlength: 2, hint: '2-letter code (e.g. CA)' },
+    { key: 'shipAddZip',     label: 'Zip',        type: 'text' },
+    { key: 'shipAddCountry', label: 'Country',    type: 'text', validate: 'required', maxlength: 2, hint: '2-letter code (e.g. US)' },
   ]),
   options: _schema('Edit Options', [
     { key: 'options', label: 'Options', type: 'textarea', rows: 6 },
@@ -70,10 +78,12 @@ const ORDER_SCHEMAS = {
     { key: 'to_print_gift_note', label: 'Gift Note',  type: 'textarea', rows: 3, hint: 'Copy from print_note when appropriate' },
   ]),
   customer: _schema('Edit Customer', [
-    { key: 'custFirst', label: 'First Name',   type: 'text', validate: 'required' },
-    { key: 'custLast',  label: 'Last Name',    type: 'text', validate: 'required' },
-    { key: 'email',     label: 'Email',        type: 'text', validate: ['required', 'email'] },
-    { key: 'custPhone', label: 'Phone',        type: 'text' },
+    { key: 'custFirst',    label: 'First Name',      type: 'text', validate: 'required' },
+    { key: 'custLast',     label: 'Last Name',        type: 'text', validate: 'required' },
+    { key: 'email',        label: 'Email',            type: 'text', validate: ['required', 'email'] },
+    { key: 'custPhone',    label: 'Phone',            type: 'text' },
+    { key: 'shipAddFname', label: 'Ship First Name',  type: 'text', validate: 'required' },
+    { key: 'shipAddLname', label: 'Ship Last Name',   type: 'text', validate: 'required' },
   ]),
 };
 
@@ -86,6 +96,14 @@ const PROJECTION = {
   custLast:                          1,
   email:                             1,
   custPhone:                         1,
+  shipAddFname:                      1,
+  shipAddLname:                      1,
+  shipAddStreet1:                    1,
+  shipAddStreet2:                    1,
+  shipAddCity:                       1,
+  shipAddState:                      1,
+  shipAddZip:                        1,
+  shipAddCountry:                    1,
   artist:                            1,
   pipeline:                          1,
   chosen_proof:                      1,
@@ -183,11 +201,9 @@ const mainTab = (r) => {
       <div class="card bg-base-200">
         <div class="flex flex-col px-3 py-2 gap-1">
           ${_cardHead('Pipeline / Chosen Proof', 'pipeline')}
-          <div class="space-y-1 text-sm">
-            <div>${pipelineBadge(r.pipeline)}</div>
-            ${r.chosen_proof ? `<div class="flex gap-1 flex-wrap">
-              ${r.chosen_proof.split(',').map(s => `<span class="badge" style="background:#22c55e;color:#fff;border-color:#22c55e">${s.trim().toUpperCase()}</span>`).join('')}
-            </div>` : ''}
+          <div class="flex gap-1 flex-wrap items-center text-sm">
+            ${pipelineBadge(r.pipeline)}
+            ${r.chosen_proof ? r.chosen_proof.split(',').map(s => `<span class="badge" style="background:#22c55e;color:#fff;border-color:#22c55e">${s.trim().toUpperCase()}</span>`).join('') : ''}
           </div>
         </div>
       </div>
@@ -195,7 +211,7 @@ const mainTab = (r) => {
       <div class="card bg-base-200">
         <div class="flex flex-col px-3 py-2 gap-1">
           ${_cardHead('Priority / Digital', 'addons')}
-          ${(r.isPriority || r['Needs Digital Art']) ? `
+          ${(r.isPriority || r['Needs Digital Art'] || r.email_digital_art_sent) ? `
           <div class="space-y-1 text-sm">
             ${r.isPriority           ? `<div>⭐ Priority</div>`    : ''}
             ${r['Needs Digital Art'] ? `<div>✅ Digital Art</div>` : ''}
@@ -209,9 +225,14 @@ const mainTab = (r) => {
       <div class="card bg-base-200">
         <div class="flex flex-col px-3 py-2 gap-1">
           ${_cardHead('Shipping', 'shipping')}
-          ${r.shipAddress
-            ? `<div class="text-sm whitespace-pre-wrap">${r.shipAddress}</div>`
-            : `<div class="text-sm opacity-30">—</div>`}
+          ${(r.shipAddFname || r.shipAddStreet1) ? `
+          <div class="text-sm space-y-0.5">
+            ${(r.shipAddFname || r.shipAddLname) ? `<div>${[r.shipAddFname, r.shipAddLname].filter(Boolean).join(' ')}</div>` : ''}
+            ${r.shipAddStreet1 ? `<div>${r.shipAddStreet1}</div>` : ''}
+            ${r.shipAddStreet2 ? `<div>${r.shipAddStreet2}</div>` : ''}
+            ${(r.shipAddCity || r.shipAddState || r.shipAddZip) ? `<div>${[r.shipAddCity, r.shipAddState, r.shipAddZip].filter(Boolean).join(', ')}</div>` : ''}
+            ${r.shipAddCountry ? `<div>${r.shipAddCountry}</div>` : ''}
+          </div>` : `<div class="text-sm opacity-30">—</div>`}
         </div>
       </div>
 
@@ -226,7 +247,7 @@ const mainTab = (r) => {
           ${(r.print_note || r.to_print_gift_note) ? `
           <div class="space-y-1.5 text-sm">
             ${r.print_note
-              ? `<div><span class="text-xs uppercase tracking-wide opacity-50">Print Note</span><div class="whitespace-pre-wrap">${r.print_note}</div></div>`
+              ? `<div><span class="text-xs uppercase tracking-wide opacity-50">Print Note</span><div class="whitespace-pre-wrap">🛑 ${r.print_note}</div></div>`
               : ''}
             ${r.to_print_gift_note
               ? `<div><span class="text-xs uppercase tracking-wide opacity-50">Gift Note</span><div class="whitespace-pre-wrap">${r.to_print_gift_note}</div></div>`
@@ -248,6 +269,118 @@ const mainTab = (r) => {
 
   </div>
 `;};
+
+// ---------------------------------------------------------------------------
+// Internal notes — parser + tab + compose
+// ---------------------------------------------------------------------------
+const NOTES_FIELD = 'Internal - newest on top please';
+
+function parseInternalNotes(raw) {
+  if (!raw) return [];
+  const structured = [];
+  const re = /\|\|(\w+)@([^!]+)!!\n([\s\S]*?)==END==/g;
+  let match;
+  while ((match = re.exec(raw)) !== null) {
+    structured.push({ author: match[1], ts: match[2].trim(), body: match[3].trim() });
+  }
+  // Anything that didn't parse — surface as a single legacy block
+  const remainder = raw.replace(/\|\|\w+@[^!]+!!\n[\s\S]*?==END==/g, '').trim();
+  if (remainder) structured.push({ author: null, ts: null, body: remainder });
+  return structured;
+}
+
+function _linkify(text) {
+  return text.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank" class="link link-primary break-all">$1</a>');
+}
+
+function _noteCard(note) {
+  const header = note.author
+    ? `<div class="flex items-center justify-between gap-2 mb-1">
+         <span class="text-xs font-semibold opacity-90">${note.author}</span>
+         <span class="text-xs opacity-60">${formatDate(note.ts)}</span>
+       </div>`
+    : `<div class="text-xs opacity-60 mb-1">Legacy / unformatted</div>`;
+  return `
+    <div class="card" style="background:#c75c3a;border-color:#c75c3a;color:#fff">
+      <div class="card-body py-3 px-4 gap-0">
+        ${header}
+        <div class="text-sm whitespace-pre-wrap">${_linkify(note.body)}</div>
+      </div>
+    </div>`;
+}
+
+const notesTab = (r) => {
+  window._currentOrderRecord = r;
+  const notes = parseInternalNotes(r[NOTES_FIELD]);
+  return `
+    <style>#overview-internal-note { display: none }</style>
+    <div class="flex flex-col gap-3">
+      <!-- Compose -->
+      <div class="flex flex-col gap-2">
+        <div id="note-compose" class="hidden flex-col gap-2">
+          <textarea id="note-input" rows="3"
+            class="textarea textarea-bordered textarea-sm w-full resize-none"
+            placeholder="Write a note…"></textarea>
+          <div id="note-error" class="text-error text-xs hidden"></div>
+        </div>
+        <div class="flex justify-end">
+          <button id="note-action-btn" onclick="window._noteComposeToggle()" class="btn btn-primary btn-sm">Add Note</button>
+        </div>
+      </div>
+      <!-- Existing notes -->
+      ${notes.length
+        ? notes.map(_noteCard).join('')
+        : `<p class="text-sm text-base-content/40 text-center py-8">No notes yet</p>`}
+    </div>`;
+};
+
+window._noteComposeToggle = () => {
+  const compose = document.getElementById('note-compose');
+  const btn     = document.getElementById('note-action-btn');
+  if (!compose.classList.contains('hidden')) {
+    // Already open — submit
+    window._submitInternalNote();
+    return;
+  }
+  compose.classList.remove('hidden');
+  compose.classList.add('flex');
+  btn.textContent = 'Post Note';
+  document.getElementById('note-input')?.focus();
+};
+
+window._submitInternalNote = async () => {
+  const input  = document.getElementById('note-input');
+  const errEl  = document.getElementById('note-error');
+  const btn    = document.getElementById('note-action-btn');
+  const text   = input?.value?.trim();
+  if (!text) {
+    errEl.textContent = 'Note cannot be blank.';
+    errEl.classList.remove('hidden');
+    return;
+  }
+
+  errEl.classList.add('hidden');
+  btn.disabled  = true;
+  btn.innerHTML = '<span class="loading loading-spinner loading-xs"></span>';
+
+  try {
+    await API.gcf('v2-addOrderInternalNote', {
+      body: JSON.stringify({
+        orderId:   window._currentOrderRecord.orderId_raw,
+        message:   text,
+        admin_key: Auth.getKey(),
+      }),
+    });
+    const updated = await fetchOne(window._currentOrderRecord);
+    window._Drawer?.refresh(updated);
+    window._Drawer?.switchTab('notes');
+  } catch (err) {
+    errEl.textContent = err.message || 'Failed to save note.';
+    errEl.classList.remove('hidden');
+    btn.disabled    = false;
+    btn.textContent = 'Post Note';
+  }
+};
 
 // ---------------------------------------------------------------------------
 // Tab: Messages
@@ -313,9 +446,9 @@ const printsTab = (r) => {
 
   if (r['Internal - newest on top please']) {
     parts.push(`
-      <div class="card bg-warning/10 border border-warning/30">
+      <div class="card" style="background:#c75c3a;border-color:#c75c3a;color:#fff">
         <div class="card-body py-3 px-4 gap-1">
-          <h4 class="text-xs uppercase tracking-wide opacity-60">Internal Notes</h4>
+          <h4 class="text-xs uppercase tracking-wide opacity-70">Internal Notes</h4>
           <div class="text-sm whitespace-pre-wrap">${r['Internal - newest on top please']}</div>
         </div>
       </div>
@@ -376,7 +509,10 @@ export const orders = {
     const priority = r.isPriority ? '⭐ ' : '';
     const etsy     = (r.etsy_receipt_id || r.etsy_receipt_id_saved) ? ` <span class="text-orange-400 text-xs">🍊</span>` : '';
     const artist   = r.artist ? `&nbsp;&nbsp;${artistBadge(r.artist)}` : '';
-    return `${priority}<span class="font-mono">#${r.orderId_raw}</span>${etsy}${artist}`;
+    const proof    = r.chosen_proof
+      ? r.chosen_proof.split(',').map(s => `&nbsp;<span class="badge" style="background:#22c55e;color:#fff;border-color:#22c55e">${s.trim().toUpperCase()}</span>`).join('')
+      : '';
+    return `${priority}<span class="font-mono">#${r.orderId_raw}</span>${etsy}${artist}${proof}`;
   },
 
   drawerOverview: (r) => {
@@ -401,6 +537,30 @@ export const orders = {
     }
 
     const phone = formatPhone(r.custPhone);
+    const notes = parseInternalNotes(r[NOTES_FIELD]);
+    const latestNote = notes[0];
+    const moreCount  = notes.length - 1;
+
+    const notesHtml = latestNote ? `
+      <div id="overview-internal-note" class="mt-2 card" style="background:#c75c3a;border-color:#c75c3a;color:#fff">
+        <div class="card-body py-2 px-3 gap-1">
+          <div class="flex items-center justify-between gap-2">
+            ${latestNote.author
+              ? `<span class="text-xs font-semibold opacity-90">${latestNote.author}</span>
+                 <span class="text-xs opacity-60">${formatDate(latestNote.ts)}</span>`
+              : `<span class="text-xs opacity-60">Legacy note</span>`}
+          </div>
+          <div class="text-xs whitespace-pre-wrap line-clamp-3">${latestNote.body}</div>
+          ${moreCount > 0
+            ? `<button onclick="window._Drawer?.switchTab('notes')"
+                 class="btn btn-xs self-start -ml-1 mt-0.5"
+                 style="background:rgba(0,0,0,0.2);color:#fff;border-color:transparent">
+                 +${moreCount} more
+               </button>`
+            : ''}
+        </div>
+      </div>` : '';
+
     return `
       <div class="flex gap-3 items-start">
         ${proofHtml}
@@ -420,6 +580,7 @@ export const orders = {
               ${items.map(line => `<div class="text-xs text-base-content/70">${line}</div>`).join('')}
             </div>
           ` : ''}
+          ${notesHtml}
         </div>
       </div>
     `;
@@ -430,6 +591,12 @@ export const orders = {
       id:     'main',
       label:  'Main',
       render: mainTab,
+    },
+    {
+      id:     'notes',
+      label:  'Internal',
+      count:  (r) => parseInternalNotes(r[NOTES_FIELD]).length,
+      render: notesTab,
     },
     {
       id:     'messages',
@@ -465,6 +632,26 @@ export const orders = {
           out += `<br><span class="text-xs opacity-50">${formatDate(r.created_shopify_order)}</span>`;
         }
         return out;
+      },
+    },
+    {
+      key:    'Internal - newest on top please',
+      label:  'Internal',
+      hideOnMobile: true,
+      render: (val, r) => {
+        const notes = parseInternalNotes(val);
+        if (!notes.length) return '';
+        const first = notes[0];
+        const preview = first.body.replace(/\n/g, ' ').slice(0, 60) + (first.body.length > 60 ? '…' : '');
+        const countBadge = notes.length > 1
+          ? `<div class="mt-0.5"><span class="badge badge-sm" style="background:#c75c3a;color:#fff;border-color:#c75c3a">+${notes.length - 1} more</span></div>`
+          : '';
+        return `<button onclick="event.stopPropagation();window._openInternalTab(${r.orderId_raw})"
+          class="text-left text-xs max-w-48"
+          style="color:#c75c3a">
+          <div>${first.author ? `<span class="font-semibold">${first.author}:</span> ` : ''}${preview}</div>
+          ${countBadge}
+        </button>`;
       },
     },
     {
@@ -537,6 +724,11 @@ export const orders = {
 
 window._orderEdit = (schemaKey) => {
   window._CrudForm.open(ORDER_SCHEMAS[schemaKey], window._currentOrderRecord);
+};
+
+window._openInternalTab = (orderId) => {
+  const record = API.store[COL]?.records?.find(r => r.orderId_raw === orderId);
+  if (record) window._Drawer?.open(record, 'notes', String(orderId));
 };
 
 // ---------------------------------------------------------------------------

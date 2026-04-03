@@ -81,8 +81,9 @@ async function _handleSubmit(e, schema, record) {
 
     const updated = result?.records?.[0];
     if (updated) {
-      API.storeUpdate(schema.collection, updated, idField);
-      window._Drawer?.refresh(updated);
+      const merged = { ...set, ...updated };
+      API.storeUpdate(schema.collection, merged, idField);
+      window._Drawer?.refresh(merged);
     }
     window._Modal.close();
     window._Toast?.success('Saved');

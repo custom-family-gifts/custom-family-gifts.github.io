@@ -121,6 +121,7 @@ export function renderField(f, record) {
     default: // text
       return _wrap(f, id, lbl, asterisk, `
         <input id="${id}" name="${f.key}" type="text" value="${_esc(val)}"
+          ${f.maxlength ? `maxlength="${f.maxlength}"` : ''}
           class="input input-bordered input-sm w-full" />`);
   }
 }

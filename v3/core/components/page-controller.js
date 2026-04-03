@@ -13,6 +13,14 @@ function readFilterParams(filterConfigs) {
   return filters;
 }
 
+function readPaginationParams(defaultPer) {
+  const params = Router.getParams();
+  return {
+    page: params.page ? Math.max(1, parseInt(params.page, 10)) : 1,
+    per:  params.per  ? parseInt(params.per, 10) : (defaultPer ?? 25),
+  };
+}
+
 export class PageController {
   #config;
   #el;
@@ -22,9 +30,10 @@ export class PageController {
   constructor(config, el) {
     this.#config = config;
     this.#el = el;
+    const { page, per } = readPaginationParams(config.defaultPer);
     this.#state = {
-      page:    1,
-      per:     config.defaultPer  ?? 25,
+      page,
+      per,
       sort:    config.defaultSort  ?? null,
       order:   config.defaultOrder ?? 1,
       filters: readFilterParams(config.filters ?? []),
@@ -106,6 +115,12 @@ export class PageController {
         per:   result.per,
         total: result.totalcount,
       });
+
+      // Persist pagination in URL so it survives reloads and copying
+      const urlParams = Router.getParams();
+      if (result.page > 1)  urlParams.page = result.page; else delete urlParams.page;
+      if (result.per !== (this.#config.defaultPer ?? 25)) urlParams.per = result.per; else delete urlParams.per;
+      Router.setParams(urlParams);
 
       // Restore drawer from URL params — fall back to stub if record isn't on this page
       const params = Router.getParams();

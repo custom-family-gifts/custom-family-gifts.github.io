@@ -129,7 +129,10 @@ export class Drawer {
     this.#panel.classList.add('translate-x-full');
     this.#backdrop.classList.add('hidden');
     document.body.classList.remove('overflow-hidden');
-    Router.setParams({});
+    const current = Router.getParams();
+    delete current.drawer;
+    delete current.tab;
+    Router.setParams(current);
   }
 
   // ---------------------------------------------------------------------------
@@ -174,7 +177,7 @@ export class Drawer {
                        : 'border-transparent text-base-content/50 hover:text-base-content'}">
               ${tab.label}
               ${count > 0
-                ? `<span class="badge badge-xs ${active ? 'badge-primary' : 'badge-ghost'}">${count}</span>`
+                ? `<span class="badge badge-sm ${active ? 'badge-primary' : 'badge-ghost'}">${count}</span>`
                 : ''}
             </button>
           `;
@@ -187,11 +190,16 @@ export class Drawer {
     });
   }
 
-  #switchTab(tabId) {
+  switchTab(tabId) {
+    if (!this.#tabs?.some(t => t.id === tabId)) return;
     this.#activeTab = tabId;
     this.#renderTabBar();
     this.#renderBody();
     this.#syncParams();
+  }
+
+  #switchTab(tabId) {
+    this.switchTab(tabId);
   }
 
   #renderBody() {

@@ -46,7 +46,7 @@ export class Pagination {
           <div class="join">
             ${this.#pages(page, totalPages).map(p =>
               p === '...'
-                ? `<button class="join-item btn btn-sm btn-disabled opacity-40">…</button>`
+                ? `<button class="join-item btn btn-sm btn-ghost pointer-events-none text-base-content/40" tabindex="-1">…</button>`
                 : `<button class="join-item btn btn-sm ${p === page ? 'btn-primary' : ''}" data-page="${p}">${p}</button>`
             ).join('')}
           </div>
