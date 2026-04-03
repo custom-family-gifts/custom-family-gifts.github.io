@@ -55,14 +55,25 @@ const ORDER_SCHEMAS = {
     { key: 'chosen_proof', label: 'Chosen Proof', type: 'text', validate: 'proof' },
   ]),
   addons: _schema('Edit Addons', [
-    { key: 'isPriority',       label: 'Priority',         type: 'toggle' },
-    { key: 'Needs Digital Art', label: 'Needs Digital Art', type: 'toggle' },
+    { key: 'isPriority',            label: 'Priority',          type: 'checkbox' },
+    { key: 'Needs Digital Art',     label: 'Needs Digital Art', type: 'checkbox' },
+    { key: 'email_digital_art_sent', label: 'Digital Art Sent', type: 'datetime', hint: 'Clear this date to trigger a resend of the digital art email.' },
   ]),
   shipping: _schema('Edit Shipping', [
     { key: 'shipAddress', label: 'Ship Address', type: 'textarea', rows: 4 },
   ]),
   options: _schema('Edit Options', [
     { key: 'options', label: 'Options', type: 'textarea', rows: 6 },
+  ]),
+  printNote: _schema('Edit Print / Gift Note', [
+    { key: 'print_note',         label: 'Print Note', type: 'textarea', rows: 3, hint: 'Content here will block printing.' },
+    { key: 'to_print_gift_note', label: 'Gift Note',  type: 'textarea', rows: 3, hint: 'Copy from print_note when appropriate' },
+  ]),
+  customer: _schema('Edit Customer', [
+    { key: 'custFirst', label: 'First Name',   type: 'text', validate: 'required' },
+    { key: 'custLast',  label: 'Last Name',    type: 'text', validate: 'required' },
+    { key: 'email',     label: 'Email',        type: 'text', validate: ['required', 'email'] },
+    { key: 'custPhone', label: 'Phone',        type: 'text' },
   ]),
 };
 
@@ -90,9 +101,11 @@ const PROJECTION = {
   etsy_link:                         1,
   at_record_id:                      1,
   print_note:                        1,
+  to_print_gift_note:                1,
   'Internal - newest on top please': 1,
   sent_proofs_record: 1,
   'Needs Digital Art': 1,
+  email_digital_art_sent: 1,
   shipAddress: 1,
 };
 
@@ -181,11 +194,15 @@ const mainTab = (r) => {
 
       <div class="card bg-base-200">
         <div class="flex flex-col px-3 py-2 gap-1">
-          ${_cardHead('Addons', 'addons')}
+          ${_cardHead('Priority / Digital', 'addons')}
+          ${(r.isPriority || r['Needs Digital Art']) ? `
           <div class="space-y-1 text-sm">
-            ${r.isPriority           ? `<div>⭐ Priority</div>`          : `<div class="opacity-30">No priority</div>`}
-            ${r['Needs Digital Art'] ? `<div>🎨 Needs Digital Art</div>` : ''}
-          </div>
+            ${r.isPriority           ? `<div>⭐ Priority</div>`    : ''}
+            ${r['Needs Digital Art'] ? `<div>✅ Digital Art</div>` : ''}
+            ${r.email_digital_art_sent
+              ? `<div class="text-xs opacity-60">✉️ Digital sent ${new Date(r.email_digital_art_sent).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</div>`
+              : ''}
+          </div>` : ''}
         </div>
       </div>
 
@@ -202,6 +219,21 @@ const mainTab = (r) => {
 
     <!-- Right column -->
     <div class="space-y-2">
+
+      <div class="card bg-base-200">
+        <div class="flex flex-col px-3 py-2 gap-1">
+          ${_cardHead('Print / Gift Note', 'printNote')}
+          ${(r.print_note || r.to_print_gift_note) ? `
+          <div class="space-y-1.5 text-sm">
+            ${r.print_note
+              ? `<div><span class="text-xs uppercase tracking-wide opacity-50">Print Note</span><div class="whitespace-pre-wrap">${r.print_note}</div></div>`
+              : ''}
+            ${r.to_print_gift_note
+              ? `<div><span class="text-xs uppercase tracking-wide opacity-50">Gift Note</span><div class="whitespace-pre-wrap">${r.to_print_gift_note}</div></div>`
+              : ''}
+          </div>` : ''}
+        </div>
+      </div>
 
       <div class="card bg-base-200">
         <div class="flex flex-col px-3 py-2 gap-1">
@@ -341,9 +373,10 @@ export const orders = {
 
   drawerKey:   'orderId_raw',
   drawerTitle: (r) => {
-    const priority = r.isPriority ? ' ⭐' : '';
+    const priority = r.isPriority ? '⭐ ' : '';
+    const etsy     = (r.etsy_receipt_id || r.etsy_receipt_id_saved) ? ` <span class="text-orange-400 text-xs">🍊</span>` : '';
     const artist   = r.artist ? `&nbsp;&nbsp;${artistBadge(r.artist)}` : '';
-    return `#${r.orderId_raw}${priority}${artist}`;
+    return `${priority}<span class="font-mono">#${r.orderId_raw}</span>${etsy}${artist}`;
   },
 
   drawerOverview: (r) => {
@@ -367,18 +400,26 @@ export const orders = {
       `;
     }
 
+    const phone = formatPhone(r.custPhone);
     return `
       <div class="flex gap-3 items-start">
         ${proofHtml}
         <div class="min-w-0 flex-1">
-          <div class="font-medium text-sm">${name}</div>
-          ${r.email ? `<div class="text-xs text-base-content/50 truncate">${r.email}</div>` : ''}
+          <div class="flex items-center gap-1">
+            <div class="font-medium text-sm">${name}</div>
+            <button onclick="window._orderEdit('customer')" class="btn btn-xs btn-ghost btn-circle -my-1" title="Edit customer">${GEAR_SVG}</button>
+          </div>
+          ${r.email
+            ? r.email.startsWith('customfamilygifts4+')
+              ? `<div class="text-xs opacity-30">no email</div>`
+              : `<div class="text-xs text-base-content/50 truncate">${r.email}</div>`
+            : ''}
+          ${phone   ? `<div class="text-xs text-base-content/50">${phone}</div>` : ''}
           ${items.length ? `
             <div class="mt-1.5 space-y-0.5">
               ${items.map(line => `<div class="text-xs text-base-content/70">${line}</div>`).join('')}
             </div>
           ` : ''}
-          ${r.options ? `<div class="text-xs text-base-content/40 mt-0.5">${r.options}</div>` : ''}
         </div>
       </div>
     `;

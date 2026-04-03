@@ -6,9 +6,9 @@ import { validate, renderField }  from './form.js';
 // ---------------------------------------------------------------------------
 function _render(schema, record) {
   return `
-    <form id="cf-form" class="space-y-3 min-w-72">
+    <form id="cf-form" class="grid grid-cols-2 gap-x-3 gap-y-2 min-w-72">
       ${schema.fields.map(f => renderField(f, record)).join('')}
-      <div id="cf-error" class="text-error text-sm hidden"></div>
+      <div id="cf-error" class="col-span-2 text-error text-sm hidden"></div>
     </form>
   `;
 }
@@ -27,12 +27,22 @@ async function _handleSubmit(e, schema, record) {
   submitBtn.disabled  = true;
   submitBtn.innerHTML = '<span class="loading loading-spinner loading-xs"></span>';
 
-  // Serialise — toggles are absent from FormData when unchecked
+  // Serialise — checkboxes/toggles are absent from FormData when unchecked
   const data = new FormData(form);
   const set  = {};
   for (const f of schema.fields) {
-    if (f.type === 'toggle') {
+    if (f.type === 'toggle' || f.type === 'checkbox') {
       set[f.key] = data.has(f.key);
+    } else if (f.type === 'datetime') {
+      const dateEl = form.querySelector(`#cf-${f.key}`);
+      const timeEl = dateEl?.closest('.dt-wrap')?.querySelector('.dt-time');
+      const dateVal = dateEl?.value ?? '';
+      if (!dateVal) {
+        set[f.key] = null;
+      } else {
+        const timeVal = timeEl?.value || '00:00';
+        set[f.key] = new Date(`${dateVal}T${timeVal}`).toISOString();
+      }
     } else {
       const v = data.get(f.key) ?? '';
       set[f.key] = f.coerce === 'number' ? +v : v;
