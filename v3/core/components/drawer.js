@@ -12,6 +12,7 @@ export class Drawer {
   #title;
   #tabBar;
   #overview;
+  #loader;
   #activeTab    = null;
   #currentRecord = null;
   #drawerParam  = null;
@@ -45,6 +46,12 @@ export class Drawer {
                translate-x-full transition-transform duration-300 ease-in-out
                z-50 flex flex-col overflow-hidden">
 
+        <!-- Loading bar -->
+        <div id="drawer-loader" class="h-0.5 w-full shrink-0 hidden">
+          <div class="h-full bg-primary animate-[loader_1.2s_ease-in-out_infinite]" style="width:40%;margin-left:-40%;animation:loader 1.2s ease-in-out infinite"></div>
+        </div>
+        <style>@keyframes loader{0%{margin-left:-40%}100%{margin-left:100%}}</style>
+
         <!-- Header -->
         <div class="flex items-center justify-between px-5 py-4 border-b border-base-200 shrink-0">
           <h2 id="drawer-title" class="text-base font-semibold truncate pr-4"></h2>
@@ -68,6 +75,7 @@ export class Drawer {
     this.#title    = el.querySelector('#drawer-title');
     this.#overview = el.querySelector('#drawer-overview');
     this.#tabBar   = el.querySelector('#drawer-tabbar');
+    this.#loader   = el.querySelector('#drawer-loader');
 
     el.querySelector('#drawer-close').addEventListener('click', () => this.close());
     this.#backdrop.addEventListener('click', () => this.close());
@@ -103,6 +111,7 @@ export class Drawer {
     });
 
     if (this.#fetchOne) {
+      this.#loader.classList.remove('hidden');
       try {
         const enriched = await this.#fetchOne(record);
         this.#currentRecord = enriched;
@@ -112,6 +121,8 @@ export class Drawer {
         this.#renderBody();
       } catch (e) {
         console.warn('[Drawer] fetchOne failed:', e);
+      } finally {
+        this.#loader.classList.add('hidden');
       }
     }
   }
@@ -170,7 +181,7 @@ export class Drawer {
           const active = tab.id === this.#activeTab;
           return `
             <button data-tab="${tab.id}"
-              class="flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium whitespace-nowrap
+              class="flex items-center gap-1 px-3 py-2 text-xs font-normal whitespace-nowrap
                      -mb-px border-b-2 transition-colors
                      ${active
                        ? 'border-primary text-primary'

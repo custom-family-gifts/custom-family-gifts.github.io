@@ -36,6 +36,10 @@ async function gcf(shortUrl, options = {}) {
     if (el) el.textContent = result.admin;
   }
 
+  if (!res.ok || result.error) {
+    throw new Error(result.error || result.message || `Request failed (${res.status})`);
+  }
+
   return result;
 }
 

@@ -77,6 +77,9 @@ const ORDER_SCHEMAS = {
     { key: 'print_note',         label: 'Print Note', type: 'textarea', rows: 3, hint: 'Content here will block printing.' },
     { key: 'to_print_gift_note', label: 'Gift Note',  type: 'textarea', rows: 3, hint: 'Copy from print_note when appropriate' },
   ]),
+  sentProofs: _schema('Edit Sent Proofs', [
+    { key: 'sent_proofs_record', label: 'Sent Proofs', type: 'text', hint: 'Comma delimited, no spaces. Delete to allow resending of a previously sent proof.' },
+  ]),
   customer: _schema('Edit Customer', [
     { key: 'custFirst',    label: 'First Name',      type: 'text', validate: 'required' },
     { key: 'custLast',     label: 'Last Name',        type: 'text', validate: 'required' },
@@ -86,6 +89,13 @@ const ORDER_SCHEMAS = {
     { key: 'shipAddLname', label: 'Ship Last Name',   type: 'text', validate: 'required' },
   ]),
 };
+
+const ITEM_PRODUCTS = [
+  'Adventure Map', 'Heart Map', 'Journey', 'Wanderlust',
+  'Summit Map', 'Terra Carta', 'Admiration', 'Mapertures',
+];
+
+const TRASH_SVG = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-3.5"><path stroke-linecap="round" stroke-linejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" /></svg>`;
 
 const GEAR_SVG = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-3.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.325.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 0 1 1.37.49l1.296 2.247a1.125 1.125 0 0 1-.26 1.431l-1.003.827c-.293.241-.438.613-.43.992a7.723 7.723 0 0 1 0 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.955.26 1.43l-1.298 2.247a1.125 1.125 0 0 1-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.47 6.47 0 0 1-.22.128c-.331.183-.581.495-.644.869l-.213 1.281c-.09.543-.56.94-1.11.94h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.869a6.52 6.52 0 0 1-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 0 1-1.369-.49l-1.297-2.247a1.125 1.125 0 0 1 .26-1.431l1.004-.827c.292-.24.437-.613.43-.991a6.932 6.932 0 0 1 0-.255c.007-.38-.138-.751-.43-.992l-1.004-.827a1.125 1.125 0 0 1-.26-1.43l1.297-2.247a1.125 1.125 0 0 1 1.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.086.22-.128.332-.183.582-.495.644-.869l.214-1.28Z" /><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" /></svg>`;
 
@@ -124,6 +134,7 @@ const PROJECTION = {
   sent_proofs_record: 1,
   'Needs Digital Art': 1,
   email_digital_art_sent: 1,
+  digital_file_url: 1,
   shipAddress: 1,
 };
 
@@ -324,7 +335,7 @@ const notesTab = (r) => {
           <div id="note-error" class="text-error text-xs hidden"></div>
         </div>
         <div class="flex justify-end">
-          <button id="note-action-btn" onclick="window._noteComposeToggle()" class="btn btn-primary btn-sm">Add Note</button>
+          <button id="note-action-btn" onclick="window._noteComposeToggle()" class="btn btn-primary btn-sm">Add Internal Note</button>
         </div>
       </div>
       <!-- Existing notes -->
@@ -497,6 +508,137 @@ const printsTab = (r) => {
 };
 
 // ---------------------------------------------------------------------------
+// Tab: To Print — fields needed at print time
+// ---------------------------------------------------------------------------
+const toPrintTab = (r) => {
+  window._currentOrderRecord = r;
+  const parts = [];
+
+  if (r.print_note) {
+    parts.push(`
+      <div class="alert alert-warning text-sm py-2">
+        <span><strong>🛑 Print Note:</strong> ${r.print_note}</span>
+      </div>
+    `);
+  }
+
+  if (r.to_print_gift_note) {
+    parts.push(`
+      <div class="card bg-base-200">
+        <div class="card-body py-3 px-4 gap-1">
+          <h3 class="text-xs uppercase tracking-wide opacity-60">Gift Note</h3>
+          <div class="text-sm whitespace-pre-wrap">${r.to_print_gift_note}</div>
+        </div>
+      </div>
+    `);
+  }
+
+  if (r.to_prints?.length) {
+    const cards = r.to_prints.map(tp => {
+      const rows = [
+        tp.printer?.length            ? `<div class="text-xs text-base-content/50">Printer: ${tp.printer.join(', ')}</div>` : '',
+        tp.print_choice_frame?.length ? `<div class="text-xs text-base-content/50">Frame: ${tp.print_choice_frame.join(', ')}</div>` : '',
+        tp.print_choice_size?.length  ? `<div class="text-xs text-base-content/50">Size: ${tp.print_choice_size.join(', ')}</div>` : '',
+        tp['2_chosen_proof']          ? `<div class="text-xs text-base-content/50">Chosen Proof: ${tp['2_chosen_proof']}</div>` : '',
+      ].filter(Boolean).join('');
+      return `
+        <div class="card bg-base-200">
+          <div class="card-body py-3 px-4 gap-1">
+            <div class="flex items-center justify-between gap-1">
+              <h3 class="text-sm font-bold">To_Print #${tp.to_print_id}</h3>
+              <button onclick="window._toPrintDelete(${tp.to_print_id})" class="btn btn-xs btn-ghost btn-circle -mr-1" title="Delete">${TRASH_SVG}</button>
+            </div>
+            ${rows}
+          </div>
+        </div>`;
+    }).join('');
+    parts.push(cards);
+  }
+
+  return `
+    <div class="space-y-4">
+      ${parts.join('')}
+      <button onclick="window._toPrintAdd('${r.at_record_id}', ${r.orderId_raw})"
+        class="btn btn-sm btn-outline w-full">+ Add To Print</button>
+    </div>`;
+};
+
+// ---------------------------------------------------------------------------
+// Tab: Misc
+// ---------------------------------------------------------------------------
+const miscTab = (r) => {
+  window._currentOrderRecord = r;
+  const id = r.orderId_raw;
+  const actionBtns = [
+    `<div class="flex flex-col gap-0.5">
+      <button id="misc-act-art-done"
+          onclick="window._miscAction('misc-act-art-done', 'v2-autoproofMaster?orderId=${id}', 'Process Art Done')"
+          class="btn btn-sm btn-outline self-start">Process Art Done</button>
+      <p class="text-xs text-base-content/40">Forces art in ART: Done to generate proofs and S3 links now.</p>
+    </div>`,
+    ...(r.chosen_proof ? [
+      `<div class="flex flex-col gap-0.5">
+        <button id="misc-act-digital-link"
+            onclick="window._miscAction('misc-act-digital-link', 'v2-generateDigitalShareLinks?force=1&orderId=${id}', 'Generate Digital Link')"
+            class="btn btn-sm btn-outline self-start">Generate Digital Link</button>
+        <p class="text-xs text-base-content/40">Generate Google Drive Links (shareable) for current chosen_proofs.</p>
+      </div>`,
+    ] : []),
+  ];
+
+  const parts = [
+    `<div class="card bg-base-200">
+      <div class="card-body py-3 px-4 gap-2">
+        <h3 class="text-xs uppercase tracking-wide opacity-60">Actions</h3>
+        <div class="flex flex-col gap-2">${actionBtns.join('')}</div>
+      </div>
+    </div>`,
+  ];
+
+  parts.push(`
+    <div class="card bg-base-200">
+      <div class="flex flex-col px-3 py-2 gap-1">
+        ${_cardHead('Sent Proofs', 'sentProofs')}
+        <div class="text-sm">${r.sent_proofs_record || '<span class="opacity-30">—</span>'}</div>
+      </div>
+    </div>
+  `);
+
+  if (r.digital_file_url) {
+    parts.push(`
+      <div class="card bg-base-200">
+        <div class="card-body py-3 px-4 gap-1">
+          <h3 class="text-xs uppercase tracking-wide opacity-60">Digital File URL</h3>
+          <div class="text-sm whitespace-pre-wrap break-all">${_linkify(r.digital_file_url)}</div>
+        </div>
+      </div>
+    `);
+  }
+
+  return `<div class="space-y-4">${parts.join('')}</div>`;
+};
+
+window._miscAction = async (btnId, gcfPath, label) => {
+  const btn = document.getElementById(btnId);
+  if (!btn) return;
+
+  btn.disabled  = true;
+  btn.innerHTML = '<span class="loading loading-spinner loading-xs"></span>';
+
+  try {
+    await API.gcf(gcfPath);
+    window._Toast?.success(`${label} complete`);
+    const updated = await fetchOne(window._currentOrderRecord);
+    window._Drawer?.refresh(updated);
+    window._Drawer?.switchTab('misc');
+  } catch (err) {
+    window._Toast?.error(err.message || `${label} failed`);
+    btn.disabled  = false;
+    btn.innerHTML = label;
+  }
+};
+
+// ---------------------------------------------------------------------------
 // Page config
 // ---------------------------------------------------------------------------
 export const orders = {
@@ -529,12 +671,24 @@ export const orders = {
       const prefix  = Math.floor(id / 100);
       const thumb   = `https://custom-family-gifts.s3.us-east-2.amazonaws.com/${prefix * 100}-${prefix * 100 + 99}/${id}/_proofs/${id}_${letter}_proof.jpg`;
       proofHtml = `
-        <button class="shrink-0" onclick="window._ArtBrowser.open(${id},${prefix},'${r.sent_proofs_record}','${letter}')">
+        <button class="w-full" onclick="window._ArtBrowser.open(${id},${prefix},'${r.sent_proofs_record}','${letter}')">
           <img src="${thumb}" alt="Proof ${letter.toUpperCase()}"
-            class="w-16 h-16 object-cover rounded shadow-sm hover:opacity-80 transition-opacity" />
+            class="w-full aspect-square object-cover rounded shadow-sm hover:opacity-80 transition-opacity" />
         </button>
       `;
     }
+
+    // External order links
+    const linkItems = [];
+    const etsyId = r.etsy_receipt_id || r.etsy_receipt_id_saved;
+    if (etsyId) linkItems.push({ label: 'Etsy', href: `https://www.etsy.com/your/orders/sold/904622277150?ref=seller-platform-mcnav&order_id=${etsyId}` });
+    if (r.customer_order_link) linkItems.push({ label: 'Smile Cust', href: r.customer_order_link });
+    if (r['order link'])       linkItems.push({ label: 'Shopify', href: r['order link'] });
+    const linksHtml = linkItems.length ? `
+      <div class="flex flex-col gap-0.5 mt-1">
+        ${linkItems.map(l => `<a href="${l.href}" target="_blank" rel="noopener" class="link link-primary text-xs">${l.label} ↗</a>`).join('')}
+      </div>
+    ` : '';
 
     const phone = formatPhone(r.custPhone);
     const notes = parseInternalNotes(r[NOTES_FIELD]);
@@ -542,7 +696,7 @@ export const orders = {
     const moreCount  = notes.length - 1;
 
     const notesHtml = latestNote ? `
-      <div id="overview-internal-note" class="mt-2 card" style="background:#c75c3a;border-color:#c75c3a;color:#fff">
+      <div id="overview-internal-note" class="mt-2 card inline-block max-w-full" style="background:#c75c3a;border-color:#c75c3a;color:#fff">
         <div class="card-body py-2 px-3 gap-1">
           <div class="flex items-center justify-between gap-2">
             ${latestNote.author
@@ -562,9 +716,8 @@ export const orders = {
       </div>` : '';
 
     return `
-      <div class="flex gap-3 items-start">
-        ${proofHtml}
-        <div class="min-w-0 flex-1">
+      <div class="grid gap-3 items-start" style="grid-template-columns:1fr 25%">
+        <div class="min-w-0">
           <div class="flex items-center gap-1">
             <div class="font-medium text-sm">${name}</div>
             <button onclick="window._orderEdit('customer')" class="btn btn-xs btn-ghost btn-circle -my-1" title="Edit customer">${GEAR_SVG}</button>
@@ -577,10 +730,18 @@ export const orders = {
           ${phone   ? `<div class="text-xs text-base-content/50">${phone}</div>` : ''}
           ${items.length ? `
             <div class="mt-1.5 space-y-0.5">
-              ${items.map(line => `<div class="text-xs text-base-content/70">${line}</div>`).join('')}
+              <div class="flex items-center gap-1">
+                <div class="text-xs text-base-content/70">${items[0]}</div>
+                ${!r.printed_orders?.length ? `<button onclick="window._itemsGear(${r.orderId_raw})" class="btn btn-xs btn-ghost btn-circle shrink-0 -my-1" title="Print choices">${GEAR_SVG}</button>` : ''}
+              </div>
+              ${items.slice(1).map(line => `<div class="text-xs text-base-content/70">${line}</div>`).join('')}
             </div>
           ` : ''}
           ${notesHtml}
+        </div>
+        <div class="flex flex-col">
+          ${proofHtml}
+          ${linksHtml}
         </div>
       </div>
     `;
@@ -605,10 +766,21 @@ export const orders = {
       render: messagesTab,
     },
     {
+      id:     'toPrint',
+      label:  'To Print',
+      count:  (r) => r.to_prints?.length ?? 0,
+      render: toPrintTab,
+    },
+    {
       id:     'prints',
       label:  'Prints',
       count:  (r) => r.auto_proof_files?.length ?? 0,
       render: printsTab,
+    },
+    {
+      id:     'misc',
+      label:  'Misc',
+      render: miscTab,
     },
   ],
 
@@ -724,6 +896,312 @@ export const orders = {
 
 window._orderEdit = (schemaKey) => {
   window._CrudForm.open(ORDER_SCHEMAS[schemaKey], window._currentOrderRecord);
+};
+
+window._itemsGear = async (orderId) => {
+  const record = API.store[COL]?.records?.find(r => r.orderId_raw === orderId);
+  window._picRows = (record?.items || '').split('\n').filter(Boolean);
+
+  window._Modal.open(
+    `<div class="flex justify-center py-8"><span class="loading loading-spinner loading-md"></span></div>`,
+    'Item Lines'
+  );
+  try {
+    const data = await API.gcf(`v2-getProductPrintChoice?orderId=${orderId}`);
+    window._picProducts = data.products || [];
+    window._picOrderId  = orderId;
+    _picOpen();
+  } catch (err) {
+    window._Modal.open(
+      `<div class="p-4 text-error text-sm">${err.message || 'Failed to load print choices'}</div>`,
+      'Item Lines'
+    );
+  }
+};
+
+function _picUnique(products, key) {
+  const map = {};
+  for (const p of products) {
+    if (!map[p[key]]) map[p[key]] = { featured: false, international: false };
+    if (p.featured)      map[p[key]].featured      = true;
+    if (p.international) map[p[key]].international = true;
+  }
+  return map;
+}
+
+function _picSizeOpts(all) {
+  const map = _picUnique(all, 'size');
+  return Object.entries(map)
+    .sort(([a, fa], [b, fb]) => {
+      if (fa.featured !== fb.featured) return fa.featured ? -1 : 1;
+      const area = s => { const [w, h] = s.split('x').map(Number); return w * h; };
+      return area(a) - area(b);
+    })
+    .map(([name]) => `<option value="${name}">${name}</option>`)
+    .join('');
+}
+
+function _picFrameOpts(all) {
+  const map = _picUnique(all, 'frame');
+  return Object.entries(map)
+    .sort(([a, fa], [b, fb]) => {
+      if (fa.featured !== fb.featured) return fa.featured ? -1 : 1;
+      return a.localeCompare(b);
+    })
+    .map(([name]) => `<option value="${name}">${name}</option>`)
+    .join('') + '<option value="Digital Only">Digital Only</option>';
+}
+
+function _picRowsHtml() {
+  return window._picRows.map((row, i) => `
+    <div class="flex items-center gap-2 py-1 px-2 bg-base-200 rounded">
+      <span class="flex-1 font-mono text-xs">${row}</span>
+      <button onclick="window._picDeleteRow(${i})" class="btn btn-xs btn-ghost btn-circle text-error">✕</button>
+    </div>
+  `).join('');
+}
+
+function _picOpen() {
+  const all = window._picProducts;
+  window._Modal.open(`
+    <div class="p-4 flex flex-col gap-3">
+      <div id="pic-rows" class="flex flex-col gap-1">${_picRowsHtml()}</div>
+      <div class="flex gap-2">
+        <select id="pic-product" class="select select-sm select-bordered flex-1" onchange="window._picUpdate()">
+          <option value="">Product…</option>
+          ${ITEM_PRODUCTS.map(p => `<option value="${p}">${p}</option>`).join('')}
+        </select>
+        <select id="pic-size" class="select select-sm select-bordered flex-1" onchange="window._picUpdate()">
+          <option value="">Size…</option>
+          ${_picSizeOpts(all)}
+        </select>
+        <select id="pic-frame" class="select select-sm select-bordered flex-1" onchange="window._picUpdate()">
+          <option value="">Frame…</option>
+          ${_picFrameOpts(all)}
+        </select>
+      </div>
+      <div id="pic-result"></div>
+    </div>
+  `, 'Item Lines', { boxClass: 'max-w-xl', actions: '<button id="pic-save-btn" onclick="window._picSave()" class="btn btn-sm btn-primary">Save</button>' });
+}
+
+window._picUpdate = () => {
+  const product  = document.getElementById('pic-product')?.value;
+  const size     = document.getElementById('pic-size')?.value;
+  const frame    = document.getElementById('pic-frame')?.value;
+  const resultEl = document.getElementById('pic-result');
+  if (!resultEl) return;
+
+  if (!product || !size || !frame) {
+    resultEl.innerHTML = '';
+    return;
+  }
+
+  const valid = frame === 'Digital Only' || window._picProducts.some(p => p.size === size && p.frame === frame);
+  resultEl.innerHTML = valid
+    ? `<button onclick="window._picAddRow()" class="btn btn-sm btn-primary">ADD</button>`
+    : `<div class="text-sm text-warning py-1">No such print option.</div>`;
+};
+
+window._picAddRow = () => {
+  const product = document.getElementById('pic-product')?.value;
+  const size    = document.getElementById('pic-size')?.value;
+  const frame   = document.getElementById('pic-frame')?.value;
+  if (!product || !size || !frame) return;
+
+  window._picRows.push(`${product} / ${size.replace('x', '×')} / ${frame}`);
+  const rowsEl = document.getElementById('pic-rows');
+  if (rowsEl) rowsEl.innerHTML = _picRowsHtml();
+  window._picUpdate();
+};
+
+window._picSave = async () => {
+  if (!window._picRows.length) {
+    window._Toast?.error('Add at least one item line before saving.');
+    return;
+  }
+  const btn = document.getElementById('pic-save-btn');
+  if (btn) { btn.disabled = true; btn.innerHTML = '<span class="loading loading-spinner loading-xs"></span>'; }
+
+  try {
+    const result = await API.gcf('v2-orderUpdateItems', {
+      body: JSON.stringify({
+        orderId_raw: window._picOrderId,
+        items:       window._picRows.join('\n'),
+      }),
+    });
+    window._Modal.close();
+    window._Toast?.success(`${result.to_print_count} to_print(s) generated.`);
+    const updated = await fetchOne({ orderId_raw: window._picOrderId });
+    window._Drawer?.refresh(updated);
+  } catch (err) {
+    window._Toast?.error(err.message || 'Failed to save items.');
+    if (btn) { btn.disabled = false; btn.textContent = 'Save'; }
+  }
+};
+
+window._picDeleteRow = (idx) => {
+  window._picRows.splice(idx, 1);
+  const rowsEl = document.getElementById('pic-rows');
+  if (rowsEl) rowsEl.innerHTML = _picRowsHtml();
+};
+
+window._toPrintDelete = async (toPrintId) => {
+  if (!confirm(`Delete #${toPrintId}?`)) return;
+  try {
+    await API.gcf(`v2-toPrintDelete?to_print_id=${toPrintId}`);
+    window._Toast?.success(`#${toPrintId} deleted.`);
+    const updated = await fetchOne(window._currentOrderRecord);
+    window._Drawer?.refresh(updated);
+    window._Drawer?.switchTab('toPrint');
+  } catch (err) {
+    window._Toast?.error(err.message || 'Delete failed.');
+  }
+};
+
+window._toPrintAdd = async (atRecordId, orderId) => {
+  window._tpAtRecordId = atRecordId;
+  window._tpOrderId    = orderId;
+
+  window._Modal.open(
+    `<div class="flex justify-center py-8"><span class="loading loading-spinner loading-md"></span></div>`,
+    'Add To Print'
+  );
+  try {
+    const data = await API.gcf(`v2-getProductPrintChoice?orderId=${orderId}`);
+    window._tpProducts = data.products || [];
+    _tpOpen();
+  } catch (err) {
+    window._Modal.open(
+      `<div class="p-4 text-error text-sm">${err.message || 'Failed to load print choices'}</div>`,
+      'Add To Print'
+    );
+  }
+};
+
+function _tpSizeOpts() {
+  const map = _picUnique(window._tpProducts, 'size');
+  return Object.entries(map)
+    .sort(([a, fa], [b, fb]) => {
+      if (fa.featured !== fb.featured) return fa.featured ? -1 : 1;
+      const area = s => { const [w, h] = s.split('x').map(Number); return w * h; };
+      return area(a) - area(b);
+    })
+    .map(([name]) => `<option value="${name}">${name}</option>`)
+    .join('');
+}
+
+function _tpFrameOpts(size) {
+  const filtered = size ? window._tpProducts.filter(p => p.size === size) : window._tpProducts;
+  const map = _picUnique(filtered, 'frame');
+  return Object.entries(map)
+    .sort(([a, fa], [b, fb]) => {
+      if (fa.featured !== fb.featured) return fa.featured ? -1 : 1;
+      return a.localeCompare(b);
+    })
+    .map(([name]) => `<option value="${name}">${name}</option>`)
+    .join('');
+}
+
+function _tpProductOpts(size, frame) {
+  return window._tpProducts
+    .filter(p => p.size === size && p.frame === frame)
+    .sort((a, b) => (b.featured ? 1 : 0) - (a.featured ? 1 : 0))
+    .map(p => {
+      const star  = p.featured      ? '⭐ ' : '';
+      const globe = p.international ? '🌍 ' : '';
+      return `<option value="${p._ATID}">${star}${globe}${p.printer} | ${p.frame} | ${p.size}</option>`;
+    })
+    .join('');
+}
+
+function _tpOpen() {
+  window._Modal.open(`
+    <div class="p-4 flex flex-col gap-3">
+      <div class="flex gap-2">
+        <select id="tp-size" class="select select-sm select-bordered flex-1" onchange="window._tpUpdate()">
+          <option value="">Size…</option>
+          ${_tpSizeOpts()}
+        </select>
+        <select id="tp-frame" class="select select-sm select-bordered flex-1" onchange="window._tpUpdate()">
+          <option value="">Frame…</option>
+          ${_tpFrameOpts('')}
+        </select>
+      </div>
+      <select id="tp-product" class="select select-sm select-bordered w-full" disabled>
+        <option value="">Select size &amp; frame first…</option>
+      </select>
+      <div class="flex items-center gap-2">
+        <label class="text-sm text-base-content/60 shrink-0">Chosen Proof</label>
+        <input id="tp-proof" type="text" maxlength="1" placeholder="A–Z"
+          class="input input-sm input-bordered w-16 uppercase"
+          oninput="this.value = this.value.replace(/[^a-zA-Z]/g, '').toUpperCase()" />
+      </div>
+    </div>
+  `, 'Add To Print', {
+    boxClass: 'max-w-md',
+    actions:  '<button id="tp-submit-btn" onclick="window._tpSubmit()" class="btn btn-sm btn-primary">Add To Print</button>',
+  });
+}
+
+window._tpUpdate = () => {
+  const sizeEl  = document.getElementById('tp-size');
+  const frameEl = document.getElementById('tp-frame');
+  const prodEl  = document.getElementById('tp-product');
+  if (!sizeEl || !frameEl || !prodEl) return;
+
+  const size     = sizeEl.value;
+  const curFrame = frameEl.value;
+
+  // Rebuild frame options filtered by size, preserve selection if still valid
+  frameEl.innerHTML = `<option value="">Frame…</option>${_tpFrameOpts(size)}`;
+  if (curFrame && [...frameEl.options].some(o => o.value === curFrame)) frameEl.value = curFrame;
+
+  const frame = frameEl.value;
+
+  if (size && frame) {
+    const opts = _tpProductOpts(size, frame);
+    prodEl.innerHTML = opts || '<option value="">No match</option>';
+    prodEl.disabled  = !opts;
+  } else {
+    prodEl.innerHTML = '<option value="">Select size &amp; frame first…</option>';
+    prodEl.disabled  = true;
+  }
+};
+
+window._tpSubmit = async () => {
+  const product = document.getElementById('tp-product')?.value;
+  const size    = document.getElementById('tp-size')?.value;
+  const frame   = document.getElementById('tp-frame')?.value;
+  const proof   = document.getElementById('tp-proof')?.value;
+
+  if (!size || !frame || !product) {
+    window._Toast?.error('Please select size, frame, and product.');
+    return;
+  }
+
+  const btn = document.getElementById('tp-submit-btn');
+  if (btn) { btn.disabled = true; btn.innerHTML = '<span class="loading loading-spinner loading-xs"></span>'; }
+
+  try {
+    const qs = `order_ATID=${window._tpAtRecordId}&product_ATID=${product}${proof ? `&chosen_proof=${proof}` : ''}`;
+    await API.gcf(`v2-toPrintAdd?${qs}`);
+  } catch (err) {
+    window._Toast?.error(err.message || 'Failed to add to print.');
+    if (btn) { btn.disabled = false; btn.textContent = 'Add To Print'; }
+    return;
+  }
+
+  window._Modal.close();
+  window._Toast?.success('To print added.');
+
+  try {
+    const updated = await fetchOne({ orderId_raw: window._tpOrderId });
+    window._Drawer?.refresh(updated);
+    window._Drawer?.switchTab('toPrint');
+  } catch (e) {
+    console.warn('[toPrintAdd] Drawer refresh failed:', e);
+  }
 };
 
 window._openInternalTab = (orderId) => {
