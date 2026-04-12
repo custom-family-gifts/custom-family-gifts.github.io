@@ -17,17 +17,19 @@ function storeUpdate(col, record, idField = '_id') {
 // Transport
 // ---------------------------------------------------------------------------
 async function gcf(shortUrl, options = {}) {
+  const { toast: toastMsg, ...fetchOptions } = options;
+
   const key = Auth.getKey();
   const [fn, qs = ''] = shortUrl.split('?');
   const url = `${GCF_BASE}?cypherKey=${key}&method=${fn}${qs ? '&' + qs : ''}`;
 
-  if (options.body) options.method = 'POST';
-  if (!options.method) options.method = 'GET';
-  if (!options.headers) options.headers = {};
-  if (options.method !== 'GET') options.headers['Content-Type'] = 'application/json';
-  options.headers.current_href = location.href;
+  if (fetchOptions.body) fetchOptions.method = 'POST';
+  if (!fetchOptions.method) fetchOptions.method = 'GET';
+  if (!fetchOptions.headers) fetchOptions.headers = {};
+  if (fetchOptions.method !== 'GET') fetchOptions.headers['Content-Type'] = 'application/json';
+  fetchOptions.headers.current_href = location.href;
 
-  const res    = await fetch(url, options);
+  const res    = await fetch(url, fetchOptions);
   const text   = await res.text();
   const result = JSON.parse(text);
 
@@ -37,9 +39,13 @@ async function gcf(shortUrl, options = {}) {
   }
 
   if (!res.ok || result.error) {
-    throw new Error(result.error || result.message || `Request failed (${res.status})`);
+    const err = new Error(result.error || result.message || `Request failed (${res.status})`);
+    console.error('[API]', shortUrl, err);
+    window._Toast?.error(err.message);
+    throw err;
   }
 
+  if (toastMsg) window._Toast?.success(typeof toastMsg === 'function' ? toastMsg(result) : toastMsg);
   return result;
 }
 

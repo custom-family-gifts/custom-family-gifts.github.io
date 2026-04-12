@@ -71,6 +71,7 @@ async function _handleSubmit(e, schema, record) {
     const idField  = schema.idField ?? '_id';
     const endpoint = schema.endpoint ?? 'v2-mdb';
     const result   = await API.gcf(endpoint, {
+      toast: 'Saved',
       body: JSON.stringify({
         op:  'updateVerify',
         col: schema.collection,
@@ -86,16 +87,13 @@ async function _handleSubmit(e, schema, record) {
       window._Drawer?.refresh(merged);
     }
     window._Modal.close();
-    window._Toast?.success('Saved');
     window._Modal.onSuccess?.(result, set, schema);
   } catch (err) {
-    console.error('[CrudForm] save error:', err);
     const msg = err.message || 'Save failed.';
     errorEl.textContent = msg;
     errorEl.classList.remove('hidden');
     submitBtn.disabled    = false;
     submitBtn.textContent = 'Save';
-    window._Toast?.error(msg);
   }
 }
 

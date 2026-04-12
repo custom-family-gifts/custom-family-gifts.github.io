@@ -190,12 +190,12 @@ window._scheduledDelete = async (id) => {
   if (!confirm('Delete this scheduled task?')) return;
   try {
     await API.gcf('v2-mdb', {
+      toast: 'Deleted',
       body: JSON.stringify({ op: 'delete', col: COL, q: { _id: id } }),
     });
-    window._Toast?.success('Deleted');
     // Close drawer and reload
     document.getElementById('drawer-close')?.click();
   } catch (err) {
-    window._Toast?.error(err.message || 'Delete failed');
+    // error toast handled by API.gcf
   }
 };

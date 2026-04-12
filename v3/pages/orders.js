@@ -626,13 +626,11 @@ window._miscAction = async (btnId, gcfPath, label) => {
   btn.innerHTML = '<span class="loading loading-spinner loading-xs"></span>';
 
   try {
-    await API.gcf(gcfPath);
-    window._Toast?.success(`${label} complete`);
+    await API.gcf(gcfPath, { toast: `${label} complete` });
     const updated = await fetchOne(window._currentOrderRecord);
     window._Drawer?.refresh(updated);
     window._Drawer?.switchTab('misc');
   } catch (err) {
-    window._Toast?.error(err.message || `${label} failed`);
     btn.disabled  = false;
     btn.innerHTML = label;
   }
@@ -1024,18 +1022,17 @@ window._picSave = async () => {
   if (btn) { btn.disabled = true; btn.innerHTML = '<span class="loading loading-spinner loading-xs"></span>'; }
 
   try {
-    const result = await API.gcf('v2-orderUpdateItems', {
+    await API.gcf('v2-orderUpdateItems', {
+      toast: (r) => `${r.to_print_count} to_print(s) generated.`,
       body: JSON.stringify({
         orderId_raw: window._picOrderId,
         items:       window._picRows.join('\n'),
       }),
     });
     window._Modal.close();
-    window._Toast?.success(`${result.to_print_count} to_print(s) generated.`);
     const updated = await fetchOne({ orderId_raw: window._picOrderId });
     window._Drawer?.refresh(updated);
   } catch (err) {
-    window._Toast?.error(err.message || 'Failed to save items.');
     if (btn) { btn.disabled = false; btn.textContent = 'Save'; }
   }
 };
@@ -1049,13 +1046,12 @@ window._picDeleteRow = (idx) => {
 window._toPrintDelete = async (toPrintId) => {
   if (!confirm(`Delete #${toPrintId}?`)) return;
   try {
-    await API.gcf(`v2-toPrintDelete?to_print_id=${toPrintId}`);
-    window._Toast?.success(`#${toPrintId} deleted.`);
+    await API.gcf(`v2-toPrintDelete?to_print_id=${toPrintId}`, { toast: `#${toPrintId} deleted.` });
     const updated = await fetchOne(window._currentOrderRecord);
     window._Drawer?.refresh(updated);
     window._Drawer?.switchTab('toPrint');
   } catch (err) {
-    window._Toast?.error(err.message || 'Delete failed.');
+    // error toast handled by API.gcf
   }
 };
 
@@ -1185,15 +1181,13 @@ window._tpSubmit = async () => {
 
   try {
     const qs = `order_ATID=${window._tpAtRecordId}&product_ATID=${product}${proof ? `&chosen_proof=${proof}` : ''}`;
-    await API.gcf(`v2-toPrintAdd?${qs}`);
+    await API.gcf(`v2-toPrintAdd?${qs}`, { toast: 'To print added.' });
   } catch (err) {
-    window._Toast?.error(err.message || 'Failed to add to print.');
     if (btn) { btn.disabled = false; btn.textContent = 'Add To Print'; }
     return;
   }
 
   window._Modal.close();
-  window._Toast?.success('To print added.');
 
   try {
     const updated = await fetchOne({ orderId_raw: window._tpOrderId });
