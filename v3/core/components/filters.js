@@ -3,11 +3,13 @@ import { Router } from '../router.js';
 export class Filters {
   #config;
   #onChange;
+  #actions;
   #el;
 
-  constructor(config, onChange) {
+  constructor(config, onChange, actions = '') {
     this.#config = config;
     this.#onChange = onChange;
+    this.#actions = actions;
   }
 
   mount(el) {
@@ -21,6 +23,7 @@ export class Filters {
               <button id="filter-submit" class="btn btn-primary btn-sm">Filter</button>
               <button id="filter-clear" class="btn btn-ghost btn-sm">Clear</button>
             </div>
+            ${this.#actions ? `<div class="ml-auto pb-0.5">${this.#actions}</div>` : ''}
           </div>
         </div>
       </div>

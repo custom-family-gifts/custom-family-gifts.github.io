@@ -3,8 +3,9 @@ export class Table {
   #onSort;
   #onRowClick;
   #el;
-  #currentSort = null;
+  #currentSort  = null;
   #currentOrder = 1;
+  #byId         = {};
 
   constructor(columns, onSort, onRowClick) {
     this.#columns = columns;
@@ -84,10 +85,63 @@ export class Table {
     });
 
     // Row click — index records by id for O(1) lookup
-    const byId = Object.fromEntries(records.map(r => [String(r._id ?? r.id), r]));
+    this.#byId = Object.fromEntries(records.map(r => [String(r._id ?? r.id), r]));
     this.#el.querySelectorAll('tr[data-id]').forEach(tr => {
-      tr.addEventListener('click', () => this.#onRowClick(byId[tr.dataset.id]));
+      tr.addEventListener('click', () => this.#onRowClick(this.#byId[tr.dataset.id]));
     });
+  }
+
+  upsertRow(record) {
+    const id = String(record._id ?? record.id);
+    this.#el.querySelector(`tr[data-id="${id}"]`) ? this.updateRow(record) : this.prependRow(record);
+  }
+
+  prependRow(record) {
+    const id = String(record._id ?? record.id);
+    this.#byId[id] = record;
+    const tbody = this.#el.querySelector('tbody');
+    if (!tbody) return;
+    const tr = document.createElement('tr');
+    tr.className = 'hover cursor-pointer';
+    tr.dataset.id = id;
+    tr.innerHTML = this.#columns.map(col => {
+      let cell;
+      try {
+        cell = col.render ? col.render(record[col.key], record) : (record[col.key] ?? '—');
+      } catch (e) {
+        cell = '⚠';
+      }
+      return `<td class="${col.hideOnMobile ? 'hidden sm:table-cell' : ''}">${cell}</td>`;
+    }).join('');
+    tr.addEventListener('click', () => this.#onRowClick(this.#byId[tr.dataset.id]));
+    tbody.prepend(tr);
+  }
+
+  updateRow(record) {
+    const id = String(record._id ?? record.id);
+    this.#byId[id] = record;
+    const tr = this.#el.querySelector(`tr[data-id="${id}"]`);
+    if (!tr) return;
+    tr.innerHTML = this.#columns.map(col => {
+      let cell;
+      try {
+        cell = col.render ? col.render(record[col.key], record) : (record[col.key] ?? '—');
+      } catch (e) {
+        cell = '⚠';
+      }
+      return `<td class="${col.hideOnMobile ? 'hidden sm:table-cell' : ''}">${cell}</td>`;
+    }).join('');
+    if (record.deleted) {
+      tr.classList.remove('hover', 'cursor-pointer');
+      tr.classList.add('opacity-50', 'pointer-events-none');
+    }
+  }
+
+  markDeleted(id) {
+    const tr = this.#el.querySelector(`tr[data-id="${String(id)}"]`);
+    if (!tr) return;
+    tr.classList.remove('hover', 'cursor-pointer');
+    tr.classList.add('opacity-50', 'pointer-events-none');
   }
 
   #sortIcon(key) {

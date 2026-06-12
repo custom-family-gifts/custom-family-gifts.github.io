@@ -24,7 +24,7 @@ const PROJECTION = {
 
 const EDIT_FIELDS = [
   { key: 'name',               label: 'Name',        type: 'textarea', rows: 2, validate: 'required' },
-  { key: 'minutes',            label: 'Minutes',     type: 'text', validate: ['required', 'posint'] },
+  { key: 'minutes',            label: 'Minutes',     type: 'text', coerce: 'number', validate: ['required', 'posint'] },
   { key: 'active',             label: 'Active',      type: 'toggle' },
   { key: 'gcf_query_db',       label: 'Query DB',    type: 'text' },
   { key: 'gcf_query_col',      label: 'Query Col',   type: 'text' },
@@ -129,6 +129,8 @@ export const scheduled = {
   drawerTitle: (r) => `${r.name}${!r.active ? ' 💤' : ''}`,
   drawer:       drawerTemplate,
 
+  actions: `<button class="btn btn-primary btn-sm" onclick="window._scheduledCreate()">+ New</button>`,
+
   filters: [
     { name: 'search', type: 'text', label: 'Search', placeholder: 'task name…' },
   ],
@@ -178,6 +180,13 @@ export const scheduled = {
 // ---------------------------------------------------------------------------
 // Globals wired by drawer buttons
 // ---------------------------------------------------------------------------
+window._scheduledCreate = () => {
+  window._CrudForm.open(
+    { title: 'New Scheduled Task', collection: COL, idField: '_id', fields: EDIT_FIELDS },
+    {}
+  );
+};
+
 window._scheduledEdit = () => {
   const r = window._currentScheduledRecord;
   window._CrudForm.open(

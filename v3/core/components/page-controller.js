@@ -60,7 +60,8 @@ export class PageController {
       (filters) => {
         this.#state = { ...this.#state, filters, page: 1 };
         this.#load();
-      }
+      },
+      this.#config.actions ?? ''
     );
     this.#components.filters.mount(q('#pc-filters'));
 
@@ -102,6 +103,7 @@ export class PageController {
     this.#components.modal.mount(q('#pc-modal'));
     window._Modal    = this.#components.modal;
     window._Drawer   = this.#components.drawer;
+    window._Table    = this.#components.table;
     window._CrudForm = CrudForm;
   }
 

@@ -70,21 +70,27 @@ async function _handleSubmit(e, schema, record) {
   try {
     const idField  = schema.idField ?? '_id';
     const endpoint = schema.endpoint ?? 'v2-mdb';
+    const isNew    = !record[idField];
     const result   = await API.gcf(endpoint, {
       toast: 'Saved',
-      body: JSON.stringify({
-        op:  'updateVerify',
-        col: schema.collection,
-        q:   { [idField]: record[idField] },
-        doc: set,
-      }),
+      body: JSON.stringify(isNew
+        ? { op: 'insertVerify', col: schema.collection, doc: set }
+        : { op: 'updateVerify', col: schema.collection, q: { [idField]: record[idField] }, doc: set }
+      ),
     });
 
-    const updated = result?.records?.[0];
-    if (updated) {
-      const merged = { ...set, ...updated };
+    const saved = result?.records?.[0];
+    if (isNew && saved) {
+      API.storeUpdate(schema.collection, saved, idField);
+      window._Table?.prependRow(saved);
+    } else if (!isNew && saved) {
+      const merged = { ...set, ...saved };
       API.storeUpdate(schema.collection, merged, idField);
+      window._Table?.updateRow(merged);
       window._Drawer?.refresh(merged);
+    } else if (!isNew && result?.records?.length === 0) {
+      window._Table?.markDeleted(record[idField]);
+      window._Drawer?.close();
     }
     window._Modal.close();
     window._Modal.onSuccess?.(result, set, schema);
