@@ -1,61 +1,101 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>Custom Family Gifts</title>
+    <title>Etsy OAuth — Custom Family Gifts</title>
 
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
     <script src="index.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/mini.css/3.0.1/mini-default.min.css">
     <link rel="stylesheet" href="./base/common.css">
     <script src="./base/api.js"></script>
+    <style>
+      body { max-width: 640px; margin: 40px auto; padding: 0 20px; font-family: sans-serif; }
+      label { display: block; font-weight: bold; margin-top: 16px; margin-bottom: 4px; }
+      input[type=text] { width: 100%; box-sizing: border-box; padding: 8px; font-family: monospace; font-size: 14px; border: 1px solid #ccc; border-radius: 4px; }
+      .hint { font-size: 13px; color: #666; margin-top: 4px; }
+      #auth-section { margin-top: 24px; }
+      #auth-section a button { background: #f8886d; color: white; border: none; padding: 10px 24px; font-size: 16px; border-radius: 4px; cursor: pointer; }
+      #auth-section a button:hover { background: #e57055; }
+      #auth-section a { text-decoration: none; }
+      #errors { color: red; font-size: 14px; margin-top: 8px; }
+      #code-result { margin-top: 24px; }
+      #code-result textarea { width: 100%; box-sizing: border-box; font-family: monospace; font-size: 13px; padding: 8px; }
+    </style>
   </head>
   <body>
-    <h3>Etsy OAUTH</h3>
-    <a target="_blank" id="oauthlink" href="https://www.getsreplacedinscript.com">
-      <button>auth</button>
-    </a>
+    <h3>Etsy OAuth</h3>
+
+    <label for="input-client-id">Client ID</label>
+    <input type="text" id="input-client-id" placeholder="client_id" />
+
+    <label for="input-code-challenge">Code Challenge</label>
+    <input type="text" id="input-code-challenge" placeholder="code_challenge" />
+
+    <div id="auth-section" style="margin-top:24px;">
+      <a id="oauthlink" href="#" target="_blank">
+        <button id="auth-btn" disabled>Auth</button>
+      </a>
+      <div id="errors"></div>
+    </div>
+
+    <div id="code-result"></div>
 
     <script>
       var urlParams = API.getUrlParams();
-      var client_id = urlParams.client_id;
-      var redirect_uri = encodeURIComponent('https://smile.customfamilygifts.com/oauth_etsy');
-      var scopes = encodeURIComponent(`transactions_w transactions_r email_r listings_w listings_r profile_r shops_w shops_r`);
-      var state = '11234567890';
-      var code_challenge = urlParams.code_challenge; // 
-      /* 
-        PKCE Proof Key for Code Exchange 
-        https://tonyxu-io.github.io/pkce-generator/
-        verifier (43 chars) = vvkdljkejllufrvbhgeiegrnvufrhvrffnkvcknjvcfg
-        verifier 10/9/2023 = xRnxb8uKtdw2oHSa2BUkrjDrBMaioBkS5SWGmn7I6yQ
 
-        1. generate the code challenge by going to https://tonyxu-io.github.io/pkce-generator/ YtdMrV3xb3i8EDmaMe6PP-uQXEKknZ1suB8SDXNqm7g
-        CLIENT_ID see postman
-        CODE_CHALLENGE 10/9/2023 = S14jT23JFuVTA84oGVf7I-scCGQicAqrZdsIrxC7_IU
-        2. enter client_id & code_challenge into url params and reload the page.
-        3. click auth
-        4. take the resulting "code" and verifier above to postman to get a refresh token
-          - record the refresh_token
-      */
-      var oauth_get_url = `https://www.etsy.com/oauth/connect?response_type=code`;
-      oauth_get_url += `&redirect_uri=${redirect_uri}`;
-      oauth_get_url += `&scope=${scopes}`;
-      oauth_get_url += `&client_id=${client_id}`;
-      oauth_get_url += `&state=superstate`;
-      oauth_get_url += `&code_challenge_method=S256`;
-      oauth_get_url += `&code_challenge=${code_challenge}`;
+      var clientIdInput = document.getElementById('input-client-id');
+      var codeChallengeInput = document.getElementById('input-code-challenge');
+      var oauthLink = document.getElementById('oauthlink');
+      var authBtn = document.getElementById('auth-btn');
+      var errorsDiv = document.getElementById('errors');
 
-      var code = urlParams.code;
-      if (code) {
-        $('body').append(`code: <textarea value="${code}">${code}</textarea>take this code and plug into POSTMAN get refresh token`);
+      // Pre-populate from URL params if present
+      if (urlParams.client_id) clientIdInput.value = urlParams.client_id;
+      if (urlParams.code_challenge) codeChallengeInput.value = urlParams.code_challenge;
+
+      function buildOauthUrl(clientId, codeChallenge) {
+        var redirectUri = encodeURIComponent('https://smile.customfamilygifts.com/oauth_etsy');
+        var scopes = encodeURIComponent('transactions_w transactions_r email_r listings_w listings_r profile_r shops_w shops_r');
+        var url = 'https://www.etsy.com/oauth/connect?response_type=code';
+        url += '&redirect_uri=' + redirectUri;
+        url += '&scope=' + scopes;
+        url += '&client_id=' + encodeURIComponent(clientId);
+        url += '&state=superstate';
+        url += '&code_challenge_method=S256';
+        url += '&code_challenge=' + encodeURIComponent(codeChallenge);
+        return url;
       }
 
-      $('#oauthlink').attr('href', oauth_get_url);
+      function updateLink() {
+        var clientId = clientIdInput.value.trim();
+        var codeChallenge = codeChallengeInput.value.trim();
+        var errors = [];
 
-      if (!client_id) {
-        $('#oauthlink').after(`<br><span style="color:red">needs client id as param</span>`);
+        if (!clientId) errors.push('Client ID is required.');
+        if (!codeChallenge) errors.push('Code Challenge is required.');
+
+        errorsDiv.textContent = errors.join(' ');
+
+        if (errors.length === 0) {
+          oauthLink.href = buildOauthUrl(clientId, codeChallenge);
+          authBtn.disabled = false;
+          authBtn.style.opacity = '1';
+        } else {
+          oauthLink.href = '#';
+          authBtn.disabled = true;
+          authBtn.style.opacity = '0.5';
+        }
       }
-      if (!code_challenge) {
-        $('#oauthlink').after(`<br><span style="color:red">needs code_challenge as param</span>`);
+
+      clientIdInput.addEventListener('input', updateLink);
+      codeChallengeInput.addEventListener('input', updateLink);
+      updateLink();
+
+      // Show returned code if present in URL
+      var returnedCode = urlParams.code;
+      if (returnedCode) {
+        var codeResult = document.getElementById('code-result');
+        codeResult.innerHTML = '<strong>Authorization Code (copy this into Postman):</strong><br><textarea rows="3">' + returnedCode + '</textarea>';
       }
     </script>
 
