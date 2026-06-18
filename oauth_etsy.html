@@ -31,6 +31,9 @@
     <label for="input-code-challenge">Code Challenge</label>
     <input type="text" value="S14jT23JFuVTA84oGVf7I-scCGQicAqrZdsIrxC7_IU" id="input-code-challenge" placeholder="code_challenge" />
 
+    <label for="input-code-verifier">Code Verifier</label>
+    <input type="text" id="input-code-verifier" placeholder="code_verifier" />
+
     <div id="auth-section" style="margin-top:24px;">
       <a id="oauthlink" href="#" target="_blank">
         <button id="auth-btn" disabled>Auth</button>
@@ -45,6 +48,7 @@
 
       var clientIdInput = document.getElementById('input-client-id');
       var codeChallengeInput = document.getElementById('input-code-challenge');
+      var codeVerifierInput = document.getElementById('input-code-verifier');
       var oauthLink = document.getElementById('oauthlink');
       var authBtn = document.getElementById('auth-btn');
       var errorsDiv = document.getElementById('errors');
@@ -52,6 +56,10 @@
       // Pre-populate from URL params if present
       if (urlParams.client_id) clientIdInput.value = urlParams.client_id;
       if (urlParams.code_challenge) codeChallengeInput.value = urlParams.code_challenge;
+
+      // Restore verifier from localStorage if returning from redirect
+      var savedVerifier = localStorage.getItem('etsy_pkce_verifier');
+      if (savedVerifier) codeVerifierInput.value = savedVerifier;
 
       function buildOauthUrl(clientId, codeChallenge) {
         var redirectUri = encodeURIComponent('https://smile.customfamilygifts.com/oauth_etsy');
@@ -73,11 +81,15 @@
 
         if (!clientId) errors.push('Client ID is required.');
         if (!codeChallenge) errors.push('Code Challenge is required.');
+        if (!codeVerifierInput.value.trim()) errors.push('Code Verifier is required.');
 
         errorsDiv.textContent = errors.join(' ');
 
         if (errors.length === 0) {
           oauthLink.href = buildOauthUrl(clientId, codeChallenge);
+          oauthLink.onclick = function() {
+            localStorage.setItem('etsy_pkce_verifier', codeVerifierInput.value.trim());
+          };
           authBtn.disabled = false;
           authBtn.style.opacity = '1';
         } else {
@@ -91,11 +103,17 @@
       codeChallengeInput.addEventListener('input', updateLink);
       updateLink();
 
-      // Show returned code if present in URL
+      codeVerifierInput.addEventListener('input', updateLink);
+
+      // Show returned code + verifier if present in URL
       var returnedCode = urlParams.code;
       if (returnedCode) {
+        var verifierForPostman = localStorage.getItem('etsy_pkce_verifier') || '';
+        localStorage.removeItem('etsy_pkce_verifier');
         var codeResult = document.getElementById('code-result');
-        codeResult.innerHTML = '<strong>Authorization Code (copy this into Postman):</strong><br><textarea rows="3">' + returnedCode + '</textarea>';
+        codeResult.innerHTML =
+          '<strong>code:</strong><br><textarea rows="2">' + returnedCode + '</textarea>' +
+          '<strong>verifier:</strong><br><textarea rows="2">' + verifierForPostman + '</textarea>';
       }
     </script>
 
