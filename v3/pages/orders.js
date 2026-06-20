@@ -500,6 +500,27 @@ const printsTab = (r) => {
     `);
   }
 
+  if (r.printed_orders?.length) {
+    const cards = r.printed_orders.map(po => {
+      const rows = [
+        po.name                  ? `<div class="text-sm font-medium">${po.name}</div>` : '',
+        po.printed_order_created ? `<div class="text-xs text-base-content/50">Created: ${formatDate(po.printed_order_created)}</div>` : '',
+        po.printer_item          ? `<div class="text-xs text-base-content/50">Item: ${po.printer_item}</div>` : '',
+        po.printer_status        ? `<div class="text-xs text-base-content/50">Status: ${po.printer_status}</div>` : '',
+        po.tracking_url          ? `<div class="text-xs"><a href="${po.tracking_url}" target="_blank" class="link link-primary">Track Shipment</a></div>` : '',
+        (po.printing_service === 'RV' && po.gooten_id) ? `<div class="text-xs"><a href="https://b2b.rvprintfactory.com/orders/${po.gooten_id}" target="_blank" class="link link-primary">RV Order</a></div>` : '',
+      ].filter(Boolean).join('');
+      return `
+        <div class="card bg-base-200">
+          <div class="card-body py-3 px-4 gap-1">
+            <h3 class="text-sm font-bold">Printed Order #${po.printed_order_id ?? '—'}</h3>
+            ${rows}
+          </div>
+        </div>`;
+    }).join('');
+    parts.push(cards);
+  }
+
   if (!parts.length) {
     return `<p class="text-sm text-base-content/40 text-center py-12">No print info</p>`;
   }
@@ -558,8 +579,12 @@ const toPrintTab = (r) => {
   return `
     <div class="space-y-4">
       ${parts.join('')}
-      <button onclick="window._toPrintAdd('${r.at_record_id}', ${r.orderId_raw})"
-        class="btn btn-sm btn-outline w-full">+ Add To Print</button>
+      <div class="flex gap-2">
+        <button onclick="window._toPrintAdd('${r.at_record_id}', ${r.orderId_raw})"
+          class="btn btn-sm btn-outline flex-1">+ Add To Print</button>
+        ${r.to_prints?.length ? `<button onclick="window._toPrintNow(${r.orderId_raw})"
+          class="btn btn-sm btn-primary flex-1">Print Now</button>` : ''}
+      </div>
     </div>`;
 };
 
@@ -772,7 +797,7 @@ export const orders = {
     {
       id:     'prints',
       label:  'Prints',
-      count:  (r) => r.auto_proof_files?.length ?? 0,
+      count:  (r) => (r.printed_orders?.length ?? 0) + (r.auto_proof_files?.length ?? 0),
       render: printsTab,
     },
     {
@@ -1041,6 +1066,17 @@ window._picDeleteRow = (idx) => {
   window._picRows.splice(idx, 1);
   const rowsEl = document.getElementById('pic-rows');
   if (rowsEl) rowsEl.innerHTML = _picRowsHtml();
+};
+
+window._toPrintNow = async (orderId) => {
+  try {
+    await API.gcf(`v2-autoprintSearch?orderId=${orderId}&force=1`, { toast: 'Print triggered.' });
+    const updated = await fetchOne(window._currentOrderRecord);
+    window._Drawer?.refresh(updated);
+    window._Drawer?.switchTab('toPrint');
+  } catch (err) {
+    // error toast handled by API.gcf
+  }
 };
 
 window._toPrintDelete = async (toPrintId) => {
