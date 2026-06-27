@@ -1,4 +1,12 @@
 html[data-theme="light"] {
   --p: 72% 0.12 28;
   --pc: 100% 0 0;
+  --s: 61% 0.156 256;
+  --sc: 100% 0 0;
+}
+
+/* DaisyUI textareas default to line-height: 2 (~32px at 14px font), which reads
+   as double-spaced. Tighten to a compact, single-spaced rhythm. */
+.textarea {
+  line-height: 1.35;
 }

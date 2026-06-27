@@ -34,7 +34,7 @@ const WIDE_TYPES = new Set(['textarea', 'datetime']);
 // Shared wrapper: label (+ optional asterisk), input, hint text, validation error slot.
 // skipLabel: true for toggle/checkbox where the label is inline with the input.
 function _wrap(f, id, lbl, asterisk, inputHtml, { skipLabel = false } = {}) {
-  const span      = WIDE_TYPES.has(f.type) ? 'col-span-2' : 'col-span-1';
+  const span      = (f.full || WIDE_TYPES.has(f.type)) ? 'col-span-2' : 'col-span-1';
   const labelHtml = skipLabel ? '' : `
     <label class="label py-0" for="${id}">
       <span class="label-text text-xs">${lbl}${asterisk}</span>

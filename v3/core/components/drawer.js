@@ -6,12 +6,14 @@ export class Drawer {
   #fetchOne;
   #titleFn;
   #overviewFn;
+  #railFn;
   #panel;
   #backdrop;
   #body;
   #title;
   #tabBar;
   #overview;
+  #rail;
   #loader;
   #activeTab    = null;
   #currentRecord = null;
@@ -20,7 +22,8 @@ export class Drawer {
   // tabsOrTemplate: array of tab configs (tabs mode) OR a render function (single-body mode)
   // titleFn:    optional (record) => string
   // overviewFn: optional (record) => html string — renders above the tab bar
-  constructor(tabsOrTemplate, fetchOne = null, titleFn = null, overviewFn = null) {
+  // railFn:     optional (record) => html string — renders a left side rail (desktop only); '' hides it
+  constructor(tabsOrTemplate, fetchOne = null, titleFn = null, overviewFn = null, railFn = null) {
     if (Array.isArray(tabsOrTemplate)) {
       this.#tabs     = tabsOrTemplate;
       this.#template = null;
@@ -31,6 +34,7 @@ export class Drawer {
     this.#fetchOne   = fetchOne;
     this.#titleFn    = titleFn;
     this.#overviewFn = overviewFn;
+    this.#railFn     = railFn;
   }
 
   mount(el) {
@@ -38,6 +42,15 @@ export class Drawer {
       <!-- Backdrop -->
       <div id="drawer-backdrop"
         class="fixed inset-0 bg-black/30 z-40 hidden transition-opacity duration-300">
+      </div>
+
+      <!-- Left side rail (desktop only) — sits flush against the panel's left edge -->
+      <div id="drawer-rail"
+        class="fixed top-0 right-[32rem] h-full w-64 z-50 hidden lg:flex flex-col
+               bg-base-100 shadow-2xl border-l-4 overflow-hidden
+               translate-x-[32rem] opacity-0 pointer-events-none
+               transition-all duration-300 ease-in-out"
+        style="border-left-color:#f8886d">
       </div>
 
       <!-- Panel -->
@@ -75,6 +88,7 @@ export class Drawer {
     this.#title    = el.querySelector('#drawer-title');
     this.#overview = el.querySelector('#drawer-overview');
     this.#tabBar   = el.querySelector('#drawer-tabbar');
+    this.#rail     = el.querySelector('#drawer-rail');
     this.#loader   = el.querySelector('#drawer-loader');
 
     el.querySelector('#drawer-close').addEventListener('click', () => this.close());
@@ -102,6 +116,7 @@ export class Drawer {
     this.#renderOverview();
     this.#renderTabBar();
     this.#renderBody();
+    this.#renderRail();
     this.#syncParams();
 
     document.body.classList.add('overflow-hidden');
@@ -119,6 +134,7 @@ export class Drawer {
         this.#renderOverview();
         this.#renderTabBar();
         this.#renderBody();
+        this.#renderRail();
       } catch (e) {
         console.warn('[Drawer] fetchOne failed:', e);
       } finally {
@@ -134,9 +150,11 @@ export class Drawer {
     this.#renderOverview();
     this.#renderTabBar();
     this.#renderBody();
+    this.#renderRail();
   }
 
   close() {
+    this.#hideRail();
     this.#panel.classList.add('translate-x-full');
     this.#backdrop.classList.add('hidden');
     document.body.classList.remove('overflow-hidden');
@@ -166,6 +184,23 @@ export class Drawer {
         ${this.#overviewFn(this.#currentRecord)}
       </div>
     `;
+  }
+
+  #renderRail() {
+    if (!this.#rail) return;
+    const html = this.#railFn ? (this.#railFn(this.#currentRecord) || '') : '';
+    if (html.trim()) {
+      this.#rail.innerHTML = html;
+      this.#rail.classList.remove('translate-x-[32rem]', 'opacity-0', 'pointer-events-none');
+    } else {
+      this.#hideRail();
+      this.#rail.innerHTML = '';
+    }
+  }
+
+  #hideRail() {
+    if (!this.#rail) return;
+    this.#rail.classList.add('translate-x-[32rem]', 'opacity-0', 'pointer-events-none');
   }
 
   #renderTabBar() {

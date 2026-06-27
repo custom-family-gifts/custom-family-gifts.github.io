@@ -5,6 +5,7 @@ import { Drawer }     from './drawer.js';
 import { Modal }      from './modal.js';
 import { CrudForm }   from '../crud-form.js';
 import { Router }     from '../router.js';
+import { AutoRefresh } from '../auto-refresh.js';
 
 function readFilterParams(filterConfigs) {
   const params = Router.getParams();
@@ -96,6 +97,7 @@ export class PageController {
       this.#config.fetchOne      ?? null,
       this.#config.drawerTitle   ?? null,
       this.#config.drawerOverview ?? null,
+      this.#config.drawerRail    ?? null,
     );
     this.#components.drawer.mount(q('#pc-drawer'));
 
@@ -105,12 +107,18 @@ export class PageController {
     window._Drawer   = this.#components.drawer;
     window._Table    = this.#components.table;
     window._CrudForm = CrudForm;
+
+    if (this.#config.autoRefresh) {
+      this.#components.autoRefresh = new AutoRefresh(this.#config.autoRefresh);
+      this.#components.autoRefresh.start();
+    }
   }
 
   async #load() {
     this.#components.table.setLoading(true);
     try {
       const result = await this.#config.fetch(this.#state);
+      this.#components.autoRefresh?.markLoaded();
       this.#components.table.setData(result.records, this.#state.sort, this.#state.order);
       this.#components.pagination.update({
         page:  result.page,
@@ -130,7 +138,7 @@ export class PageController {
         const key    = this.#config.drawerKey ?? '_id';
         const record = result.records.find(r => String(r[key] ?? r._id) === params.drawer)
           ?? { [key]: isNaN(params.drawer) ? params.drawer : +params.drawer };
-        this.#components.drawer.open(record, params.tab ?? null, params.drawer);
+        this.#components.drawer.open(record, null, params.drawer);
       }
     } catch (err) {
       this.#el.querySelector('#pc-table').innerHTML = `
@@ -142,6 +150,7 @@ export class PageController {
   }
 
   destroy() {
+    this.#components.autoRefresh?.destroy();
     this.#el.innerHTML = '';
   }
 }

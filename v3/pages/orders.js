@@ -1,6 +1,6 @@
 import { API }        from '../core/api.js';
 import { Auth }       from '../core/auth.js';
-import { formatDate, formatPhone } from '../core/helpers.js';
+import { formatDate, formatPhone, formatAgo } from '../core/helpers.js';
 
 // ---------------------------------------------------------------------------
 // Shared helpers
@@ -35,15 +35,21 @@ const ARTIST_COLORS = {
 const artistBadge = (val) => {
   if (!val) return '';
   const [bg, color] = ARTIST_COLORS[val] ?? ['#E5E9F0', '#000000'];
-  return `<span class="badge" style="background:${bg};color:${color};border-color:${bg}">${val}</span>`;
+  return `<span class="badge" style="background:${bg};color:${color};border-color:${bg};font-weight:normal">${val}</span>`;
 };
 
 const pipelineBadge = (val) => {
   if (!val) return '—';
   const colors = PIPELINE_COLORS[val];
   const [bg, color] = colors ?? ['#ef4444', '#ffffff']; // bright red for unknown values
-  return `<span class="badge" style="background:${bg};color:${color};border-color:${bg}">${val}</span>`;
+  return `<span class="badge" style="background:${bg};color:${color};border-color:${bg};font-weight:normal">${val}</span>`;
 };
+
+// etsy_receipt_id may be an array; fall back to the saved scalar.
+const etsyReceiptId = (record) =>
+  (Array.isArray(record.etsy_receipt_id) ? record.etsy_receipt_id[0] : record.etsy_receipt_id)
+  || record.etsy_receipt_id_saved
+  || '';
 
 const COL = 'cfg.orders';
 
@@ -70,15 +76,24 @@ const ORDER_SCHEMAS = {
     { key: 'shipAddZip',     label: 'Zip',        type: 'text' },
     { key: 'shipAddCountry', label: 'Country',    type: 'text', validate: 'required', maxlength: 2, hint: '2-letter code (e.g. US)' },
   ]),
-  options: _schema('Edit Options', [
-    { key: 'options', label: 'Options', type: 'textarea', rows: 6 },
-  ]),
   printNote: _schema('Edit Print / Gift Note', [
     { key: 'print_note',         label: 'Print Note', type: 'textarea', rows: 3, hint: 'Content here will block printing.' },
     { key: 'to_print_gift_note', label: 'Gift Note',  type: 'textarea', rows: 3, hint: 'Copy from print_note when appropriate' },
   ]),
   sentProofs: _schema('Edit Sent Proofs', [
     { key: 'sent_proofs_record', label: 'Sent Proofs', type: 'text', hint: 'Comma delimited, no spaces. Delete to allow resending of a previously sent proof.' },
+  ]),
+  reproof: _schema('Reproof', [
+    { key: 'pipeline', label: 'Pipeline', type: 'select', nullable: false, options: ['ART: Re-Proof'] },
+    { key: 'reproof_slack_note', label: 'Reproof Slack Note', type: 'textarea', rows: 5, hint: 'Reproof Note sent to slack after 10 minutes' },
+  ]),
+  approve: _schema('Approve', [
+    { key: 'pipeline', label: 'Pipeline', type: 'select', nullable: false, options: ['APPROVED: Print Me'] },
+    { key: 'chosen_proof', label: 'Chosen Proof', type: 'text', validate: 'proof' },
+  ]),
+  proofReview: _schema('Edit Customer Proof Message', [
+    { key: 'to_customer_subject', label: 'Subject', type: 'text', full: true },
+    { key: 'to_customer',         label: 'Message', type: 'textarea', rows: 8 },
   ]),
   customer: _schema('Edit Customer', [
     { key: 'custFirst',    label: 'First Name',      type: 'text', validate: 'required' },
@@ -187,7 +202,7 @@ async function fetch(state) {
 // Fetch one — enriched record for the drawer
 // ---------------------------------------------------------------------------
 async function fetchOne(record) {
-  const result = await API.gcf(`v2-getCustomerOrder?orderId=${record.orderId_raw}`);
+  const result = await API.gcf(`v2-getServiceOrder?orderId=${record.orderId_raw}`);
   API.storeUpdate(COL, result, 'orderId_raw');
   return result;
 }
@@ -397,52 +412,369 @@ window._submitInternalNote = async () => {
 // Tab: Messages
 // ---------------------------------------------------------------------------
 const messagesTab = (r) => {
-  if (!r.messages?.length) {
-    return `<p class="text-sm text-base-content/40 text-center py-12">No messages</p>`;
-  }
+  window._currentOrderRecord = r;
+  const isEtsy = !!etsyReceiptId(r);
 
-  const sorted = [...r.messages].sort((a, b) => new Date(b.created) - new Date(a.created));
+  const actionButtons = [
+    `<button onclick="window._msgReproof()" class="btn btn-sm" style="background:#7C37EF;border-color:#7C37EF;color:#fff">Reproof</button>`,
+    `<button onclick="window._msgApprove()" class="btn btn-sm btn-secondary">Approve</button>`,
+    `<button onclick="window._msgSms()" class="btn btn-sm btn-outline" ${!r.custPhone ? `disabled title="No phone number"` : ''}>SMS</button>`,
+    `<button onclick="window._msgEmail()" class="btn btn-sm btn-outline" ${isEtsy  ? `disabled title="Etsy order"` : ''}>Email</button>`,
+    `<button onclick="window._msgEtsy()" class="btn btn-sm btn-outline" ${!isEtsy ? `disabled title="Not an Etsy order"` : ''}>Etsy Msg</button>`,
+  ].join('');
 
-  const via = (m) => {
-    if (m.to === 'CFG Etsy'  || m.from === 'CFG Etsy')  return 'Etsy';
-    if (m.to === 'CFG SMS'   || m.from === 'CFG SMS')   return 'SMS';
-    if (m.source_name === 'Portal') return 'Form';
-    return 'Email';
-  };
+  const messagesHtml = r.messages?.length
+    ? (() => {
+        const sorted = [...r.messages].sort((a, b) => new Date(b.created) - new Date(a.created));
+        const via = (m) => {
+          if (m.to === 'CFG Etsy'  || m.from === 'CFG Etsy')  return 'Etsy';
+          if (m.to === 'CFG SMS'   || m.from === 'CFG SMS')   return 'SMS';
+          if (m.source_name === 'Portal') return 'Form';
+          return 'Email';
+        };
+        const orderEmail = (r.email || '').trim().toLowerCase();
+        return sorted.map(m => {
+          const isUs = m.from_2 === 'us';
+          // For outbound emails from us, surface the recipient address in the header.
+          // If it no longer matches the order's current customer email, flag it.
+          const isOutboundEmail = isUs && via(m) === 'Email' && /@/.test(m.to || '');
+          const recipientMismatch = isOutboundEmail && m.to.trim().toLowerCase() !== orderEmail;
+          const recipientHtml = isOutboundEmail
+            ? `<span class="text-xs ${recipientMismatch ? 'text-error line-through' : 'text-base-content/50'}"
+                  ${recipientMismatch ? `title="Does not match current order email: ${r.email || '—'}"` : ''}>
+                 → ${m.to}
+               </span>`
+            : '';
+          return `
+            <div class="card ${isUs ? 'bg-primary/10 border border-primary/20' : 'bg-base-200'}">
+              <div class="card-body py-3 px-4 gap-1.5">
+                <div class="flex items-center justify-between gap-2 flex-wrap">
+                  <div class="flex items-center gap-2">
+                    <span class="text-xs font-semibold ${isUs ? 'text-primary' : 'text-base-content/70'}">
+                      ${isUs ? 'CFG' : (m.from || 'Customer')}
+                    </span>
+                    <span class="badge badge-xs badge-ghost">${via(m)}</span>
+                    ${recipientHtml}
+                  </div>
+                  <span class="text-xs text-base-content/40">${m.created ? formatDate(m.created) : ''}</span>
+                </div>
+                ${m.subject ? `<div class="text-xs font-medium text-base-content/70">${m.subject}</div>` : ''}
+                <div class="text-sm leading-relaxed">${m.html || m.text || '(no content)'}</div>
+                ${m.attachments?.length ? `
+                  <div class="text-xs text-base-content/40 mt-1">
+                    📎 ${m.attachments.map(a => a.name).join(', ')}
+                  </div>
+                ` : ''}
+              </div>
+            </div>
+          `;
+        }).join('');
+      })()
+    : `<p class="text-sm text-base-content/40 text-center py-12">No messages</p>`;
+
+  // Draft customer proof message awaiting review — only while in PROOF RDY: Review.
+  // Rendered as plain text (overview-style), not a message card, with a gear to edit.
+  const reviewHtml = r.pipeline === 'PROOF RDY: Review'
+    ? `
+      <div class="flex flex-col px-1 py-1 gap-1">
+        <div class="flex items-center gap-1">
+          <h3 class="text-xs uppercase tracking-wide opacity-60">Message to be sent</h3>
+          <button onclick="window._orderEdit('proofReview')" class="btn btn-xs btn-ghost btn-circle -my-1" title="Edit">${GEAR_SVG}</button>
+        </div>
+        <div class="text-xs text-base-content/50">TO_CUSTOMER_SUBJECT</div>
+        <div class="text-sm">${r.to_customer_subject || '—'}</div>
+        <div class="text-xs text-base-content/50 mt-1">TO_CUSTOMER</div>
+        <div class="text-sm whitespace-pre-wrap">${r.to_customer || '—'}</div>
+        <button id="send-proof-btn" onclick="window._msgSendProof()" class="btn btn-sm btn-primary self-start mt-2">send PROOF RDY now</button>
+      </div>
+    `
+    : '';
+
+  // Queued-but-unsent Etsy messages — shown above the message history.
+  const queuedHtml = (r.queued_etsy_messages?.records || [])
+    .filter(q => !q.sent && !q.delete)
+    .map(q => `
+      <div class="card bg-warning/10 border border-warning/30">
+        <div class="card-body py-3 px-4 gap-1.5">
+          <div class="flex items-center justify-between gap-2 flex-wrap">
+            <div class="flex items-center gap-2">
+              <span class="text-xs font-semibold text-warning">CFG</span>
+              <span class="badge badge-xs badge-warning">Etsy · Queued</span>
+            </div>
+            <span class="text-xs text-base-content/40">${q.created ? formatDate(q.created) : ''}</span>
+          </div>
+          <div class="text-sm leading-relaxed whitespace-pre-wrap">${q.message || '(no content)'}</div>
+        </div>
+      </div>
+    `).join('');
 
   return `
-    <div class="space-y-3">
-      ${sorted.map(m => {
-        const isUs = m.from_2 === 'us';
-        return `
-          <div class="card ${isUs ? 'bg-primary/10 border border-primary/20' : 'bg-base-200'}">
-            <div class="card-body py-3 px-4 gap-1.5">
-              <div class="flex items-center justify-between gap-2 flex-wrap">
-                <div class="flex items-center gap-2">
-                  <span class="text-xs font-semibold ${isUs ? 'text-primary' : 'text-base-content/70'}">
-                    ${isUs ? 'CFG' : (m.from || 'Customer')}
-                  </span>
-                  <span class="badge badge-xs badge-ghost">${via(m)}</span>
-                </div>
-                <span class="text-xs text-base-content/40">${m.created ? formatDate(m.created) : ''}</span>
-              </div>
-              ${m.subject ? `<div class="text-xs font-medium text-base-content/70">${m.subject}</div>` : ''}
-              <div class="text-sm leading-relaxed">${m.html || m.text || '(no content)'}</div>
-              ${m.attachments?.length ? `
-                <div class="text-xs text-base-content/40 mt-1">
-                  📎 ${m.attachments.map(a => a.name).join(', ')}
-                </div>
-              ` : ''}
-            </div>
-          </div>
-        `;
-      }).join('')}
+    <div class="flex flex-col gap-3">
+      <div class="flex gap-2 flex-wrap">${actionButtons}</div>
+      <div class="space-y-3">${reviewHtml}${queuedHtml}${messagesHtml}</div>
     </div>
   `;
 };
 
+window._msgReproof = () => window._CrudForm.open(ORDER_SCHEMAS.reproof, window._currentOrderRecord);
+window._msgApprove = () => window._CrudForm.open(ORDER_SCHEMAS.approve, window._currentOrderRecord);
+
+// Runs the proof-readiness check and the art-email send in sequence for one order.
+async function sendProofEmail(orderId) {
+  await API.gcf(`v2-checkProofReadyForSendable?orderId=${orderId}`);
+  await API.gcf(`v2-sendArtEmailTemplates?orderId=${orderId}`);
+}
+
+window._msgSendProof = async () => {
+  if (!confirm('Send Proof Email?')) return;
+  const record = window._currentOrderRecord;
+  const btn    = document.getElementById('send-proof-btn');
+  if (btn) { btn.disabled = true; btn.innerHTML = '<span class="loading loading-spinner loading-xs"></span>'; }
+  try {
+    await sendProofEmail(record.orderId_raw);
+    const updated = await fetchOne(record);
+    window._Drawer?.refresh(updated);
+    window._Drawer?.switchTab('messages');
+  } catch (err) {
+    // error toast handled by API.gcf
+    if (btn) { btn.disabled = false; btn.textContent = 'send PROOF RDY now'; }
+  }
+};
+const SMS_MAX = 160; // single SMS segment (GSM-7)
+
+const smsNumber = (record) => {
+  const digits = String(record.custPhone || '').replace(/\D/g, '');
+  return digits.length === 10 ? '1' + digits : digits;
+};
+
+window._msgSms = () => {
+  const r      = window._currentOrderRecord;
+  const number = smsNumber(r);
+  window._Modal.open(`
+    <div class="p-4 flex flex-col gap-2">
+      <div class="text-xs opacity-60">To: ${formatPhone(r.custPhone)} <span class="font-mono">(${number})</span></div>
+      <textarea id="sms-input" rows="6" maxlength="${SMS_MAX}" oninput="window._smsCount()"
+        class="textarea textarea-bordered textarea-sm w-full" placeholder="Message…"></textarea>
+      <div id="sms-count" class="text-xs opacity-60 text-right"></div>
+      <p class="text-xs text-base-content/40">Sent via CallHippo. Limited to a single 160-character SMS.</p>
+      <div id="sms-error" class="text-error text-sm hidden"></div>
+    </div>
+  `, 'Send SMS', { boxClass: 'max-w-lg', actions: '<button id="sms-send-btn" onclick="window._smsSend()" class="btn btn-sm btn-primary">Send</button>' });
+  window._smsCount();
+};
+
+window._smsCount = () => {
+  const input = document.getElementById('sms-input');
+  const out   = document.getElementById('sms-count');
+  if (!input || !out) return;
+  out.textContent = `${input.value.length} / ${SMS_MAX}`;
+};
+
+window._smsSend = async () => {
+  const r       = window._currentOrderRecord;
+  const input   = document.getElementById('sms-input');
+  const errEl   = document.getElementById('sms-error');
+  const btn     = document.getElementById('sms-send-btn');
+  const message = input?.value?.trim();
+  if (!message) {
+    errEl.textContent = 'Message cannot be blank.';
+    errEl.classList.remove('hidden');
+    return;
+  }
+
+  errEl.classList.add('hidden');
+  btn.disabled  = true;
+  btn.innerHTML = '<span class="loading loading-spinner loading-xs"></span>';
+
+  try {
+    await API.gcf('v2-sendOrderSms', {
+      toast: 'SMS sent.',
+      body: JSON.stringify({
+        orderId: r.orderId_raw,
+        number:  +smsNumber(r),
+        message,
+      }),
+    });
+    window._Modal.close();
+    const updated = await fetchOne(r);
+    window._Drawer?.refresh(updated);
+    window._Drawer?.switchTab('messages');
+  } catch (err) {
+    errEl.textContent = err.message || 'Failed to send SMS.';
+    errEl.classList.remove('hidden');
+    btn.disabled    = false;
+    btn.textContent = 'Send';
+  }
+};
+// Latest email ticket to thread the reply onto: newest matching message (last index),
+// source_name Email/Outbound_email, not an SMS leg. Returns undefined if none.
+const emailTicketId = (record) => {
+  const messages = record.messages || [];
+  for (let i = messages.length - 1; i >= 0; i--) {
+    const m      = messages[i];
+    const source = (m.source_name || '').toLowerCase();
+    if ((source === 'email' || source === 'outbound_email')
+        && m.from !== 'CFG SMS' && m.to !== 'CFG SMS') {
+      return m.ticket_id;
+    }
+  }
+  return undefined;
+};
+
+window._msgEmail = () => {
+  const r       = window._currentOrderRecord;
+  const subject = `Need approval. Your proofs are ready - Custom Family Gifts #${r.orderId_raw}`;
+  window._Modal.open(`
+    <div class="p-4 flex flex-col gap-2" style="width:32rem;max-width:100%">
+      <div class="text-xs opacity-60">To: ${r.email || '—'}</div>
+      <div class="form-control gap-0.5">
+        <label class="label py-0" for="email-subject"><span class="label-text text-xs">Subject</span></label>
+        <input id="email-subject" type="text" value="${subject}"
+          class="input input-bordered input-sm w-full" />
+      </div>
+      <div class="form-control gap-0.5">
+        <label class="label py-0" for="email-input"><span class="label-text text-xs">Message</span></label>
+        <textarea id="email-input" rows="8" class="textarea textarea-bordered textarea-sm w-full" placeholder="Message…"></textarea>
+      </div>
+      <p class="text-xs text-base-content/40">Sent messages take a couple minutes to appear here, but are sent immediately.</p>
+      <div id="email-error" class="text-error text-sm hidden"></div>
+    </div>
+  `, 'Send Email', { boxClass: 'max-w-lg', actions: '<button id="email-send-btn" onclick="window._emailSend()" class="btn btn-sm btn-primary">Send</button>' });
+};
+
+window._emailSend = async () => {
+  const r        = window._currentOrderRecord;
+  const subjEl   = document.getElementById('email-subject');
+  const input    = document.getElementById('email-input');
+  const errEl    = document.getElementById('email-error');
+  const btn      = document.getElementById('email-send-btn');
+  const subject  = subjEl?.value?.trim();
+  const message  = input?.value?.trim();
+  if (!message) {
+    errEl.textContent = 'Message cannot be blank.';
+    errEl.classList.remove('hidden');
+    return;
+  }
+
+  errEl.classList.add('hidden');
+  btn.disabled  = true;
+  btn.innerHTML = '<span class="loading loading-spinner loading-xs"></span>';
+
+  const payload   = { subject, message };
+  const ticketId  = emailTicketId(r);
+  if (ticketId != null && ticketId !== '') payload.ticket_id = ticketId;
+
+  try {
+    await API.gcf(`v2-sendOrderMessage?orderId=${r.orderId_raw}`, {
+      toast: 'Email sent.',
+      body: JSON.stringify(payload),
+    });
+    window._Modal.close();
+    const updated = await fetchOne(r);
+    window._currentOrderRecord = updated;
+    window._Drawer?.refresh(updated);
+    window._Drawer?.switchTab('messages');
+  } catch (err) {
+    errEl.textContent = err.message || 'Failed to send email.';
+    errEl.classList.remove('hidden');
+    btn.disabled    = false;
+    btn.textContent = 'Send';
+  }
+};
+window._msgEtsy = () => {
+  const r         = window._currentOrderRecord;
+  const receiptId = etsyReceiptId(r);
+  window._Modal.open(`
+    <div class="p-4 flex flex-col gap-2">
+      <div class="form-control gap-0.5">
+        <label class="label py-0" for="etsy-receipt"><span class="label-text text-xs">Receipt ID</span></label>
+        <input id="etsy-receipt" type="text" readonly value="${receiptId}"
+          class="input input-bordered input-sm w-full font-mono bg-base-200" />
+      </div>
+      <div class="form-control gap-0.5">
+        <label class="label py-0" for="etsy-input"><span class="label-text text-xs">Message</span></label>
+        <textarea id="etsy-input" rows="6" class="textarea textarea-bordered textarea-sm w-full" placeholder="Message…"></textarea>
+      </div>
+      <div id="etsy-error" class="text-error text-sm hidden"></div>
+    </div>
+  `, 'Send Etsy Message', { boxClass: 'max-w-lg', actions: '<button id="etsy-send-btn" onclick="window._etsySend()" class="btn btn-sm btn-primary">Send</button>' });
+};
+
+window._etsySend = async () => {
+  const r         = window._currentOrderRecord;
+  const input     = document.getElementById('etsy-input');
+  const errEl     = document.getElementById('etsy-error');
+  const btn       = document.getElementById('etsy-send-btn');
+  const message   = input?.value?.trim();
+  const receiptId = etsyReceiptId(r);
+  if (!message) {
+    errEl.textContent = 'Message cannot be blank.';
+    errEl.classList.remove('hidden');
+    return;
+  }
+
+  errEl.classList.add('hidden');
+  btn.disabled  = true;
+  btn.innerHTML = '<span class="loading loading-spinner loading-xs"></span>';
+
+  try {
+    await API.gcf('v2-powerAutomateQueueEtsyMessage', {
+      toast: 'Etsy Message Queued',
+      body: JSON.stringify({
+        receipt_id: receiptId,
+        message,
+      }),
+    });
+    window._Modal.close();
+    const updated = await fetchOne(r);
+    window._currentOrderRecord = updated;
+    window._Drawer?.refresh(updated);
+    window._Drawer?.switchTab('messages');
+  } catch (err) {
+    errEl.textContent = err.message || 'Failed to send Etsy message.';
+    errEl.classList.remove('hidden');
+    btn.disabled    = false;
+    btn.textContent = 'Send';
+  }
+};
+
 // ---------------------------------------------------------------------------
-// Tab: Prints — print note, internal notes, proofs
+// Side rail: Related — other orders from the same customer (from v2-getServiceOrder)
+// Rendered into the drawer's left side rail (desktop only). Returns '' to hide.
+// ---------------------------------------------------------------------------
+const ordersRail = (r) => {
+  const others = r.other_orders ?? [];
+  if (!others.length) return '';
+
+  const cards = others.map((oo) => `
+      <button onclick="window._openRelatedOrder(${oo.orderId_raw})"
+        class="card bg-base-100 hover:bg-base-200 transition-colors text-left w-full shadow-sm border border-base-200">
+        <div class="card-body py-2.5 px-3 gap-1">
+          <div class="flex items-center justify-between gap-2">
+            <span class="font-mono text-sm font-bold">#${oo.orderId_raw}</span>
+            ${oo.created_shopify_order ? `<span class="text-xs text-base-content/40">${formatDate(oo.created_shopify_order)}</span>` : ''}
+          </div>
+          ${oo.pipeline ? `<div>${pipelineBadge(oo.pipeline)}</div>` : ''}
+        </div>
+      </button>
+    `).join('');
+
+  const count = others.length;
+  return `
+    <div class="px-3 py-3 shrink-0" style="background:#f8886d;color:#fff">
+      <div class="text-sm font-bold leading-tight">⚠️ ${count} Other Order${count > 1 ? 's' : ''}</div>
+      <div class="text-xs opacity-90">Same customer — click to view</div>
+    </div>
+    <div class="flex flex-col gap-2 p-3 overflow-y-auto flex-1 min-h-0">${cards}</div>
+  `;
+};
+
+window._openRelatedOrder = (orderId) => {
+  window._Drawer?.open({ orderId_raw: orderId }, null, String(orderId));
+};
+
+// ---------------------------------------------------------------------------
+// Tab: Prints — print note, proofs
 // ---------------------------------------------------------------------------
 const printsTab = (r) => {
   const parts = [];
@@ -455,65 +787,21 @@ const printsTab = (r) => {
     `);
   }
 
-  if (r['Internal - newest on top please']) {
-    parts.push(`
-      <div class="card" style="background:#c75c3a;border-color:#c75c3a;color:#fff">
-        <div class="card-body py-3 px-4 gap-1">
-          <h4 class="text-xs uppercase tracking-wide opacity-70">Internal Notes</h4>
-          <div class="text-sm whitespace-pre-wrap">${r['Internal - newest on top please']}</div>
-        </div>
-      </div>
-    `);
-  }
-
-  if (r.auto_proof_files?.length) {
-    const chosen = (r.chosen_proof || '')
-      .split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
-
-    const proofRows = r.auto_proof_files
-      .slice().sort((a, b) => (a.filename > b.filename ? 1 : -1))
-      .map(f => {
-        const letter    = f.filename?.split('_')[1]?.toLowerCase() ?? '?';
-        const num       = +f.filename?.split('_')[0];
-        const prefix    = Math.floor(num / 100);
-        const approved  = chosen.includes(letter);
-        const url       = f.url
-          ?? `https://custom-family-gifts.s3.us-east-2.amazonaws.com/${prefix}00-${prefix}99/${num}/_proofs/${num}_${letter}_proof.jpg`;
-        return `
-          <div class="flex items-center gap-3 text-sm py-1">
-            <a href="${url}" target="_blank" class="link link-primary font-mono">
-              Proof ${letter.toUpperCase()}
-            </a>
-            ${f.date ? `<span class="text-xs text-base-content/40">${formatDate(f.date)}</span>` : ''}
-            ${approved ? `<span class="badge badge-success badge-sm ml-auto">✔ approved</span>` : ''}
-          </div>
-        `;
-      }).join('');
-
-    parts.push(`
-      <div class="card bg-base-200">
-        <div class="card-body py-4 gap-1">
-          <h3 class="card-title text-sm uppercase tracking-wide opacity-60">Proofs</h3>
-          ${proofRows}
-        </div>
-      </div>
-    `);
-  }
-
-  if (r.printed_orders?.length) {
-    const cards = r.printed_orders.map(po => {
+  if (r.printed_order?.length) {
+    const cards = r.printed_order.map(po => {
       const rows = [
-        po.name                  ? `<div class="text-sm font-medium">${po.name}</div>` : '',
-        po.printed_order_created ? `<div class="text-xs text-base-content/50">Created: ${formatDate(po.printed_order_created)}</div>` : '',
         po.printer_item          ? `<div class="text-xs text-base-content/50">Item: ${po.printer_item}</div>` : '',
         po.printer_status        ? `<div class="text-xs text-base-content/50">Status: ${po.printer_status}</div>` : '',
+        po.printing_service      ? `<div class="text-xs text-base-content/50">Service: ${po.printing_service}</div>` : '',
+        po.printed_order_created ? `<div class="text-xs text-base-content/50">Created: ${formatDate(po.printed_order_created)}</div>` : '',
+        po.tracking              ? `<div class="text-xs text-base-content/50">Tracking: ${po.tracking}</div>` : '',
         po.tracking_url          ? `<div class="text-xs"><a href="${po.tracking_url}" target="_blank" class="link link-primary">Track Shipment</a></div>` : '',
         (po.printing_service === 'RV' && po.gooten_id) ? `<div class="text-xs"><a href="https://b2b.rvprintfactory.com/orders/${po.gooten_id}" target="_blank" class="link link-primary">RV Order</a></div>` : '',
       ].filter(Boolean).join('');
       return `
         <div class="card bg-base-200">
           <div class="card-body py-3 px-4 gap-1">
-            <h3 class="text-sm font-bold">Printed Order #${po.printed_order_id ?? '—'}</h3>
+            <h3 class="text-sm font-bold">Printed Order #${po.printer_id ?? '—'}</h3>
             ${rows}
           </div>
         </div>`;
@@ -543,19 +831,8 @@ const toPrintTab = (r) => {
     `);
   }
 
-  if (r.to_print_gift_note) {
-    parts.push(`
-      <div class="card bg-base-200">
-        <div class="card-body py-3 px-4 gap-1">
-          <h3 class="text-xs uppercase tracking-wide opacity-60">Gift Note</h3>
-          <div class="text-sm whitespace-pre-wrap">${r.to_print_gift_note}</div>
-        </div>
-      </div>
-    `);
-  }
-
-  if (r.to_prints?.length) {
-    const cards = r.to_prints.map(tp => {
+  if (r.to_print?.length) {
+    const cards = r.to_print.map(tp => {
       const rows = [
         tp.printer?.length            ? `<div class="text-xs text-base-content/50">Printer: ${tp.printer.join(', ')}</div>` : '',
         tp.print_choice_frame?.length ? `<div class="text-xs text-base-content/50">Frame: ${tp.print_choice_frame.join(', ')}</div>` : '',
@@ -582,7 +859,7 @@ const toPrintTab = (r) => {
       <div class="flex gap-2">
         <button onclick="window._toPrintAdd('${r.at_record_id}', ${r.orderId_raw})"
           class="btn btn-sm btn-outline flex-1">+ Add To Print</button>
-        ${r.to_prints?.length ? `<button onclick="window._toPrintNow(${r.orderId_raw})"
+        ${r.to_print?.length ? `<button onclick="window._toPrintNow(${r.orderId_raw})"
           class="btn btn-sm btn-primary flex-1">Print Now</button>` : ''}
       </div>
     </div>`;
@@ -640,6 +917,36 @@ const miscTab = (r) => {
     `);
   }
 
+  const timelineKeys = [
+    ['created',             'created_shopify_order'],
+    ['date_initialArtDone', 'date_initialArtDone'],
+    ['date_proofSent',      'date_proofSent'],
+    ['date_approved',       'date_approved'],
+    ['date_printUploaded',  'date_printUploaded'],
+    ['date_shipped',        'date_shipped'],
+    ['date_delivered',      'date_delivered'],
+  ];
+  const timelineRows = timelineKeys
+    .filter(([, key]) => r[key])
+    .map(([label, key]) => `
+      <div class="flex flex-col gap-0.5">
+        <span class="text-xs opacity-60">${label}</span>
+        <div class="flex items-baseline gap-2 flex-wrap">
+          <span class="text-sm">${formatDate(r[key])}</span>
+          <span class="text-xs text-base-content/40">${formatAgo(r[key])}</span>
+        </div>
+      </div>`);
+  if (timelineRows.length) {
+    parts.push(`
+      <div class="card bg-base-200">
+        <div class="card-body py-3 px-4 gap-2">
+          <h3 class="text-xs uppercase tracking-wide opacity-60">Timeline</h3>
+          <div class="flex flex-col gap-3">${timelineRows.join('')}</div>
+        </div>
+      </div>
+    `);
+  }
+
   return `<div class="space-y-4">${parts.join('')}</div>`;
 };
 
@@ -669,15 +976,19 @@ export const orders = {
   defaultOrder: -1,
   defaultPer:   25,
 
+  autoRefresh:  true,
+
   drawerKey:   'orderId_raw',
+  drawerRail:  ordersRail,
   drawerTitle: (r) => {
     const priority = r.isPriority ? '⭐ ' : '';
     const etsy     = (r.etsy_receipt_id || r.etsy_receipt_id_saved) ? ` <span class="text-orange-400 text-xs">🍊</span>` : '';
     const artist   = r.artist ? `&nbsp;&nbsp;${artistBadge(r.artist)}` : '';
+    const pipeline = r.pipeline ? `&nbsp;&nbsp;${pipelineBadge(r.pipeline)}` : '';
     const proof    = r.chosen_proof
       ? r.chosen_proof.split(',').map(s => `&nbsp;<span class="badge" style="background:#22c55e;color:#fff;border-color:#22c55e">${s.trim().toUpperCase()}</span>`).join('')
       : '';
-    return `${priority}<span class="font-mono">#${r.orderId_raw}</span>${etsy}${artist}${proof}`;
+    return `${priority}<span class="font-mono">#${r.orderId_raw}</span>${etsy}${artist}${pipeline}${proof}`;
   },
 
   drawerOverview: (r) => {
@@ -755,7 +1066,7 @@ export const orders = {
             <div class="mt-1.5 space-y-0.5">
               <div class="flex items-center gap-1">
                 <div class="text-xs text-base-content/70">${items[0]}</div>
-                ${!r.printed_orders?.length ? `<button onclick="window._itemsGear(${r.orderId_raw})" class="btn btn-xs btn-ghost btn-circle shrink-0 -my-1" title="Print choices">${GEAR_SVG}</button>` : ''}
+                ${!r.printed_order?.length ? `<button onclick="window._itemsGear(${r.orderId_raw})" class="btn btn-xs btn-ghost btn-circle shrink-0 -my-1" title="Print choices">${GEAR_SVG}</button>` : ''}
               </div>
               ${items.slice(1).map(line => `<div class="text-xs text-base-content/70">${line}</div>`).join('')}
             </div>
@@ -791,13 +1102,13 @@ export const orders = {
     {
       id:     'toPrint',
       label:  'To Print',
-      count:  (r) => r.to_prints?.length ?? 0,
+      count:  (r) => r.to_print?.length ?? 0,
       render: toPrintTab,
     },
     {
       id:     'prints',
       label:  'Prints',
-      count:  (r) => (r.printed_orders?.length ?? 0) + (r.auto_proof_files?.length ?? 0),
+      count:  (r) => r.printed_order?.length ?? 0,
       render: printsTab,
     },
     {
@@ -918,7 +1229,89 @@ export const orders = {
 };
 
 window._orderEdit = (schemaKey) => {
+  if (schemaKey === 'options') { window._optionsOpen(); return; }   // bespoke — see below
   window._CrudForm.open(ORDER_SCHEMAS[schemaKey], window._currentOrderRecord);
+};
+
+// ---------------------------------------------------------------------------
+// Edit Options — bespoke modal (not CrudForm).
+//
+// Two inputs are aggregated into the single persisted `options` field: the
+// existing options text plus an optional "Describe What Changed" note, joined
+// by a blank line. "Describe What Changed" is transient — it is never stored on
+// its own, only folded into `options`. On save the aggregate is written via
+// v2-atmdb and then broadcast to Slack (fire-and-forget).
+// ---------------------------------------------------------------------------
+function escHtml(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+window._optionsOpen = () => {
+  const record  = window._currentOrderRecord;
+  const orderId = record?.orderId_raw;
+
+  window._Modal.open(`
+    <div class="flex flex-col gap-3">
+      <div class="form-control gap-0.5">
+        <label class="label py-0" for="opt-options"><span class="label-text text-xs">Options</span></label>
+        <textarea id="opt-options" rows="6"
+          class="textarea textarea-bordered textarea-sm w-full">${escHtml(record?.options)}</textarea>
+        <p class="text-xs text-base-content/40 mt-0.5">Updated options sent to Slack #${orderId}</p>
+      </div>
+      <div class="form-control gap-0.5">
+        <label class="label py-0" for="opt-describe"><span class="label-text text-xs">Describe What Changed</span></label>
+        <textarea id="opt-describe" rows="3"
+          class="textarea textarea-bordered textarea-sm w-full"></textarea>
+      </div>
+      <div id="opt-error" class="text-error text-sm hidden"></div>
+    </div>
+  `, 'Edit Options', { actions: '<button id="opt-save-btn" onclick="window._optionsSave()" class="btn btn-primary btn-sm">Save</button>' });
+};
+
+window._optionsSave = async () => {
+  const record   = window._currentOrderRecord;
+  const orderId  = record?.orderId_raw;
+  const errorEl  = document.getElementById('opt-error');
+  const btn      = document.getElementById('opt-save-btn');
+
+  const baseOptions = document.getElementById('opt-options')?.value ?? '';
+  const describe    = (document.getElementById('opt-describe')?.value ?? '').trim();
+  const aggregate   = describe ? `${baseOptions}\n\n${describe}` : baseOptions;
+
+  errorEl?.classList.add('hidden');
+  if (btn) { btn.disabled = true; btn.innerHTML = '<span class="loading loading-spinner loading-xs"></span>'; }
+
+  try {
+    const result = await API.gcf('v2-atmdb', {
+      toast: 'Saved',
+      body: JSON.stringify({
+        op:  'updateVerify',
+        col: COL,
+        q:   { orderId_raw: orderId },
+        doc: { options: aggregate },
+      }),
+    });
+
+    const saved  = result?.records?.[0] ?? { options: aggregate };
+    const merged = { ...record, ...saved };
+    API.storeUpdate(COL, merged, 'orderId_raw');
+    window._Table?.updateRow(merged);
+    window._Drawer?.refresh(merged);
+    window._Modal.close();
+
+    // Fire-and-forget — a failed Slack send must not make the save look failed;
+    // the backend reports any send error on its own.
+    API.gcf('v2-sendSlackMessage', {
+      body: JSON.stringify({
+        channel_name: orderId,
+        message:      `:pencil: order options updated: \n${aggregate}`,
+      }),
+    });
+  } catch (err) {
+    if (errorEl) { errorEl.textContent = err.message || 'Save failed.'; errorEl.classList.remove('hidden'); }
+    if (btn)     { btn.disabled = false; btn.textContent = 'Save'; }
+  }
 };
 
 window._itemsGear = async (orderId) => {
@@ -1004,6 +1397,10 @@ function _picOpen() {
         </select>
       </div>
       <div id="pic-result"></div>
+      <div class="text-xs text-base-content/60 border-t border-base-300 pt-2">
+        <div>On save, this also generates to_print(s).</div>
+        <div>Sends a message to Slack #${window._picOrderId}.</div>
+      </div>
     </div>
   `, 'Item Lines', { boxClass: 'max-w-xl', actions: '<button id="pic-save-btn" onclick="window._picSave()" class="btn btn-sm btn-primary">Save</button>' });
 }
