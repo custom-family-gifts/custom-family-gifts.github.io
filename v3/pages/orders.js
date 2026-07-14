@@ -1539,7 +1539,7 @@ function _tpProductOpts(size, frame) {
     .map(p => {
       const star  = p.featured      ? '⭐ ' : '';
       const globe = p.international ? '🌍 ' : '';
-      return `<option value="${p._ATID}">${star}${globe}${p.printer} | ${p.frame} | ${p.size}</option>`;
+      return `<option value="${p._ATID}" data-printer_sku="${p.printer_sku}">${star}${globe}${p.printer} | ${p.frame} | ${p.size}</option>`;
     })
     .join('');
 }
@@ -1557,9 +1557,10 @@ function _tpOpen() {
           ${_tpFrameOpts('')}
         </select>
       </div>
-      <select id="tp-product" class="select select-sm select-bordered w-full" disabled>
+      <select id="tp-product" class="select select-sm select-bordered w-full" disabled onchange="window._tpCostUpdate()">
         <option value="">Select size &amp; frame first…</option>
       </select>
+      <div id="tp-cost" class="text-xs text-base-content/50"></div>
       <div class="flex items-center gap-2">
         <label class="text-sm text-base-content/60 shrink-0">Chosen Proof</label>
         <input id="tp-proof" type="text" maxlength="1" placeholder="A–Z"
@@ -1568,7 +1569,7 @@ function _tpOpen() {
       </div>
     </div>
   `, 'Add To Print', {
-    boxClass: 'max-w-md',
+    boxClass: 'max-w-2xl',
     actions:  '<button id="tp-submit-btn" onclick="window._tpSubmit()" class="btn btn-sm btn-primary">Add To Print</button>',
   });
 }
@@ -1595,6 +1596,40 @@ window._tpUpdate = () => {
   } else {
     prodEl.innerHTML = '<option value="">Select size &amp; frame first…</option>';
     prodEl.disabled  = true;
+  }
+  window._tpCostUpdate();
+};
+
+window._tpCostUpdate = async () => {
+  const costEl  = document.getElementById('tp-cost');
+  const prodEl  = document.getElementById('tp-product');
+  if (!costEl || !prodEl) return;
+
+  const selectedOption = prodEl.selectedOptions[0];
+  const printerSku     = selectedOption?.dataset.printer_sku;
+  const product         = window._tpProducts.find(p => p._ATID === selectedOption?.value);
+  if (!selectedOption || !printerSku || !product) { costEl.textContent = ''; return; }
+
+  const requestToken   = (window._tpCostToken || 0) + 1;
+  window._tpCostToken  = requestToken;
+  costEl.textContent   = 'Loading cost…';
+
+  try {
+    const result = await API.gcf('v2-getProductPrintChoiceCost', {
+      body: JSON.stringify({
+        orderId:     window._tpOrderId,
+        printer_sku: printerSku,
+        printer:     product.printer,
+      }),
+    });
+    if (window._tpCostToken !== requestToken) return;
+    const { ship_cost, item_cost } = result;
+    costEl.textContent = (ship_cost != null && item_cost != null)
+      ? `🚚 $${(+ship_cost).toFixed(2)} + 🖼️ $${(+item_cost).toFixed(2)} = $${(+ship_cost + +item_cost).toFixed(2)}`
+      : '';
+  } catch (err) {
+    if (window._tpCostToken !== requestToken) return;
+    costEl.textContent = 'Could not load shipping cost.';
   }
 };
 
