@@ -1623,9 +1623,10 @@ window._tpCostUpdate = async () => {
       }),
     });
     if (window._tpCostToken !== requestToken) return;
-    const { ship_cost, item_cost } = result;
-    costEl.textContent = (ship_cost != null && item_cost != null)
-      ? `🚚 $${(+ship_cost).toFixed(2)} + 🖼️ $${(+item_cost).toFixed(2)} = $${(+ship_cost + +item_cost).toFixed(2)}`
+    const { ship_cost, item_cost, country_code } = result;
+    costEl.innerHTML = (ship_cost != null && item_cost != null)
+      ? `<div>🚚 $${(+ship_cost).toFixed(2)} + 🖼️ $${(+item_cost).toFixed(2)} = $${(+ship_cost + +item_cost).toFixed(2)}</div>`
+        + (country_code && country_code !== 'US' ? `<div>Shipping to ${country_code}</div>` : '')
       : '';
   } catch (err) {
     if (window._tpCostToken !== requestToken) return;
