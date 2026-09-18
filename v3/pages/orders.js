@@ -859,7 +859,7 @@ const toPrintTab = (r) => {
       <div class="flex gap-2">
         <button onclick="window._toPrintAdd('${r.at_record_id}', ${r.orderId_raw})"
           class="btn btn-sm btn-outline flex-1">+ Add To Print</button>
-        ${r.to_print?.length ? `<button onclick="window._toPrintNow(${r.orderId_raw})"
+        ${r.to_print?.length ? `<button id="to-print-now-btn" onclick="window._toPrintNow(${r.orderId_raw})"
           class="btn btn-sm btn-primary flex-1">Print Now</button>` : ''}
       </div>
     </div>`;
@@ -1466,13 +1466,16 @@ window._picDeleteRow = (idx) => {
 };
 
 window._toPrintNow = async (orderId) => {
+  const btn = document.getElementById('to-print-now-btn');
+  if (btn) { btn.disabled = true; btn.innerHTML = '<span class="loading loading-spinner loading-xs"></span>'; }
+
   try {
-    await API.gcf(`v2-autoprintSearch?orderId=${orderId}&force=1`, { toast: 'Print triggered.' });
+    await API.gcf(`v2-autoprintSearch?orderId_force=${orderId}&force=1`, { toast: 'Print triggered.' });
     const updated = await fetchOne(window._currentOrderRecord);
     window._Drawer?.refresh(updated);
     window._Drawer?.switchTab('toPrint');
   } catch (err) {
-    // error toast handled by API.gcf
+    if (btn) { btn.disabled = false; btn.textContent = 'Print Now'; }
   }
 };
 
