@@ -1,13 +1,17 @@
-import { orders }      from './pages/orders.js';
-import { scheduled }   from './pages/scheduled.js';
-import { apiErrorLog } from './pages/api-error-log.js';
-import { abandoned }   from './pages/abandoned.js';
+import { orders }       from './pages/orders.js';
+import { scheduled }    from './pages/scheduled.js';
+import { apiErrorLog }  from './pages/api-error-log.js';
+import { abandoned }    from './pages/abandoned.js';
+import { designs }      from './pages/designs.js';
+import { etsyListings } from './pages/etsy-listings.js';
 
 // Each route becomes a nav item automatically.
 // Add a new page by adding one entry here.
 export const routes = [
-  { path: 'orders',        label: 'Orders',        icon: '📦', section: 'Service', page: orders },
-  { path: 'abandoned',     label: 'Abandoned',     icon: '🛒', section: 'Artist',  page: abandoned },
-  { path: 'scheduled',     label: 'Scheduled',     icon: '⏰', section: 'Tech',    page: scheduled },
-  { path: 'api-error-log', label: 'API Error Log', icon: '🚨', section: 'Tech',    page: apiErrorLog },
+  { path: 'orders',        label: 'Orders',        icon: '📦', section: 'Service',  page: orders },
+  { path: 'abandoned',     label: 'Abandoned',     icon: '🛒', section: 'Artist',   page: abandoned },
+  { path: 'designs',       label: 'Designs',       icon: '🎨', section: 'Products', page: designs },
+  { path: 'etsy-listings', label: 'Etsy Listings', icon: '🏷️', section: 'Products', page: etsyListings },
+  { path: 'scheduled',     label: 'Scheduled',     icon: '⏰', section: 'Tech',     page: scheduled },
+  { path: 'api-error-log', label: 'API Error Log', icon: '🚨', section: 'Tech',     page: apiErrorLog },
 ];
