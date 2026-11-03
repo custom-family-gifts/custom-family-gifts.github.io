@@ -13,11 +13,25 @@ const HIDDEN_IMAGE_SLOTS = new Set([1]);
 const IMAGE_SLOTS = ALL_IMAGE_SLOTS.filter(slot => !HIDDEN_IMAGE_SLOTS.has(slot));
 const IMAGE_KEYS  = IMAGE_SLOTS.map(_imageUrlField);
 
+// Shopify Media — frame-shaped crops (fixed abbreviations) plus its own
+// 10-slot grid, parallel to the Etsy image fields but on shopify_image_* keys.
+const SHOPIFY_FRAME_ABBREVS = ['po', 'do', 'cw', 'wc', 'bf', 'wf'];
+const _shopifyFrameImageUrlField = (abbrev) => `shopify_image_${abbrev}_s3_url`;
+const _shopifyFrameImageKeyField = (abbrev) => `shopify_image_${abbrev}_s3_key`;
+
+const SHOPIFY_IMAGE_SLOTS = Array.from({ length: 10 }, (_, index) => String(index + 1));
+const _shopifyImageUrlField = (slot) => `shopify_image_${slot}_s3_url`;
+const _shopifyImageKeyField = (slot) => `shopify_image_${slot}_s3_key`;
+
 const PROJECTION = {
   name:            1,
   etsy_video_url:  1,
   ...Object.fromEntries(ALL_IMAGE_SLOTS.map(slot => [_imageUrlField(slot), 1])),
   ...Object.fromEntries(ALL_IMAGE_SLOTS.map(slot => [_imageKeyField(slot), 1])),
+  ...Object.fromEntries(SHOPIFY_FRAME_ABBREVS.map(abbrev => [_shopifyFrameImageUrlField(abbrev), 1])),
+  ...Object.fromEntries(SHOPIFY_FRAME_ABBREVS.map(abbrev => [_shopifyFrameImageKeyField(abbrev), 1])),
+  ...Object.fromEntries(SHOPIFY_IMAGE_SLOTS.map(slot => [_shopifyImageUrlField(slot), 1])),
+  ...Object.fromEntries(SHOPIFY_IMAGE_SLOTS.map(slot => [_shopifyImageKeyField(slot), 1])),
 };
 
 const CREATE_FIELDS = [
@@ -155,6 +169,112 @@ const etsyMediaTab = (record) => {
         </div>
       </div>
 
+    </div>
+  `;
+};
+
+// ---------------------------------------------------------------------------
+// Tab: Shopify Media — a fixed 6-slot "Frame Images" section plus a 10-slot
+// grid, same upload/drag-reorder/remove/save behavior as Etsy Media's grid.
+// Registry-driven so both sections share one implementation (below, near the
+// other window handlers) instead of duplicating the whole slot lifecycle.
+// ---------------------------------------------------------------------------
+const SHOPIFY_GRIDS = {
+  frame: {
+    idPrefix:     'design-shopify-frame-slot',
+    slots:        SHOPIFY_FRAME_ABBREVS,
+    urlField:     _shopifyFrameImageUrlField,
+    keyField:     _shopifyFrameImageKeyField,
+    tempIdField:  (abbrev) => `shopify_frame_image_temp_id_${abbrev}`,
+    // Not built yet — wire up the matching GCF function before Save works.
+    saveEndpoint: 'v2-shopifySmileSaveDesignFrameImages',
+    toast:        'Frame images saved',
+  },
+  grid: {
+    idPrefix:     'design-shopify-slot',
+    slots:        SHOPIFY_IMAGE_SLOTS,
+    urlField:     _shopifyImageUrlField,
+    keyField:     _shopifyImageKeyField,
+    tempIdField:  (slot) => `shopify_image_temp_id_${slot}`,
+    // Not built yet — wire up the matching GCF function before Save works.
+    saveEndpoint: 'v2-shopifySmileSaveDesignImages',
+    toast:        'Images saved',
+  },
+};
+
+const shopifyPendingUploads = { frame: {}, grid: {} };
+let shopifyPendingUploadsFor = null;
+
+function _resetShopifyPendingUploadsIfNewRecord(record) {
+  if (shopifyPendingUploadsFor !== record._id) {
+    shopifyPendingUploads.frame = {};
+    shopifyPendingUploads.grid  = {};
+    shopifyPendingUploadsFor    = record._id;
+  }
+}
+
+function _shopifySlotHtml(gridKey, record, slot) {
+  const grid    = SHOPIFY_GRIDS[gridKey];
+  const url     = record[grid.urlField(slot)] || '';
+  const pending = !!shopifyPendingUploads[gridKey][slot];
+  const label   = slot.toUpperCase();
+  return `
+    <div id="${grid.idPrefix}-${slot}"
+      class="group relative aspect-square rounded overflow-hidden bg-base-300 border-2 ${pending ? 'border-dashed border-gray-400' : 'border-transparent'} cursor-pointer"
+      draggable="${url ? 'true' : 'false'}"
+      onclick="document.getElementById('${grid.idPrefix}-input-${slot}').click()"
+      ondragstart="window._shopifyGridSlotDragStart(event, '${gridKey}', '${slot}')"
+      ondragend="window._shopifyGridSlotDragEnd('${gridKey}', '${slot}')"
+      ondragover="window._shopifyGridSlotDragOver(event, '${gridKey}', '${slot}')"
+      ondragleave="window._shopifyGridSlotDragLeave('${gridKey}', '${slot}')"
+      ondrop="window._shopifyGridSlotDrop(event, '${gridKey}', '${slot}')"
+      title="Slot ${label} — click to upload, or drag to reorder / drop an image">
+      <img id="${grid.idPrefix}-img-${slot}" src="${url}" alt=""
+        class="w-full h-full object-cover ${url ? '' : 'hidden'}" />
+      <div id="${grid.idPrefix}-placeholder-${slot}" class="${url ? 'hidden' : 'flex'} absolute inset-0 items-center justify-center text-2xl text-base-content/20 pointer-events-none">+</div>
+      <div class="absolute top-0.5 left-1 text-[10px] font-mono text-white bg-black/50 rounded px-1 pointer-events-none">${label}</div>
+      <button type="button" id="${grid.idPrefix}-remove-${slot}"
+        class="${(url || pending) ? '' : 'hidden'} absolute top-0.5 right-0.5 flex items-center justify-center w-4 h-4 rounded-full bg-black/60 text-white text-[10px] leading-none opacity-25 group-hover:opacity-100 hover:bg-error transition-opacity"
+        onclick="event.stopPropagation(); window._shopifyGridSlotRemove('${gridKey}', '${slot}')" title="Remove image">✕</button>
+      <div id="${grid.idPrefix}-spinner-${slot}" class="hidden absolute inset-0 flex items-center justify-center bg-black/40">
+        <span class="loading loading-spinner loading-sm text-white"></span>
+      </div>
+      <input id="${grid.idPrefix}-input-${slot}" type="file" accept="image/*" class="hidden"
+        onchange="window._shopifyGridSlotFileChange(this, '${gridKey}', '${slot}')" />
+    </div>`;
+}
+
+function _shopifyGridSectionHtml(gridKey, record, { title, note, columns }) {
+  const grid        = SHOPIFY_GRIDS[gridKey];
+  const filledCount = grid.slots.filter(slot => record[grid.urlField(slot)]).length;
+  const hasPending  = Object.keys(shopifyPendingUploads[gridKey]).length > 0;
+  return `
+    <div class="card bg-base-200">
+      <div class="flex flex-col px-3 py-2 gap-2">
+        <div class="flex items-center justify-between gap-1">
+          <h3 class="text-xs uppercase tracking-wide opacity-60">
+            ${title}
+            <span class="normal-case opacity-40 ml-1">${filledCount}/${grid.slots.length}</span>
+          </h3>
+          <button id="${grid.idPrefix}-save-btn" class="btn btn-xs btn-primary" ${hasPending ? '' : 'disabled'}
+            onclick="window._shopifyGridSave('${gridKey}')">Save</button>
+        </div>
+        <div class="grid gap-1.5" style="grid-template-columns: repeat(${columns}, minmax(0, 1fr))">
+          ${grid.slots.map(slot => _shopifySlotHtml(gridKey, record, slot)).join('')}
+        </div>
+        ${note ? `<p class="text-xs text-base-content/40">${note}</p>` : ''}
+      </div>
+    </div>
+  `;
+}
+
+const shopifyMediaTab = (record) => {
+  window._currentDesignRecord = record;
+  _resetShopifyPendingUploadsIfNewRecord(record);
+  return `
+    <div class="space-y-3">
+      ${_shopifyGridSectionHtml('frame', record, { title: 'Frame Images', columns: 3 })}
+      ${_shopifyGridSectionHtml('grid', record, { title: 'Images', columns: 5, note: 'Click a slot to upload or replace an image, then Save.' })}
     </div>
   `;
 };
@@ -327,6 +447,13 @@ export const designs = {
       label:  'Etsy Listings',
       render: etsyListingsTab,
     },
+    {
+      id:     'shopify_media',
+      label:  'Shopify Media',
+      count:  (record) => SHOPIFY_FRAME_ABBREVS.filter(abbrev => record[_shopifyFrameImageUrlField(abbrev)]).length
+                         + SHOPIFY_IMAGE_SLOTS.filter(slot => record[_shopifyImageUrlField(slot)]).length,
+      render: shopifyMediaTab,
+    },
   ],
 
   actions: `<button class="btn btn-primary btn-sm" onclick="window._designCreate()">+ New</button>`,
@@ -359,6 +486,28 @@ export const designs = {
             <div class="grid gap-1" style="grid-template-columns: repeat(10, 2.5rem)">
               ${IMAGE_SLOTS.map(slot => {
                 const url = record[_imageUrlField(slot)];
+                return url
+                  ? `<a href="${url}" target="_blank" rel="noopener" onclick="event.stopPropagation()">
+                       <img src="${url}" alt="" class="w-10 h-10 object-cover rounded hover:opacity-80 transition-opacity" />
+                     </a>`
+                  : `<div class="w-10 h-10 rounded border border-dashed border-base-content/20 bg-base-200"></div>`;
+              }).join('')}
+            </div>
+          </div>
+        `;
+      },
+    },
+    {
+      key:    'shopify_images',
+      label:  'Shopify Images',
+      render: (val, record) => {
+        const urls = SHOPIFY_IMAGE_SLOTS.map(slot => record[_shopifyImageUrlField(slot)]).filter(Boolean);
+        return `
+          <div class="flex flex-col gap-1">
+            <span class="text-xs opacity-50">${urls.length}/${SHOPIFY_IMAGE_SLOTS.length}</span>
+            <div class="grid gap-1" style="grid-template-columns: repeat(10, 2.5rem)">
+              ${SHOPIFY_IMAGE_SLOTS.map(slot => {
+                const url = record[_shopifyImageUrlField(slot)];
                 return url
                   ? `<a href="${url}" target="_blank" rel="noopener" onclick="event.stopPropagation()">
                        <img src="${url}" alt="" class="w-10 h-10 object-cover rounded hover:opacity-80 transition-opacity" />
@@ -688,5 +837,226 @@ window._designSlotsReorder = async (fromSlot, toSlot) => {
     // error toast handled by API.gcf
   } finally {
     reorderSaving = false;
+  }
+};
+
+// ---------------------------------------------------------------------------
+// Shopify Media — one generic upload/drag-reorder/remove/save implementation
+// shared by the "frame" (6 fixed abbreviations) and "grid" (10 slots) grids
+// registered in SHOPIFY_GRIDS above. Slot values are always strings so a
+// numeric grid slot and a frame abbreviation compare and key identically.
+// ---------------------------------------------------------------------------
+function _shopifyUploadFileToSlot(gridKey, slot, file) {
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => window._shopifyGridSlotUpload(gridKey, slot, reader.result, file.type);
+  reader.readAsDataURL(file);
+}
+
+window._shopifyGridSlotFileChange = (inputEl, gridKey, slot) => {
+  const file = inputEl.files?.[0];
+  inputEl.value = '';
+  _shopifyUploadFileToSlot(gridKey, slot, file);
+};
+
+const SHOPIFY_REORDER_MIME = 'application/x-shopify-grid-slot';
+
+window._shopifyGridSlotDragStart = (event, gridKey, slot) => {
+  event.dataTransfer.effectAllowed = 'move';
+  event.dataTransfer.setData(SHOPIFY_REORDER_MIME, JSON.stringify({ gridKey, slot }));
+  document.getElementById(`${SHOPIFY_GRIDS[gridKey].idPrefix}-${slot}`)?.classList.add('opacity-40');
+};
+
+window._shopifyGridSlotDragEnd = (gridKey, slot) => {
+  document.getElementById(`${SHOPIFY_GRIDS[gridKey].idPrefix}-${slot}`)?.classList.remove('opacity-40');
+};
+
+window._shopifyGridSlotDragOver = (event, gridKey, slot) => {
+  event.preventDefault();
+  document.getElementById(`${SHOPIFY_GRIDS[gridKey].idPrefix}-${slot}`)?.classList.add('ring-2', 'ring-primary');
+};
+
+window._shopifyGridSlotDragLeave = (gridKey, slot) => {
+  document.getElementById(`${SHOPIFY_GRIDS[gridKey].idPrefix}-${slot}`)?.classList.remove('ring-2', 'ring-primary');
+};
+
+window._shopifyGridSlotDrop = (event, gridKey, slot) => {
+  event.preventDefault();
+  document.getElementById(`${SHOPIFY_GRIDS[gridKey].idPrefix}-${slot}`)?.classList.remove('ring-2', 'ring-primary');
+
+  if (event.dataTransfer.types.includes('Files')) {
+    _shopifyUploadFileToSlot(gridKey, slot, event.dataTransfer.files?.[0]);
+    return;
+  }
+
+  const raw = event.dataTransfer.getData(SHOPIFY_REORDER_MIME);
+  if (!raw) return;
+  const { gridKey: fromGridKey, slot: fromSlot } = JSON.parse(raw);
+  if (fromGridKey === gridKey && fromSlot !== slot) window._shopifyGridSlotsReorder(gridKey, fromSlot, slot);
+};
+
+window._shopifyGridSlotUpload = async (gridKey, slot, dataUrl, contentType) => {
+  const grid          = SHOPIFY_GRIDS[gridKey];
+  const spinnerEl     = document.getElementById(`${grid.idPrefix}-spinner-${slot}`);
+  const imgEl         = document.getElementById(`${grid.idPrefix}-img-${slot}`);
+  const placeholderEl = document.getElementById(`${grid.idPrefix}-placeholder-${slot}`);
+  const tileEl        = document.getElementById(`${grid.idPrefix}-${slot}`);
+
+  spinnerEl?.classList.remove('hidden');
+  try {
+    const base64 = dataUrl.split(',')[1] ?? dataUrl;
+    const result = await API.gcf('v2-imageUploadTemp', {
+      body: JSON.stringify({ data: base64, content_type: contentType }),
+    });
+    const uploaded = result?.records?.[0];
+
+    shopifyPendingUploads[gridKey][slot] = uploaded?._id;
+
+    if (imgEl && uploaded?.s3_url) {
+      imgEl.src = uploaded.s3_url;
+      imgEl.classList.remove('hidden');
+      placeholderEl?.classList.add('hidden');
+    }
+    tileEl?.classList.add('border-dashed', 'border-gray-400');
+    tileEl?.classList.remove('border-transparent');
+    document.getElementById(`${grid.idPrefix}-remove-${slot}`)?.classList.remove('hidden');
+
+    const saveBtn = document.getElementById(`${grid.idPrefix}-save-btn`);
+    if (saveBtn) saveBtn.disabled = false;
+  } catch (err) {
+    // error toast handled by API.gcf
+  } finally {
+    spinnerEl?.classList.add('hidden');
+  }
+};
+
+window._shopifyGridSlotRemove = (gridKey, slot) => {
+  if (shopifyPendingUploads[gridKey][slot]) {
+    _shopifyCancelPendingUpload(gridKey, slot);
+    return;
+  }
+  window._shopifyGridSlotDelete(gridKey, slot);
+};
+
+function _shopifyCancelPendingUpload(gridKey, slot) {
+  const grid = SHOPIFY_GRIDS[gridKey];
+  delete shopifyPendingUploads[gridKey][slot];
+
+  const record        = window._currentDesignRecord;
+  const url           = record[grid.urlField(slot)] || '';
+  const imgEl         = document.getElementById(`${grid.idPrefix}-img-${slot}`);
+  const placeholderEl = document.getElementById(`${grid.idPrefix}-placeholder-${slot}`);
+  const tileEl        = document.getElementById(`${grid.idPrefix}-${slot}`);
+  const removeBtnEl   = document.getElementById(`${grid.idPrefix}-remove-${slot}`);
+
+  if (imgEl) {
+    imgEl.src = url;
+    imgEl.classList.toggle('hidden', !url);
+  }
+  placeholderEl?.classList.toggle('hidden', !!url);
+  tileEl?.classList.remove('border-dashed', 'border-gray-400');
+  tileEl?.classList.add('border-transparent');
+  removeBtnEl?.classList.toggle('hidden', !url);
+
+  const saveBtn = document.getElementById(`${grid.idPrefix}-save-btn`);
+  if (saveBtn) saveBtn.disabled = Object.keys(shopifyPendingUploads[gridKey]).length === 0;
+}
+
+window._shopifyGridSlotDelete = async (gridKey, slot) => {
+  const grid   = SHOPIFY_GRIDS[gridKey];
+  const record = window._currentDesignRecord;
+  if (!record[grid.urlField(slot)]) return;
+  if (!confirm(`Remove image ${slot.toUpperCase()}?`)) return;
+
+  const doc = {
+    _id: record._id,
+    [grid.urlField(slot)]: null,
+    [grid.keyField(slot)]: null,
+  };
+
+  try {
+    const result = await API.gcf('v2-mdb', {
+      toast: 'Image removed',
+      body: JSON.stringify({ op: 'updateVerify', col: COL, q: { _id: record._id }, doc }),
+    });
+
+    const partial = result?.records?.[0] ?? doc;
+    const merged  = { ...record, ...partial };
+    API.storeUpdate(COL, merged, '_id');
+    window._Table?.upsertRow(merged);
+    window._Drawer?.refresh(merged);
+  } catch (err) {
+    // error toast handled by API.gcf
+  }
+};
+
+window._shopifyGridSave = async (gridKey) => {
+  const grid    = SHOPIFY_GRIDS[gridKey];
+  const record  = window._currentDesignRecord;
+  const btn     = document.getElementById(`${grid.idPrefix}-save-btn`);
+  const entries = Object.entries(shopifyPendingUploads[gridKey]).filter(([, tempId]) => tempId);
+  if (!entries.length) return;
+
+  btn.disabled  = true;
+  btn.innerHTML = '<span class="loading loading-spinner loading-xs"></span>';
+
+  try {
+    const body = { _id: record._id };
+    for (const [slot, tempId] of entries) body[grid.tempIdField(slot)] = tempId;
+
+    const result = await API.gcf(grid.saveEndpoint, {
+      toast: grid.toast,
+      body: JSON.stringify(body),
+    });
+
+    const partial = result?.records?.[0] ?? {};
+    const merged  = { ...record, ...partial };
+    API.storeUpdate(COL, merged, '_id');
+    window._Table?.upsertRow(merged);
+    shopifyPendingUploads[gridKey] = {};
+    window._Drawer?.refresh(merged);
+  } catch (err) {
+    btn.disabled    = false;
+    btn.textContent = 'Save';
+  }
+};
+
+let shopifyReorderSaving = false;
+
+window._shopifyGridSlotsReorder = async (gridKey, fromSlot, toSlot) => {
+  if (shopifyReorderSaving) return;
+  const grid   = SHOPIFY_GRIDS[gridKey];
+  const record = window._currentDesignRecord;
+
+  const items = grid.slots.map(slot => {
+    const url = record[grid.urlField(slot)];
+    return url ? { url, key: record[grid.keyField(slot)] } : null;
+  });
+  const [moved] = items.splice(grid.slots.indexOf(fromSlot), 1);
+  items.splice(grid.slots.indexOf(toSlot), 0, moved);
+
+  const doc = { _id: record._id };
+  grid.slots.forEach((slot, index) => {
+    const item = items[index];
+    doc[grid.urlField(slot)] = item?.url ?? null;
+    doc[grid.keyField(slot)] = item?.key ?? null;
+  });
+
+  shopifyReorderSaving = true;
+  try {
+    const result = await API.gcf('v2-mdb', {
+      toast: 'Order saved',
+      body: JSON.stringify({ op: 'updateVerify', col: COL, q: { _id: record._id }, doc }),
+    });
+
+    const partial = result?.records?.[0] ?? doc;
+    const merged  = { ...record, ...partial };
+    API.storeUpdate(COL, merged, '_id');
+    window._Table?.upsertRow(merged);
+    window._Drawer?.refresh(merged);
+  } catch (err) {
+    // error toast handled by API.gcf
+  } finally {
+    shopifyReorderSaving = false;
   }
 };
