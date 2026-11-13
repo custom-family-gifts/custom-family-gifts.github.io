@@ -29,10 +29,12 @@
     <input type="text" id="input-client-id" placeholder="client_id" />
 
     <label for="input-code-challenge">Code Challenge</label>
-    <input type="text" value="S14jT23JFuVTA84oGVf7I-scCGQicAqrZdsIrxC7_IU" id="input-code-challenge" placeholder="code_challenge" />
+    <input type="text" id="input-code-challenge" placeholder="code_challenge" />
 
     <label for="input-code-verifier">Code Verifier</label>
     <input type="text" id="input-code-verifier" placeholder="code_verifier" />
+    <button id="generate-btn" type="button" style="margin-top:8px;">Generate Pair</button>
+    <div class="hint">Creates a random verifier and its matching S256 challenge.</div>
 
     <div id="auth-section" style="margin-top:24px;">
       <a id="oauthlink" href="#" target="_blank">
@@ -89,6 +91,7 @@
           oauthLink.href = buildOauthUrl(clientId, codeChallenge);
           oauthLink.onclick = function() {
             localStorage.setItem('etsy_pkce_verifier', codeVerifierInput.value.trim());
+            localStorage.setItem('etsy_client_id', clientId);
           };
           authBtn.disabled = false;
           authBtn.style.opacity = '1';
@@ -105,15 +108,71 @@
 
       codeVerifierInput.addEventListener('input', updateLink);
 
-      // Show returned code + verifier if present in URL
+      function base64UrlEncode(bytes) {
+        return btoa(String.fromCharCode.apply(null, bytes))
+          .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+      }
+
+      function generatePkcePair() {
+        var verifier = base64UrlEncode(crypto.getRandomValues(new Uint8Array(32)));
+        crypto.subtle.digest('SHA-256', new TextEncoder().encode(verifier)).then(function(hash) {
+          codeVerifierInput.value = verifier;
+          codeChallengeInput.value = base64UrlEncode(new Uint8Array(hash));
+          updateLink();
+        });
+      }
+
+      document.getElementById('generate-btn').addEventListener('click', generatePkcePair);
+
+      // On return from Etsy, v2-etsySetRefreshToken exchanges the code, works out which shop authorized,
+      // and records the refresh token for v2-etsyAccessToken. Falls back to showing code + verifier.
       var returnedCode = urlParams.code;
       if (returnedCode) {
-        var verifierForPostman = localStorage.getItem('etsy_pkce_verifier') || '';
+        var returnedVerifier = localStorage.getItem('etsy_pkce_verifier') || '';
+        var returnedClientId = localStorage.getItem('etsy_client_id') || clientIdInput.value.trim();
         localStorage.removeItem('etsy_pkce_verifier');
         var codeResult = document.getElementById('code-result');
-        codeResult.innerHTML =
-          '<strong>code:</strong><br><textarea rows="2">' + returnedCode + '</textarea>' +
-          '<strong>verifier:</strong><br><textarea rows="2">' + verifierForPostman + '</textarea>';
+
+        function showManualFallback(message) {
+          codeResult.innerHTML =
+            '<div style="color:red;">' + message + '</div>' +
+            '<strong>code:</strong><br><textarea rows="2">' + returnedCode + '</textarea>' +
+            '<strong>verifier:</strong><br><textarea rows="2">' + returnedVerifier + '</textarea>';
+        }
+
+        if (!returnedVerifier || !returnedClientId) {
+          showManualFallback('Missing verifier or client ID — exchange manually.');
+        } else {
+          codeResult.textContent = 'Exchanging code and recording refresh token…';
+          // called directly - no auth needed: a code is only useful if one of our shops' etsy accounts consented
+          fetch('https://us-central1-custom-family-gifts.cloudfunctions.net/v2-etsySetRefreshToken', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              code: returnedCode,
+              code_verifier: returnedVerifier,
+              client_id: returnedClientId
+            })
+          })
+            .then(function(response) {
+              return response.text().then(function(text) {
+                var body = {};
+                try { body = JSON.parse(text); } catch (e) { body = { message: text }; }
+                if (!response.ok) throw new Error(body.message || response.status);
+                return body;
+              });
+            })
+            .then(function(result) {
+              var record = (result.records && result.records[0]) || {};
+              codeResult.innerHTML =
+                '<div style="color:green;"><strong>' + result.shop_abbrev + '</strong> connected — refresh token recorded.</div>' +
+                '<div class="hint">etsy_refresh_token _id: ' + record._id + '</div>';
+            })
+            .catch(function(error) {
+              // the code may already be spent if etsy accepted it before the failure - check the function log first
+              showManualFallback('Token exchange failed (' + error.message + ') — see v2-etsySetRefreshToken logs.');
+            });
+        }
       }
     </script>
 
