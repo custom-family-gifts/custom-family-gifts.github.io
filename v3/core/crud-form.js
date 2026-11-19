@@ -1,5 +1,5 @@
-import { API }                    from './api.js';
-import { validate, renderField }  from './form.js';
+import { API }                             from './api.js';
+import { validate, renderField, isShown }  from './form.js';
 
 // ---------------------------------------------------------------------------
 // Form shell
@@ -11,6 +11,55 @@ function _render(schema, record) {
       <div id="cf-error" class="col-span-2 text-error text-sm hidden"></div>
     </form>
   `;
+}
+
+// ---------------------------------------------------------------------------
+// Serialise — every field's current value, keyed by field key.
+// Checkboxes/toggles are absent from FormData when unchecked.
+// coerce: 'number' turns '' into null so 'required' still catches an empty input.
+// ---------------------------------------------------------------------------
+function _toNumber(value) {
+  return value === '' ? null : +value;
+}
+
+function _readValues(form, schema) {
+  const data   = new FormData(form);
+  const values = {};
+  for (const f of schema.fields) {
+    if (f.type === 'preview') continue;
+    if (f.type === 'toggle' || f.type === 'checkbox') {
+      values[f.key] = data.has(f.key);
+    } else if (f.type === 'buttons' && f.multiple) {
+      const selected = data.getAll(f.key);
+      values[f.key] = f.coerce === 'number' ? selected.map(Number) : selected;
+    } else if (f.type === 'datetime') {
+      const dateEl = form.querySelector(`#cf-${f.key}`);
+      const timeEl = dateEl?.closest('.dt-wrap')?.querySelector('.dt-time');
+      const dateVal = dateEl?.value ?? '';
+      if (!dateVal) {
+        values[f.key] = null;
+      } else {
+        const timeVal = timeEl?.value || '00:00';
+        values[f.key] = new Date(`${dateVal}T${timeVal}`).toISOString();
+      }
+    } else {
+      const v = data.get(f.key) ?? '';
+      values[f.key] = f.coerce === 'number' ? _toNumber(v) : v;
+    }
+  }
+  return values;
+}
+
+// Apply showWhen visibility and re-render previews against the current values.
+function _refresh(form, schema, record) {
+  const values = { ...record, ..._readValues(form, schema) };
+  for (const f of schema.fields) {
+    form.querySelector(`[data-field="${f.key}"]`)?.classList.toggle('hidden', !isShown(f, values));
+    if (f.type === 'preview') {
+      const previewEl = form.querySelector(`#cf-${f.key}`);
+      if (previewEl) previewEl.innerHTML = f.render(values);
+    }
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -27,31 +76,14 @@ async function _handleSubmit(e, schema, record) {
   submitBtn.disabled  = true;
   submitBtn.innerHTML = '<span class="loading loading-spinner loading-xs"></span>';
 
-  // Serialise — checkboxes/toggles are absent from FormData when unchecked
-  const data = new FormData(form);
-  const set  = {};
-  for (const f of schema.fields) {
-    if (f.type === 'toggle' || f.type === 'checkbox') {
-      set[f.key] = data.has(f.key);
-    } else if (f.type === 'datetime') {
-      const dateEl = form.querySelector(`#cf-${f.key}`);
-      const timeEl = dateEl?.closest('.dt-wrap')?.querySelector('.dt-time');
-      const dateVal = dateEl?.value ?? '';
-      if (!dateVal) {
-        set[f.key] = null;
-      } else {
-        const timeVal = timeEl?.value || '00:00';
-        set[f.key] = new Date(`${dateVal}T${timeVal}`).toISOString();
-      }
-    } else {
-      const v = data.get(f.key) ?? '';
-      set[f.key] = f.coerce === 'number' ? +v : v;
-    }
-  }
+  // Hidden (showWhen) fields are neither validated nor saved
+  const values = _readValues(form, schema);
+  const shown  = schema.fields.filter(f => f.type !== 'preview' && isShown(f, { ...record, ...values }));
+  const set    = Object.fromEntries(shown.map(f => [f.key, values[f.key]]));
 
   // Per-field validation
   let hasErrors = false;
-  for (const f of schema.fields) {
+  for (const f of shown) {
     if (!f.validate) continue;
     const errEl = form.querySelector(`#cf-${f.key}-err`);
     const msg   = validate(f, String(set[f.key] ?? ''));
@@ -84,7 +116,7 @@ async function _handleSubmit(e, schema, record) {
       API.storeUpdate(schema.collection, saved, idField);
       window._Table?.prependRow(saved);
     } else if (!isNew && saved) {
-      const merged = { ...set, ...saved };
+      const merged = { ...record, ...set, ...saved };
       API.storeUpdate(schema.collection, merged, idField);
       window._Table?.updateRow(merged);
       window._Drawer?.refresh(merged);
@@ -115,9 +147,11 @@ export const CrudForm = {
         actions: `<button id="cf-submit" form="cf-form" type="submit" class="btn btn-primary btn-sm">Save</button>`,
       }
     );
-    document
-      .getElementById('modal-body')
-      .querySelector('#cf-form')
-      .addEventListener('submit', (e) => _handleSubmit(e, schema, record));
+    const form = document.getElementById('modal-body').querySelector('#cf-form');
+    form.addEventListener('submit', (e) => _handleSubmit(e, schema, record));
+    if (schema.fields.some(f => f.showWhen || f.type === 'preview')) {
+      form.addEventListener('input',  () => _refresh(form, schema, record));
+      form.addEventListener('change', () => _refresh(form, schema, record));
+    }
   },
 };

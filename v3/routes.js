@@ -4,6 +4,7 @@ import { apiErrorLog }  from './pages/api-error-log.js';
 import { abandoned }    from './pages/abandoned.js';
 import { designs }      from './pages/designs.js';
 import { etsyListings } from './pages/etsy-listings.js';
+import { pa3Routines }  from './pages/pa3-routines.js';
 
 // Each route becomes a nav item automatically.
 // Add a new page by adding one entry here.
@@ -14,4 +15,5 @@ export const routes = [
   { path: 'etsy-listings', label: 'Etsy Listings', icon: '🏷️', section: 'Products', page: etsyListings },
   { path: 'scheduled',     label: 'Scheduled',     icon: '⏰', section: 'Tech',     page: scheduled },
   { path: 'api-error-log', label: 'API Error Log', icon: '🚨', section: 'Tech',     page: apiErrorLog },
+  { path: 'pa3-routines',  label: 'PA3 Routines',  icon: '🤖', section: 'Tech',     page: pa3Routines },
 ];
